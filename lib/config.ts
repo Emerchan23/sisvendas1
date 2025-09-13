@@ -117,7 +117,7 @@ export async function saveConfig(config: Partial<Config>): Promise<void> {
     
     // Disparar evento de mudança
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('configChanged', { detail: currentConfig }))
+      window.dispatchEvent(new CustomEvent('erp-config-changed', { detail: currentConfig }))
     }
     
 

@@ -78,6 +78,7 @@ import { api } from "@/lib/api-client"
 type FormOrcamentoItem = {
   descricao: string
   marca: string
+  unidadeMedida: string
   quantidade: number
   valorUnitario: number
   linkRef: string
@@ -113,15 +114,17 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
   const { toast } = useToast()
   const [isMaximized, setIsMaximized] = useState(false)
   const [clientes, setClientes] = useState<any[]>([])
+  const [unidadesMedida, setUnidadesMedida] = useState<{id: number, codigo: string, descricao: string, ativo: boolean}[]>([])
+  const [modalidades, setModalidades] = useState<{id: number, codigo: string, nome: string, descricao: string, ativo: boolean, requer_numero_processo?: boolean}[]>([])
   const [clienteIdSel, setClienteIdSel] = useState<string>("")
   const [cliente, setCliente] = useState<ClienteState>({ nome: "" })
   const [observacoes, setObservacoes] = useState("")
   const [dataValidade, setDataValidade] = useState("")
-  const [modalidade, setModalidade] = useState<"compra_direta" | "licitado" | "dispensa">("compra_direta")
+  const [modalidade, setModalidade] = useState<"COMPRA_DIRETA" | "LICITADO" | "DISPENSA">("COMPRA_DIRETA")
   const [numeroPregao, setNumeroPregao] = useState("")
   const [numeroDispensa, setNumeroDispensa] = useState("")
   const [itens, setItens] = useState<FormOrcamentoItem[]>([
-    { descricao: "", marca: "", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined },
+    { descricao: "", marca: "", unidadeMedida: "un", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined },
   ])
   const [hasDraft, setHasDraft] = useState(false)
 
@@ -155,10 +158,10 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         setClienteIdSel(draft.clienteIdSel || "")
         setObservacoes(draft.observacoes || "")
         setDataValidade(draft.dataValidade || "")
-        setModalidade(draft.modalidade || "compra_direta")
+        setModalidade(draft.modalidade || "COMPRA_DIRETA")
         setNumeroPregao(draft.numeroPregao || "")
         setNumeroDispensa(draft.numeroDispensa || "")
-        setItens(draft.itens || [{ descricao: "", marca: "", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }])
+        setItens(draft.itens || [{ descricao: "", marca: "", unidadeMedida: "un", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }])
         setHasDraft(true)
         toast({ title: "Rascunho carregado!", description: "Seus dados foram restaurados." })
       }
@@ -177,6 +180,72 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
     }
   }
 
+  // Função para carregar modalidades
+  const carregarModalidades = async () => {
+    try {
+      const response = await fetch('/api/modalidades-compra')
+      if (response.ok) {
+        const modalidadesData = await response.json()
+        setModalidades(modalidadesData.filter((m: any) => m.ativo))
+      } else {
+        console.error('Erro ao carregar modalidades')
+        // Fallback para modalidades padrão
+        setModalidades([
+          { id: 1, codigo: 'COMPRA_DIRETA', nome: 'Compra Direta', descricao: 'Compra direta sem licitação', ativo: true },
+          { id: 2, codigo: 'LICITADO', nome: 'Licitado', descricao: 'Processo licitatório', ativo: true },
+          { id: 3, codigo: 'DISPENSA', nome: 'Dispensa de Licitação', descricao: 'Dispensa de licitação', ativo: true }
+        ])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar modalidades:', error)
+      // Fallback para modalidades padrão
+      setModalidades([
+        { id: 1, codigo: 'COMPRA_DIRETA', nome: 'Compra Direta', descricao: 'Compra direta sem licitação', ativo: true },
+        { id: 2, codigo: 'LICITADO', nome: 'Licitado', descricao: 'Processo licitatório', ativo: true },
+        { id: 3, codigo: 'DISPENSA', nome: 'Dispensa de Licitação', descricao: 'Dispensa de licitação', ativo: true }
+      ])
+    }
+  }
+
+  // Função para carregar unidades de medida
+  const carregarUnidadesMedida = async () => {
+    try {
+      const response = await fetch('/api/unidades-medida')
+      if (response.ok) {
+        const unidades = await response.json()
+        setUnidadesMedida(unidades.filter((u: any) => u.ativo))
+      } else {
+        console.error('Erro ao carregar unidades de medida')
+        // Fallback para unidades padrão
+        setUnidadesMedida([
+          { id: 1, codigo: 'un', descricao: 'Unidade', ativo: true },
+          { id: 2, codigo: 'cx', descricao: 'Caixa', ativo: true },
+          { id: 3, codigo: 'pct', descricao: 'Pacote', ativo: true },
+          { id: 4, codigo: 'kit', descricao: 'Kit', ativo: true },
+          { id: 5, codigo: 'kg', descricao: 'Quilograma', ativo: true },
+          { id: 6, codigo: 'm', descricao: 'Metro', ativo: true },
+          { id: 7, codigo: 'm²', descricao: 'Metro quadrado', ativo: true },
+          { id: 8, codigo: 'm³', descricao: 'Metro cúbico', ativo: true },
+          { id: 9, codigo: 'l', descricao: 'Litro', ativo: true }
+        ])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar unidades de medida:', error)
+      // Fallback para unidades padrão
+      setUnidadesMedida([
+        { id: 1, codigo: 'un', descricao: 'Unidade', ativo: true },
+        { id: 2, codigo: 'cx', descricao: 'Caixa', ativo: true },
+        { id: 3, codigo: 'pct', descricao: 'Pacote', ativo: true },
+        { id: 4, codigo: 'kit', descricao: 'Kit', ativo: true },
+        { id: 5, codigo: 'kg', descricao: 'Quilograma', ativo: true },
+        { id: 6, codigo: 'm', descricao: 'Metro', ativo: true },
+        { id: 7, codigo: 'm²', descricao: 'Metro quadrado', ativo: true },
+        { id: 8, codigo: 'm³', descricao: 'Metro cúbico', ativo: true },
+        { id: 9, codigo: 'l', descricao: 'Litro', ativo: true }
+      ])
+    }
+  }
+
   // Carrega clientes inicialmente e sincroniza quando houver alterações
   useEffect(() => {
     async function loadClientes() {
@@ -189,6 +258,8 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
       }
     }
     loadClientes()
+    carregarUnidadesMedida()
+    carregarModalidades()
     
     const reload = async () => {
       try {
@@ -255,22 +326,27 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         : ""
       setDataValidade(dataValidadeFormatada)
       
-      setModalidade((orcamentoParaEdicao as any).modalidade || "compra_direta")
+      setModalidade((orcamentoParaEdicao as any).modalidade || "COMPRA_DIRETA")
       setNumeroPregao((orcamentoParaEdicao as any).numero_pregao || "")
       setNumeroDispensa((orcamentoParaEdicao as any).numero_dispensa || "")
       
       // Converte itens do backend para o formato do formulário
-      const itensForm = orcamentoParaEdicao.itens.map(item => ({
-        descricao: item.descricao,
-        marca: item.marca || "",
-        quantidade: item.quantidade,
-        valorUnitario: item.valor_unitario,
-        linkRef: item.link_ref || "",
-        custoRef: item.custo_ref || undefined
-      }))
+      const itensForm = orcamentoParaEdicao.itens.map(item => {
+        // Busca a unidade de medida correspondente para obter apenas o código
+        const unidadeEncontrada = unidadesMedida.find(u => u.codigo === (item as any).unidade_medida)
+        return {
+          descricao: item.descricao,
+          marca: item.marca || "",
+          unidadeMedida: unidadeEncontrada?.codigo || (item as any).unidade_medida || "un",
+          quantidade: item.quantidade,
+          valorUnitario: item.valor_unitario,
+          linkRef: item.link_ref || "",
+          custoRef: item.custo_ref || undefined
+        }
+      })
       
       setItens(itensForm.length > 0 ? itensForm : [
-        { descricao: "", marca: "", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }
+        { descricao: "", marca: "", unidadeMedida: "un", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }
       ])
       
       // Limpa seleção de cliente cadastrado pois estamos editando
@@ -286,7 +362,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
   const addItem = () =>
     setItens((arr) => [
       ...arr,
-      { descricao: "", marca: "", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined },
+      { descricao: "", marca: "", unidadeMedida: "un", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined },
     ])
 
   const removeItem = (idx: number) => setItens((arr) => arr.filter((_, i) => i !== idx))
@@ -308,6 +384,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         produto_id: "", // Will need to be mapped if products are used
         descricao: item.descricao,
         marca: item.marca || "",
+        unidade_medida: item.unidadeMedida || "un",
         quantidade: item.quantidade,
         valor_unitario: item.valorUnitario, // API expects valor_unitario
         desconto: 0,
@@ -333,8 +410,8 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         data_validade: dataValidade || null,
         observacoes,
         modalidade,
-        numero_pregao: modalidade === "licitado" && numeroPregao ? `${numeroPregao}/${new Date().getFullYear()}` : null,
-        numero_dispensa: modalidade === "dispensa" && numeroDispensa ? `${numeroDispensa}/${new Date().getFullYear()}` : null,
+        numero_pregao: modalidade === "LICITADO" && numeroPregao ? `${numeroPregao}/${new Date().getFullYear()}` : null,
+      numero_dispensa: modalidade === "DISPENSA" && numeroDispensa ? `${numeroDispensa}/${new Date().getFullYear()}` : null,
         itens: backendItens
       } : { 
         numero: numero, // Enviar o número completo no formato "número/ano"
@@ -343,8 +420,8 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         data_validade: dataValidade || null,
         observacoes,
         modalidade,
-        numero_pregao: modalidade === "licitado" && numeroPregao ? `${numeroPregao}/${new Date().getFullYear()}` : null,
-        numero_dispensa: modalidade === "dispensa" && numeroDispensa ? `${numeroDispensa}/${new Date().getFullYear()}` : null,
+        numero_pregao: modalidade === "LICITADO" && numeroPregao ? `${numeroPregao}/${new Date().getFullYear()}` : null,
+        numero_dispensa: modalidade === "DISPENSA" && numeroDispensa ? `${numeroDispensa}/${new Date().getFullYear()}` : null,
         itens: backendItens
       }
       
@@ -385,7 +462,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
           setClienteIdSel("")
           setObservacoes("")
           setDataValidade("")
-          setItens([{ descricao: "", marca: "", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }])
+          setItens([{ descricao: "", marca: "", unidadeMedida: "un", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }])
           clearDraft() // Limpa o rascunho após salvar com sucesso
         }
         
@@ -411,8 +488,8 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
 
   return (
     <div className={cn(
-      "grid gap-6 transition-all duration-300",
-      isMaximized ? "fixed inset-0 z-50 bg-background p-6 overflow-auto" : ""
+      "grid gap-8 transition-all duration-300",
+      isMaximized ? "fixed inset-0 z-50 bg-gradient-to-br from-slate-50 to-blue-50/30 p-6 overflow-auto" : ""
     )}>
       {/* Botão de expandir/minimizar */}
       <div className="flex justify-end">
@@ -420,7 +497,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
           variant="outline"
           size="sm"
           onClick={() => setIsMaximized(!isMaximized)}
-          className="mb-2"
+          className="mb-2 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-white hover:shadow-md transition-all duration-200"
         >
           {isMaximized ? (
             <>
@@ -436,15 +513,18 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         </Button>
       </div>
       {/* Selecionar cliente cadastrado */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Cliente</CardTitle>
+      <Card className="bg-gradient-to-br from-white to-slate-50/50 border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+            Cliente
+          </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="md:col-span-2 space-y-2">
-            <Label>Selecionar cliente cadastrado</Label>
+        <CardContent className="grid gap-6 md:grid-cols-2 p-6">
+          <div className="md:col-span-2 space-y-3">
+            <Label className="text-sm font-medium text-slate-700">Selecionar cliente cadastrado</Label>
             <Select value={clienteIdSel} onValueChange={setClienteIdSel}>
-              <SelectTrigger>
+              <SelectTrigger className="h-11 bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200">
                 <SelectValue placeholder="Escolha um cliente" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
@@ -461,79 +541,94 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
                 )}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500 bg-blue-50 p-2 rounded-md border-l-4 border-blue-400">
               A lista vem da aba Clientes. Ao cadastrar/editar lá, aparece aqui automaticamente.
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cliente-nome">Nome</Label>
+          <div className="space-y-3">
+            <Label htmlFor="cliente-nome" className="text-sm font-medium text-slate-700">Nome</Label>
             <Input
               id="cliente-nome"
               placeholder="Ex.: ACME Ltda / João da Silva"
               value={cliente.nome}
               onChange={(e) => setCliente((c) => ({ ...c, nome: e.target.value }))}
               required
+              className="h-11 bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="cliente-doc">Documento (CNPJ/CPF)</Label>
+          <div className="space-y-3">
+            <Label htmlFor="cliente-doc" className="text-sm font-medium text-slate-700">Documento (CNPJ/CPF)</Label>
             <Input
               id="cliente-doc"
               placeholder="00.000.000/0000-00"
               value={cliente.documento || ""}
               onChange={(e) => setCliente((c) => ({ ...c, documento: e.target.value }))}
+              className="h-11 bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="cliente-tel">Telefone</Label>
+          <div className="space-y-3">
+            <Label htmlFor="cliente-tel" className="text-sm font-medium text-slate-700">Telefone</Label>
             <Input
               id="cliente-tel"
               placeholder="(11) 99999-9999"
               value={cliente.telefone || ""}
               onChange={(e) => setCliente((c) => ({ ...c, telefone: e.target.value }))}
+              className="h-11 bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="cliente-email">E-mail</Label>
+          <div className="space-y-3">
+            <Label htmlFor="cliente-email" className="text-sm font-medium text-slate-700">E-mail</Label>
             <Input
               id="cliente-email"
               type="email"
               placeholder="contato@cliente.com"
               value={cliente.email || ""}
               onChange={(e) => setCliente((c) => ({ ...c, email: e.target.value }))}
+              className="h-11 bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
             />
           </div>
-          <div className="md:col-span-2 space-y-2">
-            <Label htmlFor="cliente-endereco">Endereço</Label>
+          <div className="md:col-span-2 space-y-3">
+            <Label htmlFor="cliente-endereco" className="text-sm font-medium text-slate-700">Endereço</Label>
             <Input
               id="cliente-endereco"
               placeholder="Rua, número, bairro, cidade - UF"
               value={cliente.endereco || ""}
               onChange={(e) => setCliente((c) => ({ ...c, endereco: e.target.value }))}
+              className="h-11 bg-white border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
             />
           </div>
         </CardContent>
       </Card>
 
       {/* Itens do orçamento */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Itens do Orçamento</CardTitle>
-          <Button variant="outline" size="sm" onClick={addItem}>
+      <Card className="bg-gradient-to-br from-white to-emerald-50/30 border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-t-lg flex flex-row items-center justify-between">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+            Itens do Orçamento
+          </CardTitle>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={addItem}
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30 transition-all duration-200"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Adicionar item
           </Button>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="overflow-x-auto p-6">
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
-                <TableHead className="min-w-[280px]">Produto/Serviço</TableHead>
-                <TableHead className="w-[180px]">Marca</TableHead>
-                <TableHead className="w-[88px]">Qtd</TableHead>
-                <TableHead className="w-[160px]">Valor Unitário</TableHead>
-                <TableHead className="w-[160px]">Subtotal</TableHead>
+                <TableHead className="w-[50px] text-center">#</TableHead>
+                <TableHead className="min-w-[370px]">Produto/Serviço</TableHead>
+                <TableHead className="w-[140px]">Marca</TableHead>
+                <TableHead className="w-[70px]">Unidade</TableHead>
+                <TableHead className="w-[80px] text-center">Qtd.</TableHead>
+                <TableHead className="w-[120px] text-right">Valor Unit.</TableHead>
+                <TableHead className="w-[120px] text-right">Total</TableHead>
                 <TableHead className="w-[70px]" />
               </TableRow>
             </TableHeader>
@@ -548,16 +643,17 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
                     subtotal={subtotal}
                     onChange={updateItem}
                     onRemove={removeItem}
+                    unidadesMedida={unidadesMedida}
                   />
                 )
               })}
             </TableBody>
           </Table>
 
-          <div className="mt-6 flex items-center justify-end">
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Total</div>
-              <div className="text-2xl font-semibold tabular-nums">{fmtCurrency(total)}</div>
+          <div className="mt-8 flex items-center justify-end">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 rounded-xl shadow-lg">
+              <div className="text-sm opacity-90">Total do Orçamento</div>
+              <div className="text-3xl font-bold tabular-nums">{fmtCurrency(total)}</div>
             </div>
           </div>
 
@@ -568,37 +664,42 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
       </Card>
 
       {/* Observações e ações */}
-      <Card>
-        <CardHeader>
+      <Card className="bg-gradient-to-br from-white to-amber-50/30 border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
-            <CardTitle>Observações</CardTitle>
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
+              <div className="w-2 h-2 bg-white rounded-full"></div>
+              Observações
+            </CardTitle>
             {hasDraft && (
-              <div className="flex items-center text-xs text-muted-foreground">
+              <div className="flex items-center text-xs text-white/80 bg-white/20 px-3 py-1 rounded-full">
                 <Save className="h-3 w-3 mr-1" />
                 Rascunho salvo automaticamente
               </div>
             )}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="observacoes">Observações</Label>
+        <CardContent className="space-y-6 p-6">
+          <div className="space-y-3">
+            <Label htmlFor="observacoes" className="text-sm font-medium text-slate-700">Observações</Label>
             <Input
               id="observacoes"
               placeholder="Condições de pagamento, validade do orçamento, etc."
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
+              className="h-11 bg-white border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all duration-200"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="data-validade">Data de Validade</Label>
+          <div className="space-y-3">
+            <Label htmlFor="data-validade" className="text-sm font-medium text-slate-700">Data de Validade</Label>
             <Input
               id="data-validade"
               type="date"
               value={dataValidade}
               onChange={(e) => setDataValidade(e.target.value)}
+              className="h-11 bg-white border-slate-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all duration-200"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-500 bg-amber-50 p-2 rounded-md border-l-4 border-amber-400">
               Se não informada, será aplicada a validade padrão configurada no sistema
             </p>
           </div>
@@ -606,53 +707,62 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
       </Card>
 
       {/* Modalidade de Compra */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Modalidade de Compra</CardTitle>
+      <Card className="bg-gradient-to-br from-white to-purple-50/30 border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-purple-600 to-violet-600 text-white rounded-t-lg">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <div className="w-2 h-2 bg-white rounded-full"></div>
+            Modalidade de Compra
+          </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Modalidade</Label>
-            <Select value={modalidade} onValueChange={(value: "compra_direta" | "licitado" | "dispensa") => setModalidade(value)}>
-              <SelectTrigger>
+        <CardContent className="grid gap-6 md:grid-cols-2 p-6">
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-slate-700">Modalidade</Label>
+            <Select value={modalidade} onValueChange={(value: string) => setModalidade(value)}>
+              <SelectTrigger className="h-11 bg-white border-slate-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="compra_direta">Compra Direta</SelectItem>
-                <SelectItem value="licitado">Pregão Eletrônico</SelectItem>
-                <SelectItem value="dispensa">Dispensa</SelectItem>
+                {modalidades.map((mod) => (
+                  <SelectItem key={mod.id} value={mod.codigo}>
+                    {mod.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          {modalidade === "licitado" && (
-            <div className="space-y-2">
-              <Label htmlFor="numero-pregao">Número do Pregão (opcional)</Label>
-              <Input
-                id="numero-pregao"
-                placeholder="Ex.: 87"
-                value={numeroPregao}
-                onChange={(e) => setNumeroPregao(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">O ano será adicionado automaticamente</p>
-            </div>
-          )}
-          {modalidade === "dispensa" && (
-            <div className="space-y-2">
-              <Label htmlFor="numero-dispensa">Número da Dispensa (opcional)</Label>
-              <Input
-                id="numero-dispensa"
-                placeholder="Ex.: 82947"
-                value={numeroDispensa}
-                onChange={(e) => setNumeroDispensa(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">O ano será adicionado automaticamente</p>
-            </div>
-          )}
+          {(() => {
+            const modalidadeSelecionada = modalidades.find(mod => mod.codigo === modalidade)
+            return modalidadeSelecionada?.requer_numero_processo && (
+              <div className="space-y-3">
+                <Label htmlFor="numero-processo" className="text-sm font-medium text-slate-700">
+                  {modalidade === "LICITADO" ? "Número do Pregão (opcional)" : "Número do Processo (opcional)"}
+                </Label>
+                <Input
+                  id="numero-processo"
+                  placeholder={modalidade === "LICITADO" ? "Ex.: 87" : "Ex.: 82947"}
+                  value={modalidade === "LICITADO" ? numeroPregao : numeroDispensa}
+                  onChange={(e) => {
+                    if (modalidade === "LICITADO") {
+                      setNumeroPregao(e.target.value)
+                    } else {
+                      setNumeroDispensa(e.target.value)
+                    }
+                  }}
+                  className="h-11 bg-white border-slate-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
+                />
+                <p className="text-xs text-slate-500 bg-purple-50 p-2 rounded-md border-l-4 border-purple-400">O ano será adicionado automaticamente</p>
+              </div>
+            )
+          })()}
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={onSalvar} disabled={!canSave}>
+      <div className="flex flex-wrap gap-4 p-6 bg-gradient-to-r from-slate-50 to-blue-50/50 rounded-xl border border-slate-200">
+        <Button 
+          onClick={onSalvar} 
+          disabled={!canSave}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-3 h-auto"
+        >
           {orcamentoParaEdicao ? "Atualizar Orçamento" : "Salvar Orçamento"}
         </Button>
         <Button
@@ -662,6 +772,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
             saveDraft()
             toast({ title: "Rascunho salvo!", description: "Seus dados foram salvos localmente." })
           }}
+          className="bg-white hover:bg-slate-50 border-slate-300 hover:border-slate-400 shadow-md hover:shadow-lg transition-all duration-200 px-6 py-3 h-auto"
         >
           <Save className="h-4 w-4 mr-2" />
           Salvar Rascunho
@@ -671,6 +782,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
             type="button"
             variant="outline"
             onClick={loadDraft}
+            className="bg-white hover:bg-emerald-50 border-emerald-300 hover:border-emerald-400 text-emerald-700 shadow-md hover:shadow-lg transition-all duration-200 px-6 py-3 h-auto"
           >
             <Download className="h-4 w-4 mr-2" />
             Carregar Rascunho
@@ -684,12 +796,13 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
             setClienteIdSel("")
             setObservacoes("")
             setDataValidade("")
-            setModalidade("compra_direta")
+            setModalidade("COMPRA_DIRETA")
             setNumeroPregao("")
             setNumeroDispensa("")
             setItens([{ descricao: "", marca: "", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }])
             clearDraft()
           }}
+          className="bg-white hover:bg-red-50 border-red-300 hover:border-red-400 text-red-700 shadow-md hover:shadow-lg transition-all duration-200 px-6 py-3 h-auto"
         >
           Limpar
         </Button>
@@ -704,26 +817,29 @@ function ItemRow({
   subtotal,
   onChange,
   onRemove,
+  unidadesMedida,
 }: {
   index: number
   item: FormOrcamentoItem
   subtotal: number
   onChange: (idx: number, patch: Partial<FormOrcamentoItem>) => void
   onRemove: (idx: number) => void
+  unidadesMedida: {id: number, codigo: string, descricao: string, ativo: boolean}[]
 }) {
   const [open, setOpen] = useState(false)
 
   return (
     <TableRow className={cn(open && "align-top")}>
       <TableCell className="align-top">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Input
             placeholder="Ex.: Velas aromáticas"
             value={item.descricao}
             onChange={(e) => onChange(index, { descricao: e.target.value })}
+            className="h-11 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200"
           />
 
-          <div className="rounded-md border bg-muted/30 p-2">
+          <div className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 p-3 shadow-sm">
             <button
               type="button"
               className="flex w-full items-center justify-between text-sm"
@@ -778,25 +894,31 @@ function ItemRow({
                 
                 {/* Informações calculadas */}
                 {(item.custoRef !== undefined && item.custoRef !== null) && item.valorUnitario > 0 && (
-                  <div className="grid gap-3 md:grid-cols-2 pt-2 border-t">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Custo sobre Valor Unitário</Label>
-                      <div className="text-sm font-medium text-muted-foreground">
-                        {item.valorUnitario > 0 ? ((item.custoRef / item.valorUnitario) * 100).toFixed(1) : '0'}% do valor de venda
+                  <div className="mt-4 pt-4 border-t border-slate-200">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground font-medium">Custo sobre Valor Unitário</Label>
+                        <div className="text-sm font-medium text-muted-foreground bg-slate-50 p-3 rounded border border-slate-200">
+                          <span className="block break-words">
+                            {item.valorUnitario > 0 ? ((item.custoRef / item.valorUnitario) * 100).toFixed(1) : '0'}% do valor de venda
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Margem de Lucro</Label>
-                      <div className={`text-sm font-medium ${
-                        item.valorUnitario > item.custoRef ? 'text-green-600' : 
-                        item.valorUnitario < item.custoRef ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {item.valorUnitario > 0 
-                          ? `${(((item.valorUnitario - item.custoRef) / item.valorUnitario) * 100).toFixed(1)}%`
-                          : '0%'
-                        }
-                        {item.valorUnitario < item.custoRef && ' (Prejuízo)'}
+                      
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground font-medium">Margem de Lucro</Label>
+                        <div className={`text-sm font-bold p-3 rounded border ${
+                          item.valorUnitario > item.custoRef ? 'text-green-700 bg-green-50 border-green-200' : 
+                          item.valorUnitario < item.custoRef ? 'text-red-700 bg-red-50 border-red-200' : 'text-gray-700 bg-gray-50 border-gray-200'
+                        }`}>
+                          <span className="block break-words">
+                            {item.valorUnitario > 0 
+                              ? `${(((item.valorUnitario - item.custoRef) / item.valorUnitario) * 100).toFixed(1)}%`
+                              : '0%'
+                            }
+                            {item.valorUnitario < item.custoRef && ' (Prejuízo)'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -812,7 +934,23 @@ function ItemRow({
           placeholder="Ex.: Marca X"
           value={item.marca || ""}
           onChange={(e) => onChange(index, { marca: e.target.value })}
+          className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200"
         />
+      </TableCell>
+
+      <TableCell className="align-top">
+        <Select value={item.unidadeMedida} onValueChange={(value) => onChange(index, { unidadeMedida: value })}>
+          <SelectTrigger className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {unidadesMedida.map((unidade) => (
+              <SelectItem key={unidade.id} value={unidade.codigo}>
+                {unidade.codigo}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </TableCell>
 
       <TableCell className="align-top">
@@ -822,6 +960,7 @@ function ItemRow({
           step="1"
           value={item.quantidade}
           onChange={(e) => onChange(index, { quantidade: Number(e.target.value) })}
+          className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200"
         />
       </TableCell>
 
@@ -830,13 +969,21 @@ function ItemRow({
           value={item.valorUnitario}
           onChange={(value) => onChange(index, { valorUnitario: Number(value.replace(',', '.')) })}
           placeholder="0,00"
+          className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200"
         />
       </TableCell>
 
-      <TableCell className="align-top font-medium">{fmtCurrency(subtotal)}</TableCell>
+      <TableCell className="align-top font-semibold text-emerald-700 bg-emerald-50 rounded-md">{fmtCurrency(subtotal)}</TableCell>
 
       <TableCell className="align-top text-right">
-        <Button variant="ghost" size="icon" aria-label="Remover item" onClick={() => onRemove(index)} disabled={false}>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          aria-label="Remover item" 
+          onClick={() => onRemove(index)} 
+          disabled={false}
+          className="hover:bg-red-100 hover:text-red-600 transition-all duration-200"
+        >
           <Trash2 className="h-4 w-4" />
         </Button>
       </TableCell>

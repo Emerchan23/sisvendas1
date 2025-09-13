@@ -206,7 +206,7 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
 
   CREATE TABLE IF NOT EXISTS outros_negocios (
     id TEXT PRIMARY KEY,
-    tipo TEXT NOT NULL CHECK (tipo IN ('receita', 'despesa')),
+    tipo TEXT NOT NULL CHECK (tipo IN ('emprestimo', 'venda')),
     valor REAL NOT NULL,
     descricao TEXT,
     categoria TEXT,
@@ -267,6 +267,15 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS configuracoes (
+    id TEXT PRIMARY KEY,
+    config_key TEXT NOT NULL UNIQUE,
+    config_value TEXT NOT NULL,
+    descricao TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS fornecedores (
     id TEXT PRIMARY KEY,
     nome TEXT NOT NULL,
@@ -279,6 +288,15 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
     tags_busca TEXT,
     observacoes TEXT,
     status TEXT DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS unidades_medida (
+    id TEXT PRIMARY KEY,
+    codigo TEXT NOT NULL UNIQUE,
+    descricao TEXT NOT NULL,
+    ativo BOOLEAN DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
@@ -382,6 +400,61 @@ try {
   // Coluna já existe
 }
 
+// Adicionar colunas de personalização de documentos
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN cor_primaria TEXT DEFAULT '#3b82f6'`)
+} catch (error) {
+  // Coluna já existe
+}
+
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN cor_secundaria TEXT DEFAULT '#64748b'`)
+} catch (error) {
+  // Coluna já existe
+}
+
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN cor_texto TEXT DEFAULT '#1f2937'`)
+} catch (error) {
+  // Coluna já existe
+}
+
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN fonte_titulo TEXT DEFAULT 'Inter'`)
+} catch (error) {
+  // Coluna já existe
+}
+
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN fonte_texto TEXT DEFAULT 'Inter'`)
+} catch (error) {
+  // Coluna já existe
+}
+
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN tamanho_titulo INTEGER DEFAULT 24`)
+} catch (error) {
+  // Coluna já existe
+}
+
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN tamanho_texto INTEGER DEFAULT 14`)
+} catch (error) {
+  // Coluna já existe
+}
+
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN logo_personalizada TEXT`)
+} catch (error) {
+  // Coluna já existe
+}
+
+try {
+  db.exec(`ALTER TABLE empresas ADD COLUMN validade_orcamento INTEGER DEFAULT 30`)
+} catch (error) {
+  // Coluna já existe
+}
+
 // Adicionar colunas da tabela produtos para compatibilidade com bancos existentes
 try {
   db.exec(`ALTER TABLE produtos ADD COLUMN descricao TEXT`)
@@ -466,6 +539,75 @@ try {
   }
 } catch (error) {
   console.log('ℹ️ Usuário administrador já existe ou erro ao criar:', error)
+}
+
+// Inserir dados iniciais se necessário
+try {
+  const empresaCount = db.prepare('SELECT COUNT(*) as count FROM empresas').get() as { count: number }
+  
+  if (empresaCount.count === 0) {
+    console.log('Inserindo empresa padrão...')
+    db.prepare(`
+      INSERT INTO empresas (id, nome, razao_social, nome_do_sistema)
+      VALUES (?, ?, ?, ?)
+    `).run('default', 'Empresa Padrão', 'Empresa Padrão LTDA', 'LP IND')
+  }
+} catch (error) {
+  console.log('ℹ️ Empresa padrão já existe ou erro ao criar:', error)
+}
+
+// Inserir configurações padrão de autenticação se não existirem
+try {
+  const authConfigCount = db.prepare('SELECT COUNT(*) as count FROM configuracoes WHERE config_key = ?').get('auth_settings') as { count: number }
+  
+  if (authConfigCount.count === 0) {
+    console.log('Inserindo configurações padrão de autenticação...')
+    const defaultAuthSettings = JSON.stringify({
+      normalExpiryHours: 2,
+      rememberMeExpiryDays: 7,
+      sessionCheckInterval: 5,
+      warningTime: 5
+    })
+    
+    db.prepare(`
+      INSERT INTO configuracoes (id, config_key, config_value, descricao)
+      VALUES (?, ?, ?, ?)
+    `).run('auth-settings-1', 'auth_settings', defaultAuthSettings, 'Configurações de autenticação do sistema')
+  }
+} catch (error) {
+  console.log('ℹ️ Configurações de autenticação já existem ou erro ao criar:', error)
+}
+
+// Inserir unidades de medida padrão se não existirem
+try {
+  const unidadesCount = db.prepare('SELECT COUNT(*) as count FROM unidades_medida WHERE ativo = 1').get() as { count: number }
+  
+  if (unidadesCount.count === 0) {
+    const unidadesPadrao = [
+      { codigo: 'un', descricao: 'Unidade' },
+      { codigo: 'cx', descricao: 'Caixa' },
+      { codigo: 'pct', descricao: 'Pacote' },
+      { codigo: 'kit', descricao: 'Kit' },
+      { codigo: 'kg', descricao: 'Quilograma' },
+      { codigo: 'm', descricao: 'Metro' },
+      { codigo: 'm²', descricao: 'Metro Quadrado' },
+      { codigo: 'm³', descricao: 'Metro Cúbico' },
+      { codigo: 'l', descricao: 'Litro' }
+    ]
+    
+    const insertStmt = db.prepare(`
+      INSERT INTO unidades_medida (id, codigo, descricao, ativo)
+      VALUES (?, ?, ?, 1)
+    `)
+    
+    unidadesPadrao.forEach((unidade, index) => {
+      insertStmt.run(`unidade-${index + 1}`, unidade.codigo, unidade.descricao)
+    })
+    
+    console.log('✅ Unidades de medida padrão inseridas no banco de dados')
+  }
+} catch (error) {
+  console.log('ℹ️ Unidades de medida já existem ou erro ao criar:', error)
 }
 }
 

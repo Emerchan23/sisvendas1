@@ -245,6 +245,8 @@ export type Rate = {
   id: string
   nome: string
   percentual: number
+  name?: string
+  percentage?: number
 }
 
 export type PagamentoParcial = {
@@ -269,7 +271,11 @@ export type OutroNegocio = {
 
 export type Modalidade = {
   id: string
+  codigo: string
   nome: string
+  descricao?: string
+  ativo: boolean
+  requer_numero_processo: boolean
 }
 
 export type OrcamentoItem = {

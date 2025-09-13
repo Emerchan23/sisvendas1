@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
-import { Plus, Edit, Trash2, User, Shield, Eye, EyeOff } from "lucide-react"
+import { Plus, Edit, Trash2, User, Shield, Eye, EyeOff, Save } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import ProtectedRoute from "@/components/ProtectedRoute"
 
@@ -197,17 +197,23 @@ export default function UsuariosPage() {
 
   return (
     <ProtectedRoute adminOnly>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <main className="container mx-auto px-4 py-8 space-y-8">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Gerenciar Usuários</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Gerenciar Usuários
+            </h1>
+            <p className="text-slate-600 mt-2">
               Gerencie usuários do sistema e suas permissões
             </p>
           </div>
           <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
             <DialogTrigger asChild>
-              <Button onClick={resetarFormulario}>
+              <Button 
+                onClick={resetarFormulario}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Novo Usuário
               </Button>
@@ -232,7 +238,7 @@ export default function UsuariosPage() {
                   </Label>
                   <Input
                     id="nome"
-                    value={novoUsuario.nome}
+                    value={novoUsuario.nome || ''}
                     onChange={(e) => setNovoUsuario(prev => ({ ...prev, nome: e.target.value }))}
                     className="col-span-3"
                     placeholder="Nome completo"
@@ -246,7 +252,7 @@ export default function UsuariosPage() {
                   <Input
                     id="email"
                     type="email"
-                    value={novoUsuario.email}
+                    value={novoUsuario.email || ''}
                     onChange={(e) => setNovoUsuario(prev => ({ ...prev, email: e.target.value }))}
                     className="col-span-3"
                     placeholder="email@exemplo.com"
@@ -261,7 +267,7 @@ export default function UsuariosPage() {
                     <Input
                       id="senha"
                       type={mostrarSenha ? "text" : "password"}
-                      value={novoUsuario.senha}
+                      value={novoUsuario.senha || ''}
                       onChange={(e) => setNovoUsuario(prev => ({ ...prev, senha: e.target.value }))}
                       placeholder={usuarioEditando ? "Deixe em branco para manter a atual" : "Digite a senha"}
                     />
@@ -286,7 +292,7 @@ export default function UsuariosPage() {
                     Função
                   </Label>
                   <Select
-                    value={novoUsuario.role}
+                    value={novoUsuario.role || 'user'}
                     onValueChange={(value: 'admin' | 'user') => 
                       setNovoUsuario(prev => ({ ...prev, role: value }))
                     }
@@ -338,7 +344,12 @@ export default function UsuariosPage() {
               </div>
               
               <DialogFooter>
-                <Button type="submit" onClick={salvarUsuario}>
+                <Button 
+                  type="submit" 
+                  onClick={salvarUsuario}
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                >
+                  <Save className="mr-2 h-4 w-4" />
                   {usuarioEditando ? 'Atualizar' : 'Criar'} Usuário
                 </Button>
               </DialogFooter>
@@ -346,21 +357,21 @@ export default function UsuariosPage() {
           </Dialog>
         </div>
 
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {usuarios.map((usuario) => (
-            <Card key={usuario.id}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Card key={usuario.id} className="bg-white/80 backdrop-blur-sm shadow-2xl border-0 rounded-2xl overflow-hidden hover:shadow-3xl transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-gradient-to-r from-slate-50 to-blue-50/50">
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg">
                     {usuario.role === 'admin' ? (
-                      <Shield className="h-5 w-5 text-primary" />
+                      <Shield className="h-6 w-6 text-white" />
                     ) : (
-                      <User className="h-5 w-5 text-primary" />
+                      <User className="h-6 w-6 text-white" />
                     )}
                   </div>
                   <div>
-                    <CardTitle className="text-lg">{usuario.nome}</CardTitle>
-                    <CardDescription>{usuario.email}</CardDescription>
+                    <CardTitle className="text-xl font-semibold text-slate-800">{usuario.nome}</CardTitle>
+                    <CardDescription className="text-slate-600 font-medium">{usuario.email}</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -372,7 +383,7 @@ export default function UsuariosPage() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="bg-gradient-to-br from-white to-slate-50/50 p-6">
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-muted-foreground">
                     <p>Criado em: {formatarData(usuario.created_at)}</p>
@@ -381,13 +392,14 @@ export default function UsuariosPage() {
                     )}
                     <p>Permissões: {usuario.permissoes.length} módulos</p>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-3">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => editarUsuario(usuario)}
+                      className="border-2 border-blue-200 hover:border-blue-300 bg-white/80 hover:bg-blue-50 text-blue-700 font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg"
                     >
-                      <Edit className="h-4 w-4 mr-1" />
+                      <Edit className="h-4 w-4 mr-2" />
                       Editar
                     </Button>
                     {usuario.id !== usuarioLogado?.id && (
@@ -395,8 +407,9 @@ export default function UsuariosPage() {
                         variant="destructive"
                         size="sm"
                         onClick={() => excluirUsuario(usuario.id)}
+                        className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 shadow-md hover:shadow-lg"
                       >
-                        <Trash2 className="h-4 w-4 mr-1" />
+                        <Trash2 className="h-4 w-4 mr-2" />
                         Excluir
                       </Button>
                     )}
@@ -408,20 +421,26 @@ export default function UsuariosPage() {
         </div>
 
         {usuarios.length === 0 && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <User className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum usuário encontrado</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Comece criando o primeiro usuário do sistema.
+          <Card className="bg-white/80 backdrop-blur-sm shadow-2xl border-0 rounded-2xl overflow-hidden">
+            <CardContent className="flex flex-col items-center justify-center py-16 bg-gradient-to-br from-white to-slate-50/50">
+              <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg mb-6">
+                <User className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-semibold text-slate-800 mb-3">Nenhum usuário encontrado</h3>
+              <p className="text-slate-600 text-center mb-6 max-w-md">
+                Comece criando o primeiro usuário do sistema para gerenciar acessos e permissões.
               </p>
-              <Button onClick={() => setDialogAberto(true)}>
+              <Button 
+                onClick={() => setDialogAberto(true)}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium px-6 py-3 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Criar Primeiro Usuário
               </Button>
             </CardContent>
           </Card>
         )}
+        </main>
       </div>
     </ProtectedRoute>
   )

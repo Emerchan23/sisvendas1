@@ -5,11 +5,41 @@ import { db } from '@/lib/db'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-muito-segura-aqui'
 
+// Função para carregar configurações de autenticação
+async function getAuthConfig() {
+  try {
+    const config = db.prepare(`
+      SELECT chave, valor FROM configuracoes 
+      WHERE chave IN ('normalExpiryHours', 'rememberMeExpiryDays')
+    `).all() as { chave: string; valor: string }[]
+    
+    const configObj: any = {}
+    config.forEach(item => {
+      configObj[item.chave] = JSON.parse(item.valor)
+    })
+    
+    return {
+      normalExpiryHours: configObj.normalExpiryHours || 2,
+      rememberMeExpiryDays: configObj.rememberMeExpiryDays || 7
+    }
+  } catch (error) {
+    console.error('Erro ao carregar configurações de autenticação:', error)
+    // Retornar valores padrão em caso de erro
+    return {
+      normalExpiryHours: 2,
+      rememberMeExpiryDays: 7
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { email, senha } = await request.json()
+    console.log('🔐 Iniciando processo de login...')
+    const { email, senha, rememberMe } = await request.json()
+    console.log('📧 Email recebido:', email)
 
     if (!email || !senha) {
+      console.log('❌ Email ou senha não fornecidos')
       return NextResponse.json(
         { error: 'Email e senha são obrigatórios' },
         { status: 400 }
@@ -17,13 +47,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Buscar usuário no banco
+    console.log('🔍 Buscando usuário no banco...')
     const usuario = db.prepare(`
       SELECT id, nome, email, senha, role, ativo, permissoes, ultimo_login
       FROM usuarios 
       WHERE email = ? AND ativo = 1
     `).get(email) as any
+    console.log('👤 Usuário encontrado:', usuario ? 'Sim' : 'Não')
 
     if (!usuario) {
+      console.log('❌ Usuário não encontrado ou inativo')
       return NextResponse.json(
         { error: 'Credenciais inválidas' },
         { status: 401 }
@@ -31,8 +64,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar senha
+    console.log('🔑 Verificando senha...')
     const senhaValida = await bcrypt.compare(senha, usuario.senha)
+    console.log('✅ Senha válida:', senhaValida)
     if (!senhaValida) {
+      console.log('❌ Senha inválida')
       return NextResponse.json(
         { error: 'Credenciais inválidas' },
         { status: 401 }
@@ -46,7 +82,13 @@ export async function POST(request: NextRequest) {
       WHERE id = ?
     `).run(usuario.id)
 
+    // Carregar configurações de autenticação
+    const authConfig = await getAuthConfig()
+    
     // Criar token JWT
+    console.log('🎫 Criando token JWT...')
+    const expiresIn = rememberMe ? `${authConfig.rememberMeExpiryDays}d` : `${authConfig.normalExpiryHours}h`
+    console.log('⏰ Tempo de expiração:', expiresIn)
     const token = jwt.sign(
       {
         userId: usuario.id,
@@ -55,20 +97,24 @@ export async function POST(request: NextRequest) {
         permissoes: JSON.parse(usuario.permissoes || '{}')
       },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn }
     )
+    console.log('🎫 Token criado com sucesso')
 
     // Remover senha da resposta
     const { senha: _, ...usuarioSemSenha } = usuario
 
-    return NextResponse.json({
+    const response = {
       success: true,
       token,
       usuario: {
         ...usuarioSemSenha,
         permissoes: JSON.parse(usuario.permissoes || '{}')
       }
-    })
+    }
+    
+    console.log('✅ Login realizado com sucesso, enviando resposta...')
+    return NextResponse.json(response)
 
   } catch (error) {
     console.error('Erro no login:', error)

@@ -3,6 +3,7 @@ import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { SessionExpirationWarning } from '@/components/SessionExpirationWarning'
 import './globals.css'
 export const metadata: Metadata = {
   title: 'v0 App',
@@ -29,6 +30,7 @@ html {
       <body>
         <AuthProvider>
           {children}
+          <SessionExpirationWarning />
           <Toaster />
         </AuthProvider>
       </body>

@@ -8,7 +8,12 @@ import { emitChange } from "./data-store"
 export type { Rate }
 
 export async function getCapitalRates(): Promise<Rate[]> {
-  return api.rates.capital.list()
+  const rates = await api.rates.capital.list()
+  return rates.map(rate => ({
+    id: rate.id,
+    name: rate.nome,
+    percentage: rate.percentual
+  }))
 }
 export async function saveCapitalRate(rate: Partial<Rate> & { id?: string }) {
   if (rate.id) await api.rates.capital.update(rate.id, rate)
@@ -21,7 +26,12 @@ export async function deleteCapitalRate(id: string) {
 }
 
 export async function getImpostoRates(): Promise<Rate[]> {
-  return api.rates.imposto.list()
+  const rates = await api.rates.imposto.list()
+  return rates.map(rate => ({
+    id: rate.id,
+    name: rate.nome,
+    percentage: rate.percentual
+  }))
 }
 export async function saveImpostoRate(rate: Partial<Rate> & { id?: string }) {
   if (rate.id) await api.rates.imposto.update(rate.id, rate)

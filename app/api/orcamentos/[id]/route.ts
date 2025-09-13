@@ -7,8 +7,10 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    console.log('DELETE orçamento - ID recebido:', id);
     
     if (!id) {
+      console.log('DELETE orçamento - ID não fornecido');
       return NextResponse.json(
         { error: 'ID é obrigatório para exclusão' },
         { status: 400 }
@@ -16,7 +18,9 @@ export async function DELETE(
     }
     
     // Check if orcamento exists
+    console.log('DELETE orçamento - Verificando se orçamento existe...');
     const orcamento = db.prepare('SELECT id FROM orcamentos WHERE id = ?').get(id);
+    console.log('DELETE orçamento - Resultado da busca:', orcamento);
     
     if (!orcamento) {
       return NextResponse.json(
@@ -25,32 +29,28 @@ export async function DELETE(
       );
     }
     
-    // Verificar se o orçamento tem dependências em outras tabelas
-    const vendasRelacionadas = db.prepare(`
+    // Verificar se o orçamento tem itens associados
+    console.log('DELETE orçamento - Verificando itens relacionados...');
+    const itensRelacionados = db.prepare(`
       SELECT COUNT(*) as count 
-      FROM vendas 
+      FROM orcamento_itens 
       WHERE orcamento_id = ?
     `).get(id) as { count: number }
     
-    const acertosRelacionados = db.prepare(`
-      SELECT COUNT(*) as count 
-      FROM acertos 
-      WHERE orcamento_id = ?
-    `).get(id) as { count: number }
+    console.log(`DELETE orçamento - ${id}: ${itensRelacionados.count} itens encontrados`);
     
-    const totalDependencias = vendasRelacionadas.count + acertosRelacionados.count
-    
-    if (totalDependencias > 0) {
-      return NextResponse.json({ 
-        error: 'Não é possível excluir este orçamento pois ele possui registros associados (vendas ou acertos).' 
-      }, { status: 400 })
-    }
+    // Note: As tabelas vendas e acertos não possuem referência direta ao orçamento
+    // baseado no esquema atual do banco de dados
     
     // Delete items first (foreign key constraint)
-    db.prepare('DELETE FROM orcamento_itens WHERE orcamento_id = ?').run(id);
+    console.log('DELETE orçamento - Excluindo itens do orçamento...');
+    const deleteItensResult = db.prepare('DELETE FROM orcamento_itens WHERE orcamento_id = ?').run(id);
+    console.log('DELETE orçamento - Itens excluídos:', deleteItensResult.changes);
     
     // Delete orcamento
+    console.log('DELETE orçamento - Excluindo orçamento...');
     const result = db.prepare('DELETE FROM orcamentos WHERE id = ?').run(id);
+    console.log('DELETE orçamento - Resultado da exclusão:', result);
     
     if (result.changes === 0) {
       return NextResponse.json(
@@ -65,8 +65,14 @@ export async function DELETE(
     );
   } catch (error) {
     console.error('Erro ao excluir orçamento:', error);
+    console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { 
+        error: 'Erro interno do servidor',
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }

@@ -74,6 +74,7 @@ export function OrcamentoPreview({ layoutConfig }: OrcamentoPreviewProps) {
           <thead>
             <tr>
               <th style={thStyle}>Item</th>
+              <th style={thStyle}>Unidade</th>
               <th style={thStyle}>Qtd</th>
               <th style={thStyle}>Valor Unit.</th>
               <th style={thStyle}>Total</th>
@@ -82,12 +83,14 @@ export function OrcamentoPreview({ layoutConfig }: OrcamentoPreviewProps) {
           <tbody>
             <tr>
               <td style={tdStyle}>Produto Exemplo</td>
+              <td style={tdStyle}>un</td>
               <td style={tdStyle}>2</td>
               <td style={tdStyle}>R$ 50,00</td>
               <td style={tdStyle}>R$ 100,00</td>
             </tr>
             <tr>
               <td style={tdStyle}>Serviço Exemplo</td>
+              <td style={tdStyle}>un</td>
               <td style={tdStyle}>1</td>
               <td style={tdStyle}>R$ 150,00</td>
               <td style={tdStyle}>R$ 150,00</td>

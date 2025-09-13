@@ -1,293 +1,335 @@
-import React, { useEffect, useState } from 'react';
-import { OrcamentoLayoutConfig } from '@/lib/company-config';
-import { getConfig } from '@/lib/config';
+import React, { useState, useEffect } from 'react';
 
 interface DocumentPreviewProps {
-  layoutConfig: {
-    primaryColor: string;
-    secondaryColor: string;
-    titleFont: string;
-    bodyFont: string;
-    titleSize: number;
-    bodySize: number;
+  data?: any;
+  type?: 'orcamento' | 'vale';
+  layoutConfig?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    titleFont?: string;
+    bodyFont?: string;
+    titleSize?: number;
+    bodySize?: number;
     logoUrl?: string;
+    validadeOrcamento?: number;
   };
 }
 
-const DocumentPreview: React.FC<DocumentPreviewProps> = ({ layoutConfig }) => {
+const DocumentPreview: React.FC<DocumentPreviewProps> = ({ data, type, layoutConfig }) => {
   const [companyData, setCompanyData] = useState<any>(null);
+  const [orcamentoConfig, setOrcamentoConfig] = useState<any>({
+    tipografia: {
+      tamanhoTitulo: 16,
+      tamanhoTexto: 12
+    }
+  });
 
   useEffect(() => {
-    const loadCompanyData = async () => {
+    const fetchCompanyData = async () => {
       try {
-        const { loadConfig } = await import('@/lib/config');
-        const config = await loadConfig();
-        setCompanyData(config);
+        const response = await fetch('/api/config');
+        if (response.ok) {
+          const config = await response.json();
+          setCompanyData(config);
+        }
       } catch (error) {
         console.error('Erro ao carregar dados da empresa:', error);
-        // Fallback para getConfig se loadConfig falhar
-        const config = getConfig();
-        setCompanyData(config);
       }
     };
-    loadCompanyData();
+
+    fetchCompanyData();
   }, []);
 
-  // Converter para estrutura OrcamentoLayoutConfig
-  const orcamentoConfig: OrcamentoLayoutConfig = {
-    cores: {
-      primaria: layoutConfig.primaryColor,
-      secundaria: layoutConfig.secondaryColor,
-      texto: '#1f2937'
-    },
-    tipografia: {
-      fonteFamilia: layoutConfig.bodyFont,
-      tamanhoTexto: layoutConfig.bodySize,
-      tamanhoTitulo: layoutConfig.titleSize
-    },
-    layout: {
-      logoUrl: layoutConfig.logoUrl || ''
-    },
-    configuracoes: {
-      mostrarLogo: !!layoutConfig.logoUrl
-    }
-  };
+  // Forçar re-render quando layoutConfig mudar
+  useEffect(() => {
+    // Este useEffect garante que o componente seja re-renderizado
+    // sempre que as configurações de personalização mudarem
+  }, [layoutConfig]);
+
+  // Usar configurações de personalização se disponíveis
+  const primaryColor = layoutConfig?.primaryColor || '#1e40af';
+  const secondaryColor = layoutConfig?.secondaryColor || '#64748b';
+  const titleFont = layoutConfig?.titleFont || 'Inter';
+  const bodyFont = layoutConfig?.bodyFont || 'Inter';
+  const titleSize = layoutConfig?.titleSize || orcamentoConfig.tipografia.tamanhoTitulo;
+  const bodySize = layoutConfig?.bodySize || orcamentoConfig.tipografia.tamanhoTexto;
 
   const titleStyle = {
-    fontFamily: layoutConfig.titleFont,
-    fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo}px`,
+    fontSize: `${titleSize}px`,
+    fontFamily: titleFont,
     fontWeight: 'bold' as const,
-    color: orcamentoConfig.cores.primaria,
+    color: primaryColor,
+    marginBottom: '8px'
   };
 
   const textStyle = {
-    fontFamily: orcamentoConfig.tipografia.fonteFamilia,
-    fontSize: `${orcamentoConfig.tipografia.tamanhoTexto}px`,
-    color: orcamentoConfig.cores.texto,
-  };
-
-  const documentHeaderStyle = {
-    borderBottom: `2px solid ${orcamentoConfig.cores.primaria}`,
-    paddingBottom: '12px',
-    marginBottom: '16px',
-  };
-
-  const tableStyle = {
-    width: '100%',
-    borderCollapse: 'collapse' as const,
-    marginBottom: '20px'
-  };
-
-  const cellStyle = {
-    ...textStyle,
-    padding: '8px',
-    borderBottom: `1px solid ${orcamentoConfig.cores.primaria}20`
+    fontSize: `${bodySize}px`,
+    fontFamily: bodyFont,
+    color: '#374151',
+    lineHeight: '1.4'
   };
 
   const totalStyle = {
     ...titleStyle,
     textAlign: 'right' as const,
-    fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo + 2}px`,
+    fontSize: `${titleSize + 2}px`,
     marginTop: '16px'
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Preview Orçamento */}
-      <div className="bg-white p-6 rounded-lg shadow-md border">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">Preview Orçamento</h3>
-        <div className="bg-gray-50 p-4 rounded border" style={{ minHeight: '400px' }}>
-          {/* Header */}
-          <div style={documentHeaderStyle}>
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 style={titleStyle}>LP IND - Orçamento #03/2025</h1>
-                <p style={textStyle}>Data: 09/09/2025</p>
-              </div>
-              {orcamentoConfig.layout.logoUrl && (
-                <img 
-                  src={orcamentoConfig.layout.logoUrl} 
-                  alt="Logo" 
-                  className="h-12 w-auto object-contain"
-                />
-              )}
-            </div>
-          </div>
-
-          {/* Fornecedor e Cliente */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="p-3 border rounded">
-              <h3 style={{ ...titleStyle, fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo - 4}px`, marginBottom: '8px' }}>FORNECEDOR</h3>
-              <div style={textStyle}>
-                <div className="font-bold">{companyData?.nome || 'Carregando...'}</div>
-                {companyData?.razao_social && <div>Razão Social: {companyData.razao_social}</div>}
-                {companyData?.cnpj && <div>CNPJ: {companyData.cnpj}</div>}
-                {companyData?.endereco && <div>Endereço: {companyData.endereco}</div>}
-                {companyData?.telefone && (
-                  <div>
-                    Telefone: {companyData.telefone} 
-                    <svg style={{ display: 'inline-block', width: '16px', height: '16px', marginLeft: '5px', verticalAlign: 'middle' }} viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.386"/></svg>
-                  </div>
-                )}
-                {companyData?.email && <div>Email: {companyData.email}</div>}
-              </div>
-            </div>
-            <div className="p-3 border rounded">
-              <h3 style={{ ...titleStyle, fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo - 4}px`, marginBottom: '8px' }}>CLIENTE</h3>
-              <div style={textStyle}>
-                <div className="font-bold">Cliente Teste</div>
-                <div>CNPJ: 12345678901</div>
-                <div>Endereço: Rua Teste, 123</div>
-                <div>Telefone: (11) 99999-9999</div>
-                <div>Email: teste@teste.com</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Modalidade de Compra */}
-          <div className="text-center mb-6" style={{ margin: '20px 0' }}>
-            <div style={{ ...textStyle, fontSize: '16px', fontWeight: 'normal' }}>
-              MODALIDADE DE COMPRA: LICITAÇÃO - 256255/2025
-            </div>
-          </div>
-
-          {/* Itens */}
-          <div className="mb-4">
-            <h2 style={{ ...titleStyle, fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo - 2}px`, marginBottom: '8px' }}>Itens</h2>
-            <table style={tableStyle}>
-              <thead>
-                <tr style={{ backgroundColor: orcamentoConfig.cores.primaria, color: 'white' }}>
-                  <th style={{ ...cellStyle, fontWeight: 'bold', color: 'white', width: '5%' }}>#</th>
-                  <th style={{ ...cellStyle, fontWeight: 'bold', color: 'white', width: '55%' }}>DESCRIÇÃO</th>
-                  <th style={{ ...cellStyle, fontWeight: 'bold', color: 'white', width: '12%' }}>MARCA</th>
-                  <th style={{ ...cellStyle, fontWeight: 'bold', color: 'white', width: '8%' }}>QTD.</th>
-                  <th style={{ ...cellStyle, fontWeight: 'bold', color: 'white', width: '10%' }}>VALOR UNIT.</th>
-                  <th style={{ ...cellStyle, fontWeight: 'bold', color: 'white', width: '10%' }}>TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td style={{ ...cellStyle, width: '5%' }}>1</td>
-                  <td style={{ ...cellStyle, width: '55%' }}>Produto de exemplo com descrição mais detalhada para demonstrar o espaço maior</td>
-                  <td style={{ ...cellStyle, width: '12%' }}>Marca X</td>
-                  <td style={{ ...cellStyle, width: '8%', textAlign: 'center' }}>7</td>
-                  <td style={{ ...cellStyle, width: '10%', textAlign: 'center' }}>R$ 50,00</td>
-                  <td style={{ ...cellStyle, width: '10%', textAlign: 'center' }}>R$ 350,00</td>
-                </tr>
-              </tbody>
-            </table>
-            
-            {/* Total do Orçamento */}
-            <div className="mt-4 p-3" style={{ backgroundColor: orcamentoConfig.cores.primaria, color: 'white', textAlign: 'right' }}>
-              <div style={{ ...titleStyle, color: 'white', fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo}px` }}>
-                Total do orçamento: R$ 350,00
-              </div>
-            </div>
-          </div>
-
-          {/* Observações */}
-          <div className="mb-4">
-            <h2 style={{ ...titleStyle, fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo - 2}px`, marginBottom: '8px' }}>Observações</h2>
-            <div style={{ ...textStyle, padding: '12px', backgroundColor: 'white', border: `1px solid ${orcamentoConfig.cores.primaria}20`, borderRadius: '4px' }}>
-              hgafh
-            </div>
-          </div>
-
-          {/* Rodapé */}
-          <div className="mt-6 pt-4 flex justify-between" style={{ borderTop: `1px solid ${orcamentoConfig.cores.primaria}20`, fontSize: '12px', color: '#64748b' }}>
-            <div>Orçamento sem valor fiscal • Validade sugerida: 30 dias</div>
-            <div>Página 1</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Preview Vale */}
-      <div className="bg-white p-6 rounded-lg shadow-md border">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">Preview Vale</h3>
-        <div className="bg-gray-50 p-4 rounded border" style={{ minHeight: '400px' }}>
-          {/* Header */}
-          <div style={documentHeaderStyle}>
+      {/* Orcamento Preview */}
+      {(type === 'orcamento' || !type) && (
+        <div className="bg-white shadow-lg">
+          {/* Header com gradiente personalizado */}
+          <div className="text-white p-6" style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}>
             <div className="flex justify-between items-start">
-              <div className="company-info">
-                {orcamentoConfig.layout.logoUrl ? (
-                  <img 
-                    src={orcamentoConfig.layout.logoUrl} 
-                    alt="Logo" 
-                    className="h-12 w-auto object-contain mb-2"
-                  />
-                ) : (
-                  <div className="mb-2">
-                    <div style={{ ...titleStyle, fontSize: '14px', lineHeight: '1.2' }}>ID</div>
-                    <div style={{ ...textStyle, fontSize: '10px' }}>DISTRIBUIÇÃO</div>
-                  </div>
-                )}
-                <div style={textStyle}>
-                  <div className="font-bold">{companyData?.nome || 'Carregando...'}</div>
-                  {companyData?.cnpj && <div>CNPJ: {companyData.cnpj}</div>}
-                  {companyData?.endereco && <div>{companyData.endereco}</div>}
-                  {companyData?.telefone && (
-                    <div>
-                      Tel: {companyData.telefone} 
-                      <svg style={{ display: 'inline-block', width: '14px', height: '14px', marginLeft: '3px', verticalAlign: 'middle' }} viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.386"/></svg>
-                    </div>
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold mb-3">
+                  {companyData?.nome || 'Carregando...'}
+                </h1>
+                <div className="text-sm space-y-1 opacity-90">
+                  <p>{companyData?.endereco}</p>
+                  <p>CEP: {companyData?.cep} - {companyData?.cidade}/{companyData?.estado}</p>
+                  <p>Tel: {companyData?.telefone} | {companyData?.email}</p>
+                  <p>CNPJ: {companyData?.cnpj}</p>
+                </div>
+              </div>
+              <div className="text-right bg-white/10 p-4 rounded-lg">
+                <h2 className="text-xl font-bold mb-2">
+                  ORÇAMENTO
+                </h2>
+                <p className="text-sm">Nº {data?.numero || '03/2025'}</p>
+                <p className="text-sm">Data: {data?.data || '09/09/2025'}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-8">
+            {/* Supplier and Client Info */}
+            <div className="grid grid-cols-2 gap-8 mb-8">
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold mb-3 border-b border-blue-200 pb-2" style={{ color: primaryColor }}>
+                  FORNECEDOR
+                </h3>
+                <div className="text-sm text-gray-700 space-y-1">
+                  <p className="font-medium text-gray-900">{data?.fornecedor?.nome || companyData?.nome || 'Carregando...'}</p>
+                  {(data?.fornecedor?.razaoSocial || companyData?.razao_social) && <p>Razão Social: {data?.fornecedor?.razaoSocial || companyData?.razao_social}</p>}
+                  <p>CNPJ: {data?.fornecedor?.cnpj || companyData?.cnpj}</p>
+                  <p>Endereço: {data?.fornecedor?.endereco || companyData?.endereco}</p>
+                  <p>Telefone: {data?.fornecedor?.telefone || companyData?.telefone}</p>
+                </div>
+              </div>
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold mb-3 border-b border-blue-200 pb-2" style={{ color: primaryColor }}>
+                  CLIENTE
+                </h3>
+                <div className="text-sm text-gray-700 space-y-1">
+                  <p className="font-medium text-gray-900">{data?.cliente?.nome || 'Cliente Teste'}</p>
+                  <p>CNPJ: {data?.cliente?.cnpj || '12345678901'}</p>
+                  <p>Endereço: {data?.cliente?.endereco || 'Rua Teste, 123'}</p>
+                  <p>Telefone: {data?.cliente?.telefone || '(11) 99999-9999'}</p>
+                  <p>Email: {data?.cliente?.email || 'teste@teste.com'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Purchase Modality */}
+            <div className="text-center mb-8">
+              <div className="inline-block px-8 py-4 rounded-lg bg-gradient-to-r from-gray-100 to-gray-200 border border-gray-300">
+                <h3 className="font-semibold text-lg" style={{ color: primaryColor }}>
+                  MODALIDADE DE COMPRA: {data?.modalidadeCompra || 'LICITAÇÃO'} - {data?.numeroLicitacao || '256255/2025'}
+                </h3>
+              </div>
+            </div>
+
+            {/* Items Table */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>Itens</h3>
+              <table className="w-full border-collapse border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <thead className="bg-blue-100">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold" style={{ color: primaryColor }}>Item</th>
+                    <th className="px-4 py-3 text-left font-semibold" style={{ color: primaryColor }}>Descrição</th>
+                    <th className="px-4 py-3 text-center font-semibold" style={{ color: primaryColor }}>Qtd</th>
+                    <th className="px-4 py-3 text-center font-semibold" style={{ color: primaryColor }}>Unidade</th>
+                    <th className="px-4 py-3 text-right font-semibold" style={{ color: primaryColor }}>Valor Unit.</th>
+                    <th className="px-4 py-3 text-right font-semibold" style={{ color: primaryColor }}>Valor Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data?.itens?.map((item: any, index: number) => (
+                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="border-r border-gray-200 px-4 py-3 text-center font-medium text-blue-800">{index + 1}</td>
+                      <td className="border-r border-gray-200 px-4 py-3 text-gray-700">{item.descricao}</td>
+                      <td className="border-r border-gray-200 px-4 py-3 text-center text-gray-700">{item.quantidade}</td>
+                      <td className="border-r border-gray-200 px-4 py-3 text-center text-gray-700">{item.unidadeMedida || 'un'}</td>
+                      <td className="border-r border-gray-200 px-4 py-3 text-right text-gray-700">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorUnitario)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-900">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.valorTotal)}
+                      </td>
+                    </tr>
+                  )) || (
+                    <tr className="bg-white">
+                      <td className="border-r border-gray-200 px-4 py-3 text-center font-medium text-blue-800">1</td>
+                      <td className="border-r border-gray-200 px-4 py-3 text-gray-700">Produto de exemplo com descrição mais detalhada para demonstrar o espaço maior</td>
+                      <td className="border-r border-gray-200 px-4 py-3 text-center text-gray-700">7</td>
+                      <td className="border-r border-gray-200 px-4 py-3 text-center text-gray-700">pct</td>
+                      <td className="border-r border-gray-200 px-4 py-3 text-right text-gray-700">R$ 50,00</td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-900">R$ 350,00</td>
+                    </tr>
                   )}
-                  {companyData?.email && <div>Email: {companyData.email}</div>}
-                </div>
-              </div>
-              <div className="document-info text-right">
-                <h1 style={titleStyle}>Documento de Vale</h1>
-                <div style={textStyle}>
-                  <div>Cliente: Maria Santos</div>
-                  <div>CPF: 123.456.789-00</div>
-                  <div>Emitido em: 15/01/2024 14:30</div>
-                </div>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Total */}
+            <div className="mb-8">
+              <div className="text-white p-6 rounded-lg shadow-lg" style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}>
+                <h3 className="text-2xl font-bold text-center">
+                  Total do orçamento: {data?.valorTotal ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.valorTotal) : 'R$ 350,00'}
+                </h3>
               </div>
             </div>
-          </div>
 
-          {/* Informações do Vale */}
-          <div className="mb-4">
-            <h2 style={{ ...titleStyle, fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo - 2}px`, marginBottom: '8px' }}>Informações</h2>
-            <table style={tableStyle}>
-              <tbody>
-                <tr>
-                  <td style={{ ...cellStyle, fontWeight: 'bold', width: '30%' }}>Data:</td>
-                  <td style={cellStyle}>15/01/2024</td>
-                </tr>
-                <tr>
-                  <td style={{ ...cellStyle, fontWeight: 'bold' }}>Cliente:</td>
-                  <td style={cellStyle}>Maria Santos</td>
-                </tr>
-                <tr>
-                  <td style={{ ...cellStyle, fontWeight: 'bold' }}>Telefone:</td>
-                  <td style={cellStyle}>(11) 88888-8888</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+            {/* Observations */}
+            {(data?.observacoes || !data) && (
+              <div className="mb-8">
+                <h3 className="font-semibold mb-3" style={{ color: primaryColor }}>
+                  Observações
+                </h3>
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <p className="text-sm text-gray-700">{data?.observacoes || 'hgafh'}</p>
+                </div>
+              </div>
+            )}
 
-          {/* Descrição */}
-          <div className="mb-4">
-            <h2 style={{ ...titleStyle, fontSize: `${orcamentoConfig.tipografia.tamanhoTitulo - 2}px`, marginBottom: '8px' }}>Descrição</h2>
-            <div style={{ ...textStyle, padding: '12px', backgroundColor: 'white', border: `1px solid ${orcamentoConfig.cores.primaria}20`, borderRadius: '4px' }}>
-              Vale referente ao pagamento antecipado de serviços a serem prestados conforme acordo estabelecido.
-            </div>
-          </div>
-
-          {/* Valor */}
-          <div style={totalStyle}>
-            Valor: R$ 200,00
-          </div>
-
-          {/* Assinatura */}
-          <div className="mt-8 pt-4" style={{ borderTop: `1px solid ${orcamentoConfig.cores.primaria}20` }}>
-            <div style={textStyle} className="text-center">
-              _________________________________<br/>
-              Assinatura do Responsável
+            {/* Footer */}
+            <div className="text-center text-sm text-gray-500 border-t border-gray-200 pt-6 mt-8">
+              <p className="mb-1">Validade: {layoutConfig?.validadeOrcamento || companyData?.validadeOrcamento || 30} dias</p>
+              <p>Página 1</p>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Vale Preview */}
+      {(type === 'vale' || !type) && (
+        <div className="bg-white shadow-lg">
+          {/* Header com gradiente personalizado */}
+          <div className="text-white p-6" style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold mb-3">
+                  {companyData?.nome || 'Carregando...'}
+                </h1>
+                <div className="text-sm space-y-1 opacity-90">
+                  <p>{companyData?.endereco}</p>
+                  <p>CEP: {companyData?.cep} - {companyData?.cidade}/{companyData?.estado}</p>
+                  <p>Tel: {companyData?.telefone} | {companyData?.email}</p>
+                  <p>CNPJ: {companyData?.cnpj}</p>
+                </div>
+              </div>
+              <div className="text-right bg-white/10 p-4 rounded-lg">
+                <h2 className="text-xl font-bold mb-2">
+                  VALE
+                </h2>
+                <p className="text-sm">Nº {data?.numero || '03/2025'}</p>
+                <p className="text-sm">Data: {data?.data || '09/09/2025'}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="p-8">
+            {/* Empresa e Cliente */}
+            <div className="grid grid-cols-2 gap-8 mb-8">
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold mb-3 border-b border-blue-200 pb-2" style={{ color: primaryColor }}>
+                  EMPRESA
+                </h3>
+                <div className="text-sm text-gray-700 space-y-1">
+                  <p className="font-medium text-gray-900">{companyData?.nome || 'Carregando...'}</p>
+                  {companyData?.razao_social && <p>Razão Social: {companyData.razao_social}</p>}
+                  <p>CNPJ: {companyData?.cnpj}</p>
+                  <p>Endereço: {companyData?.endereco}</p>
+                  <p>Telefone: {companyData?.telefone}</p>
+                  <p>Email: {companyData?.email}</p>
+                </div>
+              </div>
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold mb-3 border-b border-blue-200 pb-2" style={{ color: primaryColor }}>
+                  CLIENTE
+                </h3>
+                <div className="text-sm text-gray-700 space-y-1">
+                  <p className="font-medium text-gray-900">{data?.cliente?.nome || 'Maria Santos'}</p>
+                  <p>CPF: {data?.cliente?.cpf || '123.456.789-00'}</p>
+                  <p>Telefone: {data?.cliente?.telefone || '(11) 88888-8888'}</p>
+                  <p>Email: {data?.cliente?.email || 'maria@teste.com'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Informações do Vale */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4" style={{ color: primaryColor }}>Detalhes do Vale</h3>
+              <table className="w-full border-collapse border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <thead>
+                  <tr style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}>
+                    <th className="border-r border-blue-500 px-4 py-3 text-left text-white font-semibold">Descrição</th>
+                    <th className="px-4 py-3 text-right text-white font-semibold">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-white">
+                    <td className="border-r border-gray-200 px-4 py-3 text-gray-700">{data?.descricao || 'Vale referente ao pagamento antecipado de serviços'}</td>
+                    <td className="px-4 py-3 text-right font-medium text-gray-900">{data?.valor ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.valor) : 'R$ 200,00'}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Valor Total */}
+            <div className="mb-8">
+              <div className="text-white p-6 rounded-lg shadow-lg" style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor})` }}>
+                <h3 className="text-2xl font-bold text-center">
+                  Valor Total: {data?.valor ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.valor) : 'R$ 200,00'}
+                </h3>
+              </div>
+            </div>
+
+            {/* Observações */}
+            {(data?.observacoes || !data) && (
+              <div className="mb-8">
+                <h3 className="font-semibold mb-3" style={{ color: primaryColor }}>
+                  Observações
+                </h3>
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <p className="text-sm text-gray-700">{data?.observacoes || 'Vale referente ao pagamento antecipado de serviços a serem prestados conforme acordo estabelecido.'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Assinatura */}
+            <div className="mb-8">
+              <h3 className="font-semibold mb-3" style={{ color: primaryColor }}>Assinatura</h3>
+              <div className="bg-white border border-gray-200 p-8 rounded-lg text-center">
+                <div className="border-b border-gray-300 mb-2 pb-1">
+                  <span className="text-gray-400">_________________________________</span>
+                </div>
+                <p className="text-sm text-gray-600 font-medium">Assinatura do Responsável</p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-sm text-gray-500 border-t border-gray-200 pt-6 mt-8">
+              <p className="mb-1">Vale sem valor fiscal</p>
+              <p>Página 1</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

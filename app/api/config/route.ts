@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     console.log('📝 Salvando configurações:', data)
     
     // Verificar se já existe empresa
-    const existingEmpresa = db.prepare('SELECT id FROM empresas LIMIT 1').get() as any
+    const existingEmpresa = db.prepare('SELECT rowid FROM empresas LIMIT 1').get() as any
     
     if (existingEmpresa) {
       // Atualizar empresa existente - apenas campos fornecidos
@@ -126,13 +126,51 @@ export async function POST(request: NextRequest) {
         updateValues.push(data.emailTemplateRelatorio)
       }
       
+      // Campos de personalização de documentos
+      if (data.corPrimaria !== undefined) {
+        updateFields.push('cor_primaria = ?')
+        updateValues.push(data.corPrimaria)
+      }
+      if (data.corSecundaria !== undefined) {
+        updateFields.push('cor_secundaria = ?')
+        updateValues.push(data.corSecundaria)
+      }
+      if (data.corTexto !== undefined) {
+        updateFields.push('cor_texto = ?')
+        updateValues.push(data.corTexto)
+      }
+      if (data.fonteTitulo !== undefined) {
+        updateFields.push('fonte_titulo = ?')
+        updateValues.push(data.fonteTitulo)
+      }
+      if (data.fonteTexto !== undefined) {
+        updateFields.push('fonte_texto = ?')
+        updateValues.push(data.fonteTexto)
+      }
+      if (data.tamanhoTitulo !== undefined) {
+        updateFields.push('tamanho_titulo = ?')
+        updateValues.push(data.tamanhoTitulo)
+      }
+      if (data.tamanhoTexto !== undefined) {
+        updateFields.push('tamanho_texto = ?')
+        updateValues.push(data.tamanhoTexto)
+      }
+      if (data.logoPersonalizada !== undefined) {
+        updateFields.push('logo_personalizada = ?')
+        updateValues.push(data.logoPersonalizada)
+      }
+      if (data.validadeOrcamento !== undefined) {
+        updateFields.push('validade_orcamento = ?')
+        updateValues.push(data.validadeOrcamento)
+      }
+      
       if (updateFields.length > 0) {
         updateFields.push('updated_at = CURRENT_TIMESTAMP')
-        updateValues.push(existingEmpresa.id)
+        updateValues.push(existingEmpresa.rowid)
         
-        const updateQuery = `UPDATE empresas SET ${updateFields.join(', ')} WHERE id = ?`
+        const updateQuery = `UPDATE empresas SET ${updateFields.join(', ')} WHERE rowid = ?`
         
-        console.log('🔄 Atualizando empresa existente ID:', existingEmpresa.id)
+        console.log('🔄 Atualizando empresa existente rowid:', existingEmpresa.rowid)
         console.log('📝 Campos a atualizar:', updateFields)
         
         db.prepare(updateQuery).run(...updateValues)

@@ -112,17 +112,23 @@ export function ManageCategoriasDialog({ onCategoriaChange }: ManageCategoriasDi
 
   const handleDeleteCategoria = async (categoria: Categoria) => {
     try {
+      console.log('Attempting to delete category with ID:', categoria.id)
       const response = await fetch(`/api/categorias-fornecedores?id=${categoria.id}`, {
         method: 'DELETE',
       })
 
+      console.log('Delete response status:', response.status)
+      const responseData = await response.json()
+      console.log('Delete response data:', responseData)
+
       if (response.ok) {
+        console.log('Delete successful, updating state')
         toast.success('Categoria excluída com sucesso!')
         fetchCategorias()
         onCategoriaChange?.()
       } else {
-        const error = await response.json()
-        toast.error(error.error || 'Erro ao excluir categoria')
+        console.error('Delete failed:', responseData)
+        toast.error(`Erro ao excluir categoria: ${responseData.error || 'Erro desconhecido'}`)
       }
     } catch (error) {
       console.error('Erro ao excluir categoria:', error)
@@ -236,7 +242,7 @@ export function ManageCategoriasDialog({ onCategoriaChange }: ManageCategoriasDi
 
       {/* Dialog de Confirmação de Exclusão */}
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open })}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[60]">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>

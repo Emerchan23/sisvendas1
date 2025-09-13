@@ -1,61 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { db } from '../../../../lib/db'
 
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params
+    const { id } = params
     
-    // Check if modalidade exists
-    const existingModalidade = db.prepare('SELECT id FROM modalidades WHERE id = ?').get(id)
-    if (!existingModalidade) {
+    const modalidade = db.prepare(`
+      SELECT * FROM modalidades WHERE id = ?
+    `).get(id)
+    
+    if (!modalidade) {
       return NextResponse.json({ error: 'Modalidade não encontrada' }, { status: 404 })
     }
     
-    // Soft delete - mark as inactive instead of hard delete
-    db.prepare('UPDATE modalidades SET ativo = 0, updated_at = ? WHERE id = ?').run(
-      new Date().toISOString(),
-      id
-    )
-    
-    return NextResponse.json({ ok: true })
+    return NextResponse.json(modalidade)
   } catch (error) {
-    console.error('Error deleting modalidade:', error)
+    console.error('Error fetching modalidade:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { id } = await params
+    const { id } = params
     const body = await request.json()
-    const { nome } = body
+    const { codigo, nome, descricao, ativo, requer_numero_processo } = body
     
-    if (!nome) {
-      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
+    if (!codigo || !nome) {
+      return NextResponse.json({ error: 'Código e nome são obrigatórios' }, { status: 400 })
     }
     
-    // Check if modalidade exists
-    const existingModalidade = db.prepare('SELECT id FROM modalidades WHERE id = ?').get(id)
-    if (!existingModalidade) {
-      return NextResponse.json({ error: 'Modalidade não encontrada' }, { status: 404 })
-    }
-    
-    db.prepare(`
+    const result = db.prepare(`
       UPDATE modalidades 
-      SET nome = ?, updated_at = ?
+      SET codigo = ?, nome = ?, descricao = ?, ativo = ?, requer_numero_processo = ?, updated_at = ?
       WHERE id = ?
     `).run(
+      codigo,
       nome,
+      descricao || null,
+      ativo !== undefined ? ativo : true,
+      requer_numero_processo || false,
       new Date().toISOString(),
       id
     )
+    
+    if (result.changes === 0) {
+      return NextResponse.json({ error: 'Modalidade não encontrada' }, { status: 404 })
+    }
     
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('Error updating modalidade:', error)
     if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-      return NextResponse.json({ error: 'Modalidade já existe' }, { status: 409 })
+      return NextResponse.json({ error: 'Código da modalidade já existe' }, { status: 409 })
     }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id } = params
+    
+    const result = db.prepare(`
+      DELETE FROM modalidades WHERE id = ?
+    `).run(id)
+    
+    if (result.changes === 0) {
+      return NextResponse.json({ error: 'Modalidade não encontrada' }, { status: 404 })
+    }
+    
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('Error deleting modalidade:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

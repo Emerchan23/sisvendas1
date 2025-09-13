@@ -1,52 +1,119 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-
-// Função auxiliar para gerar IDs compatível com navegadores
-function generateId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID()
-  }
-  // Fallback para navegadores que não suportam crypto.randomUUID
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-}
-import { AppHeader } from "@/components/app-header"
-// Removed empresa imports - system simplified
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { CurrencyInput } from "@/components/ui/currency-input"
 import { Label } from "@/components/ui/label"
+import { CurrencyInput } from "@/components/ui/currency-input"
+import { DateInput } from "@/components/ui/date-input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Plus, Edit, Trash2, DollarSign, TrendingUp, Calendar, Users, History, CreditCard, Download, Percent, CheckCircle, Shield, Target, BarChart } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AppHeader } from "@/components/app-header"
 import { api } from "@/lib/api-client"
-import {
-  addOutroNegocio,
-  addPagamento,
-  calcularJurosCompostosComPagamentos,
-  computeTotals,
-  getUniquePessoas,
-  loadOutrosNegocios,
-  removeOutroNegocio,
-  removePagamento,
-  saveOutrosNegocios,
-  type OutroNegocio,
-  type PagamentoParcial,
-  type TipoOperacao,
-  updateOutroNegocio,
-} from "@/lib/outros-negocios"
-import { CheckCheck, Edit, History, Plus, Trash2, Download } from "lucide-react"
-import { makeOutroNegocioDocumentHTML, downloadPDF } from "@/lib/print"
+import { loadOutrosNegocios, addPagamento, removePagamento, calcularJurosCompostosComPagamentos } from "@/lib/outros-negocios"
+import { downloadPDF, makeOutroNegocioDocumentHTML } from "@/lib/print"
+
+type TipoOperacao = "emprestimo" | "venda"
+
+type OutroNegocio = {
+  id: string
+  pessoa: string
+  tipo: TipoOperacao
+  descricao: string
+  valor: number
+  data: string
+  jurosAtivo: boolean
+  jurosMesPercent: number
+  multaAtiva: boolean
+  multaPercent: number
+  pagamentos: PagamentoParcial[]
+}
+
+type PagamentoParcial = {
+  id: string
+  data: string
+  valor: number
+}
+
+function generateId(): string {
+  return Date.now().toString() + Math.random().toString(36).substr(2, 9)
+}
 
 function formatBRL(v: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v || 0)
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v)
 }
+
 function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  return new Date().toISOString().split("T")[0]
+}
+
+function getUniquePessoas(items: OutroNegocio[]): string[] {
+  const set = new Set(items.map((i) => i.pessoa).filter(Boolean))
+  return Array.from(set).sort()
+}
+
+function computeTotals(items: OutroNegocio[]) {
+  const today = todayISO()
+  let totalEmprestimos = 0
+  let totalVendas = 0
+  let saldoPendente = 0
+  let jurosPendentes = 0
+  let totalPago = 0
+  let totalQuitados = 0
+  let totalPagamentos = 0
+  let countPagamentos = 0
+
+  items.forEach((item) => {
+    if (item.tipo === "emprestimo") {
+      totalEmprestimos += item.valor
+    } else {
+      totalVendas += item.valor
+    }
+    
+    const calc = calcularJurosCompostosComPagamentos(item, today)
+    saldoPendente += calc.saldoComJuros
+    
+    // Calcular pagamentos realizados
+    const pagamentosItem = item.pagamentos?.reduce((sum, p) => sum + p.valor, 0) || 0
+    totalPago += pagamentosItem
+    
+    // Contar pagamentos para média
+    if (item.pagamentos && item.pagamentos.length > 0) {
+      totalPagamentos += pagamentosItem
+      countPagamentos += item.pagamentos.length
+    }
+    
+    // Verificar se está quitado (saldo <= 0)
+    if (calc.saldoComJuros <= 0) {
+      totalQuitados++
+    }
+    
+    // Calcular apenas os juros (saldo com juros - valor original + pagamentos feitos)
+    const jurosAcumulados = calc.saldoComJuros - item.valor + pagamentosItem
+    if (jurosAcumulados > 0) {
+      jurosPendentes += jurosAcumulados
+    }
+  })
+
+  const percentualQuitacao = items.length > 0 ? (totalQuitados / items.length) * 100 : 0
+  const valorMedioPagamento = countPagamentos > 0 ? totalPagamentos / countPagamentos : 0
+
+  return { 
+    totalEmprestimos, 
+    totalVendas, 
+    saldoPendente, 
+    jurosPendentes,
+    totalPago,
+    totalQuitados,
+    percentualQuitacao,
+    valorMedioPagamento
+  }
 }
 
 type FormState = {
@@ -112,12 +179,10 @@ export default function OutrosNegociosPage() {
   const filtered = useMemo(() => {
     let r = [...items]
     if (pessoaFilter !== "all") r = r.filter((i) => i.pessoa === pessoaFilter)
-    // calcular saldo para saber se está pendente
     if (somentePendentes) {
       const today = todayISO()
       r = r.filter((i) => calcularJurosCompostosComPagamentos(i, today).saldoComJuros > 0)
     }
-    // ordenar por data desc
     r.sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0))
     return r
   }, [items, pessoaFilter, somentePendentes])
@@ -183,16 +248,15 @@ export default function OutrosNegociosPage() {
 
     try {
       let next: OutroNegocio[]
-      // Mapear campos para o formato esperado pela API
       const apiPayload = {
-        tipo: payload.tipo === 'emprestimo' ? 'despesa' : 'receita', // Map emprestimo->despesa, venda->receita
+        tipo: payload.tipo,
         descricao: payload.descricao,
         valor: payload.valor,
-        data_transacao: payload.data, // API expects data_transacao, not data
-        cliente_id: payload.pessoa, // API expects cliente_id, not pessoa
-        juros_ativo: payload.jurosAtivo ? 1 : 0, // Convert boolean to integer
+        data_transacao: payload.data,
+        cliente_id: payload.pessoa,
+        juros_ativo: payload.jurosAtivo ? 1 : 0,
         juros_mes_percent: payload.jurosAtivo ? Number(payload.jurosMesPercent || 0) : 0,
-        multa_ativa: payload.multaAtiva ? 1 : 0, // Convert boolean to integer
+        multa_ativa: payload.multaAtiva ? 1 : 0,
         multa_percent: payload.multaAtiva ? Number(payload.multaPercent || 0) : 0
       }
       
@@ -244,7 +308,7 @@ export default function OutrosNegociosPage() {
       open: true,
       itemId: item.id,
       data: todayISO(),
-      valor: valorSugerido ? String(valorSugerido.toFixed(2)) : "",
+      valor: valorSugerido ? String(valorSugerido) : "",
     })
   }
 
@@ -280,431 +344,731 @@ export default function OutrosNegociosPage() {
     }
   }
 
-  // Função para baixar documento PDF
   async function baixarDocumentoPDF(item: OutroNegocio) {
     try {
       const today = todayISO()
       const saldoAtual = calcularJurosCompostosComPagamentos(item, today)
       
-      const html = makeOutroNegocioDocumentHTML({
-        negocio: item,
-        saldoAtual
+      // Gerar HTML único para outros negócios
+      const htmlContent = makeOutroNegocioDocumentHTML({
+        negocio: {
+          id: item.id,
+          pessoa: item.pessoa,
+          tipo: item.tipo,
+          descricao: item.descricao,
+          valor: item.valor,
+          data: item.data,
+          jurosAtivo: item.jurosAtivo,
+          jurosMesPercent: item.jurosMesPercent,
+          pagamentos: item.pagamentos || []
+        },
+        saldoAtual: {
+          saldoComJuros: saldoAtual.saldoComJuros,
+          jurosAcumulados: saldoAtual.jurosAcumulados,
+          saldoPrincipalRestante: saldoAtual.saldoPrincipalRestante
+        }
       })
+
+      // Criar um documento HTML completo com estilos únicos
+      const fullHTML = `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Documento - ${item.tipo === 'emprestimo' ? 'Empréstimo' : 'Venda'} - ${item.pessoa}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              min-height: 100vh;
+              padding: 20px;
+              color: #333;
+            }
+            .container {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              border-radius: 20px;
+              box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+              overflow: hidden;
+            }
+            .header {
+              background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+              color: white;
+              padding: 30px;
+              text-align: center;
+            }
+            .header h1 {
+              font-size: 2.5rem;
+              margin-bottom: 10px;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            }
+            .header p {
+              font-size: 1.1rem;
+              opacity: 0.9;
+            }
+            .content {
+              padding: 40px;
+            }
+            .info-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+            .info-card {
+              background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+              padding: 20px;
+              border-radius: 15px;
+              border-left: 5px solid #4f46e5;
+            }
+            .info-card h3 {
+              color: #4f46e5;
+              margin-bottom: 10px;
+              font-size: 1.1rem;
+            }
+            .info-card p {
+              font-size: 1.2rem;
+              font-weight: 600;
+              color: #1e293b;
+            }
+            .payments-section {
+              margin-top: 30px;
+            }
+            .payments-section h2 {
+              color: #4f46e5;
+              margin-bottom: 20px;
+              font-size: 1.5rem;
+              border-bottom: 2px solid #e2e8f0;
+              padding-bottom: 10px;
+            }
+            .payment-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 15px;
+              background: #f1f5f9;
+              margin-bottom: 10px;
+              border-radius: 10px;
+              border-left: 4px solid #10b981;
+            }
+            .status-badge {
+              display: inline-block;
+              padding: 8px 16px;
+              border-radius: 20px;
+              font-weight: 600;
+              text-transform: uppercase;
+              font-size: 0.8rem;
+              letter-spacing: 0.5px;
+            }
+            .status-emprestimo {
+              background: #fef2f2;
+              color: #dc2626;
+            }
+            .status-venda {
+              background: #f0f9ff;
+              color: #0284c7;
+            }
+            .footer {
+              background: #f8fafc;
+              padding: 20px;
+              text-align: center;
+              color: #64748b;
+              border-top: 1px solid #e2e8f0;
+            }
+            .print-actions {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              display: flex;
+              gap: 10px;
+              z-index: 1000;
+            }
+            .btn {
+              padding: 12px 24px;
+              border: none;
+              border-radius: 8px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            }
+            .btn-primary {
+              background: #4f46e5;
+              color: white;
+            }
+            .btn-primary:hover {
+              background: #4338ca;
+              transform: translateY(-2px);
+            }
+            .btn-secondary {
+              background: #6b7280;
+              color: white;
+            }
+            .btn-secondary:hover {
+              background: #4b5563;
+              transform: translateY(-2px);
+            }
+            @media print {
+              .print-actions { display: none; }
+              body { background: white; padding: 0; }
+              .container { box-shadow: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-actions">
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn btn-secondary" onclick="downloadAsImage()">📷 Baixar Imagem</button>
+            <button class="btn btn-secondary" onclick="window.close()">❌ Fechar</button>
+          </div>
+          
+          <div class="container">
+            <div class="header">
+              <h1>Documento de ${item.tipo === 'emprestimo' ? 'Empréstimo' : 'Venda'}</h1>
+              <p>Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+            </div>
+            
+            <div class="content">
+              <div class="info-grid">
+                <div class="info-card">
+                  <h3>👤 Pessoa</h3>
+                  <p>${item.pessoa}</p>
+                </div>
+                <div class="info-card">
+                  <h3>📋 Tipo</h3>
+                  <p><span class="status-badge status-${item.tipo}">${item.tipo === 'emprestimo' ? 'Empréstimo' : 'Venda'}</span></p>
+                </div>
+                <div class="info-card">
+                  <h3>💰 Valor Original</h3>
+                  <p>${formatBRL(item.valor)}</p>
+                </div>
+                <div class="info-card">
+                  <h3>📅 Data</h3>
+                  <p>${new Date(item.data + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+                </div>
+                <div class="info-card">
+                  <h3>💳 Saldo Atual</h3>
+                  <p style="color: ${saldoAtual.saldoComJuros > 0 ? '#dc2626' : '#16a34a'}">${formatBRL(saldoAtual.saldoComJuros)}</p>
+                </div>
+                <div class="info-card">
+                  <h3>📈 Juros</h3>
+                  <p>${item.jurosAtivo ? `${item.jurosMesPercent}% ao mês` : 'Sem juros'}</p>
+                </div>
+              </div>
+              
+              <div class="info-card" style="margin-bottom: 20px;">
+                <h3>📝 Descrição</h3>
+                <p>${item.descricao}</p>
+              </div>
+              
+              ${item.pagamentos && item.pagamentos.length > 0 ? `
+                <div class="payments-section">
+                  <h2>💳 Histórico de Pagamentos</h2>
+                  ${item.pagamentos.map(p => `
+                    <div class="payment-item">
+                      <span>📅 ${new Date(p.data + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+                      <span style="font-weight: 600; color: #16a34a;">${formatBRL(p.valor)}</span>
+                    </div>
+                  `).join('')}
+                  <div style="margin-top: 15px; padding: 15px; background: #ecfdf5; border-radius: 10px; border-left: 4px solid #16a34a;">
+                    <strong>💰 Total Pago: ${formatBRL(item.pagamentos.reduce((sum, p) => sum + p.valor, 0))}</strong>
+                  </div>
+                </div>
+              ` : '<div class="payments-section"><h2>💳 Histórico de Pagamentos</h2><p style="color: #64748b; font-style: italic;">Nenhum pagamento registrado</p></div>'}
+            </div>
+            
+            <div class="footer">
+              <p>📄 Documento gerado automaticamente pelo Sistema de Gestão</p>
+              <p>🕒 ${new Date().toLocaleString('pt-BR')}</p>
+            </div>
+          </div>
+          
+          <script>
+            function downloadAsImage() {
+              // Usar html2canvas se disponível, senão mostrar instrução
+              if (typeof html2canvas !== 'undefined') {
+                html2canvas(document.querySelector('.container')).then(canvas => {
+                  const link = document.createElement('a');
+                  link.download = 'documento-${item.tipo}-${item.pessoa.replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.png';
+                  link.href = canvas.toDataURL();
+                  link.click();
+                });
+              } else {
+                alert('Para baixar como imagem, use a função de impressão do navegador e selecione "Salvar como PDF" ou "Imprimir para arquivo".');
+              }
+            }
+          </script>
+        </body>
+        </html>
+      `
+
+      // Abrir em nova aba
+      const newWindow = window.open('', '_blank')
+      if (newWindow) {
+        newWindow.document.write(fullHTML)
+        newWindow.document.close()
+      } else {
+        alert('Por favor, permita pop-ups para visualizar o documento.')
+      }
       
-      const filename = `${item.tipo}-${item.pessoa.replace(/[^a-zA-Z0-9]/g, '_')}-${item.data}`
-      await downloadPDF(html, filename)
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error)
-      alert('Erro ao gerar documento PDF. Tente novamente.')
+      console.error('Erro ao gerar documento:', error)
+      alert('Erro ao gerar documento. Tente novamente.')
     }
   }
 
-
-
   return (
-    <main className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <AppHeader />
-
-      <div className="mx-auto max-w-7xl px-4 py-6 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Dialog open={openItem} onOpenChange={setOpenItem}>
-            <DialogTrigger asChild>
-              <Button onClick={openCreate} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Nova linha
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{isEditing ? "Editar lançamento" : "Novo lançamento"}</DialogTitle>
-                <DialogDescription>
-                  {isEditing ? "Edite as informações do lançamento" : "Adicione um novo empréstimo ou venda"}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="pessoa">Pessoa</Label>
-                  <Input
-                    id="pessoa"
-                    value={form.pessoa}
-                    onChange={(e) => setForm((f) => ({ ...f, pessoa: e.target.value }))}
-                    placeholder="Nome da pessoa"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tipo">Tipo</Label>
-                  <Select value={form.tipo} onValueChange={(v: TipoOperacao) => setForm((f) => ({ ...f, tipo: v }))}>
-                    <SelectTrigger id="tipo">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="emprestimo">Empréstimo</SelectItem>
-                      <SelectItem value="venda">Venda</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="descricao">Descrição</Label>
-                  <Input
-                    id="descricao"
-                    value={form.descricao}
-                    onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
-                    placeholder="Ex.: Ferramenta emprestada, produto vendido, etc."
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="valor">Valor</Label>
-                  <CurrencyInput
-                    id="valor"
-                    placeholder="0,00"
-                    value={form.valor}
-                    onChange={(value) => setForm((f) => ({ ...f, valor: value }))}
-                    showCurrency={true}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="data">Data</Label>
-                  <Input
-                    id="data"
-                    type="date"
-                    value={form.data}
-                    onChange={(e) => setForm((f) => ({ ...f, data: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center justify-between">
-                    <span>Juros mensais</span>
-                    <Switch
-                      checked={form.jurosAtivo}
-                      onCheckedChange={(v) => setForm((f) => ({ ...f, jurosAtivo: v }))}
-                    />
-                  </Label>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="juros">% a.m.</Label>
-                  <CurrencyInput
-                    id="juros"
-                    placeholder="Ex.: 2,5"
-                    value={form.jurosMesPercent}
-                    onChange={(value) => setForm((f) => ({ ...f, jurosMesPercent: value }))}
-                    disabled={!form.jurosAtivo}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center justify-between">
-                    <span>Multa por atraso</span>
-                    <Switch
-                      checked={form.multaAtiva}
-                      onCheckedChange={(v) => setForm((f) => ({ ...f, multaAtiva: v }))}
-                    />
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Multa aplicada sobre o valor original quando há atraso no pagamento
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="multa">% multa</Label>
-                  <CurrencyInput
-                    id="multa"
-                    placeholder="Ex.: 10,0"
-                    value={form.multaPercent}
-                    onChange={(value) => setForm((f) => ({ ...f, multaPercent: value }))}
-                    disabled={!form.multaAtiva}
-                  />
-                </div>
-              </div>
-
-              <DialogFooter className="mt-4">
-                <Button variant="ghost" onClick={() => setOpenItem(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSaveItem}>{isEditing ? "Salvar alterações" : "Adicionar"}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <div className="ml-auto flex items-center gap-2">
-            <Select value={pessoaFilter} onValueChange={setPessoaFilter}>
-              <SelectTrigger className="w-56">
-                <SelectValue placeholder="Pessoa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                {pessoas.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {p}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center gap-2">
-              <Switch checked={somentePendentes} onCheckedChange={setSomentePendentes} id="only" />
-              <Label htmlFor="only" className="text-sm text-muted-foreground cursor-pointer">
-                Somente pendentes
-              </Label>
-            </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 rounded-xl shadow-lg">
+            <h1 className="text-3xl font-bold mb-2">Outros Negócios</h1>
+            <p className="text-blue-100">Gerencie empréstimos, vendas e outros negócios</p>
           </div>
         </div>
 
-        {/* Totais */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Total (principal)</CardTitle>
-            </CardHeader>
-            <CardContent className="text-3xl font-semibold">{formatBRL(totals.totalPrincipal)}</CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Pago (principal)</CardTitle>
-            </CardHeader>
-            <CardContent className="text-3xl font-semibold text-emerald-600">
-              {formatBRL(totals.pagoPrincipal)}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Em aberto (c/ juros)</CardTitle>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-white to-blue-50 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-blue-700">Total Empréstimos</CardTitle>
+              <DollarSign className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold text-orange-600">{formatBRL(totals.totalAbertoComJuros)}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Inclui {formatBRL(totals.jurosPendentes)} de juros acumulados dos pendentes.
-              </div>
+              <div className="text-2xl font-bold text-blue-900">{formatBRL(totals.totalEmprestimos)}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-white to-green-50 border-green-200 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-green-700">Total Vendas</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-900">{formatBRL(totals.totalVendas)}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-white to-orange-50 border-orange-200 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-orange-700">Saldo Pendente</CardTitle>
+              <Calendar className="h-4 w-4 text-orange-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-orange-900">{formatBRL(totals.saldoPendente)}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-white to-red-50 border-red-200 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-red-700">Juros Pendentes</CardTitle>
+              <Percent className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-900">{formatBRL(totals.jurosPendentes)}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-white to-purple-50 border-purple-200 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-purple-700">Total Pessoas</CardTitle>
+              <Users className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-900">{pessoas.length}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Tabela */}
-        <Card>
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-slate-800 mb-4">Resumo de Pagamentos</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="bg-gradient-to-br from-white to-green-50 border-green-200 shadow-lg hover:shadow-xl transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-green-700">Total Pago</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-900">{formatBRL(totals.totalPago)}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-white to-blue-50 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-blue-700">Negócios Quitados</CardTitle>
+                <Shield className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-900">{totals.totalQuitados}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-white to-indigo-50 border-indigo-200 shadow-lg hover:shadow-xl transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-indigo-700">Taxa de Quitação</CardTitle>
+                <Target className="h-4 w-4 text-indigo-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-indigo-900">{totals.percentualQuitacao.toFixed(1)}%</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-white to-teal-50 border-teal-200 shadow-lg hover:shadow-xl transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-teal-700">Valor Médio</CardTitle>
+                <BarChart className="h-4 w-4 text-teal-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-teal-900">{formatBRL(totals.valorMedioPagamento)}</div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <Card className="mb-6 bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-base">Outros negócios</CardTitle>
+            <CardTitle className="text-slate-800">Filtros e Ações</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative overflow-x-auto rounded-md border">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex-1">
+                <Label htmlFor="pessoa-filter">Filtrar por Pessoa</Label>
+                <Select value={pessoaFilter} onValueChange={setPessoaFilter}>
+                  <SelectTrigger id="pessoa-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as pessoas</SelectItem>
+                    {pessoas.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch id="pendentes" checked={somentePendentes} onCheckedChange={setSomentePendentes} />
+                <Label htmlFor="pendentes">Somente pendentes</Label>
+              </div>
+              <Button onClick={openCreate} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
+                <Plus className="h-4 w-4" />
+                Novo Negócio
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-slate-800">Negócios ({filtered.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="sticky top-0 bg-background">
+                <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
                     <TableHead>Pessoa</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead className="text-right">Principal</TableHead>
-                    <TableHead className="text-right">Meses</TableHead>
-                    <TableHead className="text-right">Juros (acum.)</TableHead>
-                    <TableHead className="text-right">Total devido</TableHead>
-                    <TableHead className="text-right">Pagamentos</TableHead>
+                    <TableHead>Valor Original</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Saldo Atual</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={11} className="text-center text-sm text-muted-foreground">
-                        Nenhum lançamento encontrado.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filtered.map((i) => {
-                      const today = todayISO()
-                      const { mesesTotais, jurosAcumulados, multaAplicada, saldoComJuros, saldoPrincipalRestante } =
-                        calcularJurosCompostosComPagamentos(i, today)
-                      const totalPagamentos = (i.pagamentos ?? []).reduce((a, p) => a + (p.valor || 0), 0)
-                      const statusPago = saldoComJuros <= 0.000001
-                      const podeQuitar = !statusPago && saldoComJuros > 0
-                      const ultimoPg = (i.pagamentos ?? []).slice(-1)[0]?.data
-
-                      return (
-                        <TableRow key={i.id} className={cn(!statusPago ? "bg-emerald-50/40" : "")}>
-                          <TableCell>{i.data}</TableCell>
-                          <TableCell className="max-w-[220px] truncate" title={i.pessoa}>
-                            {i.pessoa}
-                          </TableCell>
-                          <TableCell>{i.tipo === "emprestimo" ? "Empréstimo" : "Venda"}</TableCell>
-                          <TableCell className="max-w-[280px] truncate" title={i.descricao}>
-                            {i.descricao}
-                          </TableCell>
-                          <TableCell className="text-right">{formatBRL(i.valor)}</TableCell>
-                          <TableCell className="text-right">{mesesTotais}</TableCell>
-                          <TableCell className="text-right">{formatBRL(jurosAcumulados)}</TableCell>
-                          <TableCell className="text-right">{formatBRL(Math.max(0, saldoComJuros))}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Dialog
-                                open={history.open && history.item?.id === i.id}
-                                onOpenChange={(o) => setHistory((h) => ({ ...h, open: o, item: o ? i : undefined }))}
-                              >
-                                <DialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="secondary"
-                                    className="gap-1"
-                                    onClick={() => setHistory({ open: true, item: i })}
-                                  >
-                                    <History className="h-4 w-4" />
-                                    {i.pagamentos?.length || 0}
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="max-w-lg">
-                                  <DialogHeader>
-                                    <DialogTitle>Pagamentos</DialogTitle>
-                                    <DialogDescription>
-                                      Histórico de pagamentos realizados para este lançamento.
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-2">
-                                    {(i.pagamentos ?? []).length === 0 && (
-                                      <div className="text-sm text-muted-foreground">Sem pagamentos.</div>
-                                    )}
-                                    {(i.pagamentos ?? []).map((pg) => (
-                                      <div
-                                        key={pg.id}
-                                        className="flex items-center justify-between rounded border p-2 text-sm"
-                                      >
-                                        <div>
-                                          <div className="font-medium">{formatBRL(pg.valor)}</div>
-                                          <div className="text-muted-foreground">{pg.data}</div>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="text-red-600 hover:text-red-700"
-                                          onClick={() => removerPagamento(i.id, pg.id)}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-
-                              <div className="text-xs text-muted-foreground">
-                                {totalPagamentos > 0 ? (
-                                  <span title={ultimoPg ? `Último: ${ultimoPg}` : undefined}>
-                                    {formatBRL(totalPagamentos)}
-                                  </span>
-                                ) : (
-                                  "-"
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {statusPago ? (
-                              <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-                                Pago
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-                                Pendente
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              {podeQuitar && (
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => abrirPagamento(i, saldoComJuros)}
-                                  className="gap-1"
-                                  title="Registrar pagamento"
-                                >
-                                  <CheckCheck className="h-4 w-4" />
-                                  Pagar
-                                </Button>
-                              )}
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => baixarDocumentoPDF(i)} 
-                                title="Baixar documento PDF"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button size="icon" variant="ghost" onClick={() => openEdit(i)} title="Editar">
-                                <Edit className="h-4 w-4" />
-                              </Button>
+                  {filtered.map((item) => {
+                    const today = todayISO()
+                    const calc = calcularJurosCompostosComPagamentos(item, today)
+                    const isPago = calc.saldoComJuros <= 0
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.pessoa}</TableCell>
+                        <TableCell>
+                          <Badge variant={item.tipo === "emprestimo" ? "destructive" : "default"}>
+                            {item.tipo === "emprestimo" ? "Empréstimo" : "Venda"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{item.descricao}</TableCell>
+                        <TableCell>{formatBRL(item.valor)}</TableCell>
+                        <TableCell>{new Date(item.data + "T00:00:00").toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell className={cn(calc.saldoComJuros > 0 ? "text-red-600" : "text-green-600")}>
+                          {formatBRL(calc.saldoComJuros)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isPago ? "default" : "secondary"}>
+                            {isPago ? "Pago" : "Pendente"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(item)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setHistory({ open: true, item })}
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                            {!isPago && (
                               <Button
-                                size="icon"
                                 variant="ghost"
-                                className="text-red-600 hover:text-red-700"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  excluir(i)
-                                }}
-                                title="Excluir"
+                                size="sm"
+                                onClick={() => abrirPagamento(item, calc.saldoComJuros)}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <CreditCard className="h-4 w-4" />
                               </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  )}
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => baixarDocumentoPDF(item)}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => excluir(item)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>
-
-
           </CardContent>
         </Card>
-      </div>
 
-      {/* Diálogo de pagamento parcial */}
-      <Dialog open={payForm.open} onOpenChange={(o) => setPayForm((pf) => ({ ...pf, open: o }))}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Registrar pagamento</DialogTitle>
-            <DialogDescription>
-              Registre um pagamento parcial ou total para este lançamento.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="dataPg">Data</Label>
-              <Input
-                id="dataPg"
-                type="date"
-                value={payForm.data}
-                onChange={(e) => setPayForm((pf) => ({ ...pf, data: e.target.value }))}
-              />
+        <Dialog open={openItem} onOpenChange={setOpenItem}>
+          <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-white to-slate-50 border-slate-200">
+            <DialogHeader>
+              <DialogTitle className="text-slate-800">{isEditing ? "Editar Negócio" : "Novo Negócio"}</DialogTitle>
+              <DialogDescription className="text-slate-600">
+                {isEditing ? "Edite as informações do negócio" : "Adicione um novo empréstimo ou venda"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="pessoa" className="text-right">
+                  Pessoa
+                </Label>
+                <Input
+                  id="pessoa"
+                  value={form.pessoa}
+                  onChange={(e) => setForm({ ...form, pessoa: e.target.value })}
+                  className="col-span-3"
+                  placeholder="Nome da pessoa"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="tipo" className="text-right">
+                  Tipo
+                </Label>
+                <Select value={form.tipo} onValueChange={(v: TipoOperacao) => setForm({ ...form, tipo: v })}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="emprestimo">Empréstimo</SelectItem>
+                    <SelectItem value="venda">Venda</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="descricao" className="text-right">
+                  Descrição
+                </Label>
+                <Input
+                  id="descricao"
+                  value={form.descricao}
+                  onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                  className="col-span-3"
+                  placeholder="Descrição do negócio"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="valor" className="text-right">
+                  Valor
+                </Label>
+                <CurrencyInput
+                  id="valor"
+                  value={form.valor}
+                  onChange={(value) => setForm({ ...form, valor: value })}
+                  className="col-span-3"
+                  placeholder="R$ 0,00"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="data" className="text-right">
+                  Data
+                </Label>
+                <DateInput
+                  value={form.data}
+                  onChange={(value) => setForm({ ...form, data: value })}
+                  className="col-span-3"
+                  placeholder="dd/mm/aaaa"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="juros" className="text-right">
+                  Juros
+                </Label>
+                <div className="col-span-3 flex items-center space-x-2">
+                  <Switch
+                    id="juros"
+                    checked={form.jurosAtivo}
+                    onCheckedChange={(checked) => setForm({ ...form, jurosAtivo: checked })}
+                  />
+                  <Label htmlFor="juros">Ativar juros</Label>
+                </div>
+              </div>
+              {form.jurosAtivo && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="juros-percent" className="text-right">
+                    Juros (% mês)
+                  </Label>
+                  <Input
+                    id="juros-percent"
+                    type="number"
+                    step="0.01"
+                    value={form.jurosMesPercent}
+                    onChange={(e) => setForm({ ...form, jurosMesPercent: e.target.value })}
+                    className="col-span-3"
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="multa" className="text-right">
+                  Multa
+                </Label>
+                <div className="col-span-3 flex items-center space-x-2">
+                  <Switch
+                    id="multa"
+                    checked={form.multaAtiva}
+                    onCheckedChange={(checked) => setForm({ ...form, multaAtiva: checked })}
+                  />
+                  <Label htmlFor="multa">Ativar multa</Label>
+                </div>
+              </div>
+              {form.multaAtiva && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="multa-percent" className="text-right">
+                    Multa (%)
+                  </Label>
+                  <Input
+                    id="multa-percent"
+                    type="number"
+                    step="0.01"
+                    value={form.multaPercent}
+                    onChange={(e) => setForm({ ...form, multaPercent: e.target.value })}
+                    className="col-span-3"
+                    placeholder="0.00"
+                  />
+                </div>
+              )}
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="valorPg">Valor</Label>
-              <CurrencyInput
-                id="valorPg"
-                placeholder="0,00"
-                value={payForm.valor}
-                onChange={(value) => setPayForm((pf) => ({ ...pf, valor: value }))}
-                showCurrency={true}
-              />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setOpenItem(false)} className="border-slate-300 hover:bg-slate-50">
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveItem} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg">
+                {isEditing ? "Salvar" : "Criar"}
+              </Button>
             </div>
-          </div>
-          <DialogFooter className="mt-2">
-            <Button variant="ghost" onClick={() => setPayForm({ open: false, data: todayISO(), valor: "" })}>
-              Cancelar
-            </Button>
-            <Button onClick={salvarPagamento}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </main>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={payForm.open} onOpenChange={(open) => setPayForm({ ...payForm, open })}>
+          <DialogContent className="bg-gradient-to-br from-white to-slate-50 border-slate-200">
+            <DialogHeader>
+              <DialogTitle className="text-slate-800">Registrar Pagamento</DialogTitle>
+              <DialogDescription className="text-slate-600">
+                Registre um pagamento parcial ou total para este negócio
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="pay-data" className="text-right">
+                  Data
+                </Label>
+                <DateInput
+                  value={payForm.data}
+                  onChange={(value) => setPayForm({ ...payForm, data: value })}
+                  className="col-span-3"
+                  placeholder="dd/mm/aaaa"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="pay-valor" className="text-right">
+                  Valor
+                </Label>
+                <CurrencyInput
+                  id="pay-valor"
+                  value={payForm.valor}
+                  onChange={(value) => setPayForm({ ...payForm, valor: value })}
+                  className="col-span-3"
+                  placeholder="R$ 0,00"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPayForm({ ...payForm, open: false })} className="border-slate-300 hover:bg-slate-50">
+                Cancelar
+              </Button>
+              <Button onClick={salvarPagamento} className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg">
+                Salvar Pagamento
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={history.open} onOpenChange={(open) => setHistory({ ...history, open })}>
+          <DialogContent className="sm:max-w-[600px] bg-gradient-to-br from-white to-slate-50 border-slate-200">
+            <DialogHeader>
+              <DialogTitle className="text-slate-800">Histórico de Pagamentos</DialogTitle>
+              <DialogDescription className="text-slate-600">
+                {history.item && `Pagamentos de ${history.item.pessoa} - ${history.item.descricao}`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              {history.item && (
+                <div>
+                  {history.item.pagamentos && history.item.pagamentos.length > 0 ? (
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Pagamentos realizados:</h4>
+                      {history.item.pagamentos.map((pag) => (
+                        <div key={pag.id} className="flex items-center justify-between p-2 border rounded">
+                          <div>
+                            <span className="font-medium">{formatBRL(pag.valor)}</span>
+                            <span className="text-sm text-gray-500 ml-2">
+                              {new Date(pag.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removerPagamento(history.item!.id, pag.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">Nenhum pagamento registrado ainda.</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setHistory({ ...history, open: false })} className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white shadow-lg">
+                Fechar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
   )
 }

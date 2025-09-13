@@ -637,47 +637,51 @@ export async function generatePDFBlob(html: string, title = "Documento"): Promis
     // Aguardar um momento para renderização
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    // Capturar como canvas
+    // Capturar como canvas com otimizações de tamanho
     const canvas = await html2canvas(tempDiv, {
-      scale: 2, // Melhor qualidade
+      scale: 1.5, // Qualidade otimizada (reduzido de 2 para 1.5)
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      width: 794 // A4 width in pixels at 96 DPI
+      width: 794, // A4 width in pixels at 96 DPI
+      logging: false, // Desabilitar logs para melhor performance
+      removeContainer: true // Remover container após captura
     })
     
     // Remover elemento temporário
     document.body.removeChild(tempDiv)
     
-    // Criar PDF
+    // Criar PDF com compressão
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
+      compress: true // Habilitar compressão do PDF
     })
-    
-    const imgData = canvas.toDataURL('image/png')
+
+    // Usar JPEG com qualidade otimizada para reduzir tamanho
+    const imgData = canvas.toDataURL('image/jpeg', 0.85)
     const imgWidth = 210 // A4 width in mm
     const pageHeight = 295 // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width
     
     // Se o conteúdo cabe em uma página, adicionar apenas uma página
     if (imgHeight <= pageHeight) {
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
     } else {
       // Se o conteúdo é maior que uma página, dividir em múltiplas páginas
       let heightLeft = imgHeight
       let position = 0
       
       // Adicionar primeira página
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
       heightLeft -= pageHeight
       
       // Adicionar páginas adicionais apenas se necessário
       while (heightLeft > 0) {
         position = heightLeft - imgHeight
         pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
         heightLeft -= pageHeight
       }
     }
@@ -744,48 +748,52 @@ export async function downloadPDF(html: string, title = "Documento") {
     // Aguardar um momento para renderização
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    // Capturar como canvas
+    // Capturar como canvas com otimizações de tamanho
     const canvas = await html2canvas(tempDiv, {
-      scale: 2, // Melhor qualidade
+      scale: 1.5, // Qualidade otimizada (reduzido de 2 para 1.5)
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      width: 794 // A4 width in pixels at 96 DPI
+      width: 794, // A4 width in pixels at 96 DPI
+      logging: false, // Desabilitar logs para melhor performance
+      removeContainer: true // Remover container após captura
       // Removido height fixo para permitir altura dinâmica baseada no conteúdo
     })
     
     // Remover elemento temporário
     document.body.removeChild(tempDiv)
     
-    // Criar PDF
+    // Criar PDF com compressão
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
+      compress: true // Habilitar compressão do PDF
     })
-    
-    const imgData = canvas.toDataURL('image/png')
+
+    // Usar JPEG com qualidade otimizada para reduzir tamanho
+    const imgData = canvas.toDataURL('image/jpeg', 0.85)
     const imgWidth = 210 // A4 width in mm
     const pageHeight = 295 // A4 height in mm
     const imgHeight = (canvas.height * imgWidth) / canvas.width
     
     // Se o conteúdo cabe em uma página, adicionar apenas uma página
     if (imgHeight <= pageHeight) {
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
     } else {
       // Se o conteúdo é maior que uma página, dividir em múltiplas páginas
       let heightLeft = imgHeight
       let position = 0
       
       // Adicionar primeira página
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
       heightLeft -= pageHeight
       
       // Adicionar páginas adicionais apenas se necessário
       while (heightLeft > 0) {
         position = heightLeft - imgHeight
         pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
         heightLeft -= pageHeight
       }
     }
@@ -804,14 +812,40 @@ async function currentHeader() {
   // System simplified - using general config instead of empresa
   let cfg = getConfig() || {}
   
-  // Se a configuração não estiver carregada, tentar carregar do backend
+  console.log('🔍 [currentHeader] Configuração inicial:', cfg)
+  
+  // Sempre tentar carregar do backend para garantir dados atualizados
+  try {
+    const { loadConfig } = await import('./config')
+    cfg = await loadConfig()
+    console.log('✅ [currentHeader] Configuração carregada do backend:', cfg)
+  } catch (error) {
+    console.error('❌ [currentHeader] Erro ao carregar configuração:', error)
+    cfg = getConfig() || {} // Usar configuração padrão
+  }
+  
+  // Verificar se ainda não temos dados essenciais
   if (!cfg || !cfg.nome) {
+    console.warn('⚠️ [currentHeader] Configuração vazia ou sem nome, usando fallback')
+    // Tentar fazer uma requisição direta à API como fallback
     try {
-      const { loadConfig } = await import('./config')
-      cfg = await loadConfig()
-    } catch (error) {
-      console.error('Erro ao carregar configuração:', error)
-      cfg = getConfig() || {} // Usar configuração padrão
+      const response = await fetch('/api/config')
+      if (response.ok) {
+        const apiConfig = await response.json()
+        console.log('🔄 [currentHeader] Dados da API direta:', apiConfig)
+        cfg = {
+          nome: apiConfig.nome || 'LP IND',
+          nomeDoSistema: apiConfig.nome_do_sistema || 'LP IND',
+          razaoSocial: apiConfig.razao_social || '',
+          cnpj: apiConfig.cnpj || '',
+          endereco: apiConfig.endereco || '',
+          telefone: apiConfig.telefone || '',
+          email: apiConfig.email || '',
+          logoUrl: apiConfig.logo_url || ''
+        }
+      }
+    } catch (fetchError) {
+      console.error('❌ [currentHeader] Erro no fallback da API:', fetchError)
     }
   }
 
@@ -834,7 +868,7 @@ async function currentHeader() {
       ? cfg.logoUrl
       : "/placeholder.svg?height=64&width=64"
 
-  return {
+  const headerData = {
     nome: (cfg.nome || "Minha Empresa") as string,
     nomeDoSistema: (cfg.nomeDoSistema || "LP IND") as string,
     razaoSocial: (cfg.razaoSocial || "") as string,
@@ -844,6 +878,10 @@ async function currentHeader() {
     email: (cfg.email || "") as string,
     logoUrl: sanitizeLogoUrl(logoUrl),
   }
+  
+  console.log('📋 [currentHeader] Dados finais do cabeçalho:', headerData)
+  
+  return headerData
 }
 
 /**
@@ -963,6 +1001,7 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
   const itens = (orc as any).itens as Array<{
     descricao: string
     marca?: string
+    unidade_medida?: string
     quantidade: number
     valor_unitario: number
     valorUnitario?: number
@@ -978,6 +1017,7 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
         <td>${idx + 1}</td>
         <td>${escapeHtml(it.descricao)}</td>
         <td>${escapeHtml(it.marca || "")}</td>
+        <td>${escapeHtml(it.unidade_medida || "un")}</td>
         <td class="right">${Number(it.quantidade) || 0}</td>
         <td class="right">${fmtCurrency(precoUnit)}</td>
         <td class="right">${fmtCurrency(total)}</td>
@@ -1015,7 +1055,7 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
         ${hdr.razaoSocial ? `<div>Razão Social: ${escapeHtml(hdr.razaoSocial)}</div>` : ""}
         ${hdr.cnpj ? `<div>CNPJ: ${formatCNPJ(hdr.cnpj)}</div>` : ""}
         ${hdr.endereco ? `<div>Endereço: ${escapeHtml(hdr.endereco)}</div>` : ""}
-        ${hdr.telefone ? `<div>Telefone: ${escapeHtml(hdr.telefone)} <svg style="display: inline-block; width: 16px; height: 16px; margin-left: 5px; vertical-align: middle;" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.386"/></svg></div>` : ""}
+        ${hdr.telefone ? `<div style="display: flex; align-items: center; flex-wrap: wrap; gap: 5px;">Telefone: ${escapeHtml(hdr.telefone)} <svg style="display: inline-block; width: 18px; height: 18px; flex-shrink: 0; vertical-align: middle;" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.386"/></svg></div>` : ""}
         ${hdr.email ? `<div>Email: ${escapeHtml(hdr.email)}</div>` : ""}
       </div>
       <div class="card">
@@ -1028,9 +1068,9 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
       </div>
     </div>
 
-    ${(orc as any).modalidade && (orc as any).modalidade !== "compra_direta" ? `
+    ${(orc as any).modalidade && (orc as any).modalidade !== "COMPRA_DIRETA" ? `
     <div style="text-align: center; font-size: 16px; font-weight: normal; margin: 20px 0; color: ${layoutConfig.cores?.texto || '#1f2937'};">
-      MODALIDADE DE COMPRA: ${(orc as any).modalidade === "licitado" ? "LICITAÇÃO" : "DISPENSA"}${(orc as any).modalidade === "licitado" && (orc as any).numero_pregao ? ` - ${escapeHtml((orc as any).numero_pregao)}` : ""}${(orc as any).modalidade === "dispensa" && (orc as any).numero_dispensa ? ` - ${escapeHtml((orc as any).numero_dispensa)}` : ""}
+      MODALIDADE DE COMPRA: ${(orc as any).modalidade === "LICITADO" ? "LICITAÇÃO" : "DISPENSA"}${(orc as any).modalidade === "LICITADO" && (orc as any).numero_pregao ? ` - ${escapeHtml((orc as any).numero_pregao)}` : ""}${(orc as any).modalidade === "DISPENSA" && (orc as any).numero_dispensa ? ` - ${escapeHtml((orc as any).numero_dispensa)}` : ""}
     </div>` : ""}
 
     <div class="section">
@@ -1041,12 +1081,13 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
             <th>#</th>
             <th>Descrição</th>
             <th>Marca</th>
+            <th>Unidade</th>
             <th class="right">Qtd.</th>
             <th class="right">Valor unit.</th>
             <th class="right">Total</th>
           </tr>
         </thead>
-        <tbody>${itensRows || `<tr><td colspan="6" class="muted">Nenhum item.</td></tr>`}</tbody>
+        <tbody>${itensRows || `<tr><td colspan="7" class="muted">Nenhum item.</td></tr>`}</tbody>
       </table>
 
       <table class="totals">
@@ -1070,7 +1111,7 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
     }
 
       <div class="footer">
-        <div>Orçamento sem valor fiscal • Validade sugerida: ${layoutConfig.configuracoes?.validadeOrcamento || 30} dias</div>
+        <div>Validade: ${layoutConfig.configuracoes?.validadeOrcamento || 30} dias</div>
         <div>Página 1</div>
       </div>
     </div>

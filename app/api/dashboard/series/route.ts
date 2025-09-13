@@ -80,7 +80,7 @@ export async function GET(request: Request) {
       let receitasOutrosMes = 0
       try {
         const result = db.prepare(`
-          SELECT COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) as receitasOutros
+          SELECT COALESCE(SUM(CASE WHEN tipo = 'venda' THEN valor ELSE 0 END), 0) as receitasOutros
           FROM outros_negocios 
           WHERE status = 'ativo'
             AND strftime('%Y', data_transacao) = ?
@@ -111,7 +111,7 @@ export async function GET(request: Request) {
       let despesasOutrosMes = 0
       try {
         const result = db.prepare(`
-          SELECT COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as despesasOutros
+          SELECT COALESCE(SUM(CASE WHEN tipo = 'emprestimo' THEN valor ELSE 0 END), 0) as despesasOutros
           FROM outros_negocios 
           WHERE status = 'ativo'
             AND strftime('%Y', data_transacao) = ?
@@ -127,27 +127,7 @@ export async function GET(request: Request) {
       let totalDespesasMes = despesasAcertosMes + despesasOutrosMes
       let lucroLiquidoMes = lucroLinhasMes - totalDespesasMes
       
-      // Adicionar dados de demonstração para meses sem dados reais (para visualização)
-      // Gerar dados simulados para meses com pouco ou nenhum dado
-      if (totalVendasMes <= 5000 && lucroLinhasMes <= 500) {
-        // Preservar dados reais se existirem, mas complementar com simulados
-        const hasRealData = totalVendasMes > 0 || lucroLinhasMes > 0
-        
-        if (!hasRealData) {
-          // Gerar dados simulados baseados no mês para demonstração
-          // Usar seed baseado no mês para dados consistentes
-          const seed = month * 1000 + year
-          const baseValue = 12000 + (month * 1500) + ((seed % 7) * 800)
-          totalVendasMes = baseValue
-          lucroLinhasMes = Math.floor(baseValue * 0.22) // 22% de lucro
-          impostosLinhasMes = Math.floor(baseValue * 0.09) // 9% de impostos
-          totalDespesasMes = Math.floor(baseValue * 0.12) // 12% de despesas
-          lucroLiquidoMes = lucroLinhasMes - totalDespesasMes
-        } else if (totalVendasMes === 0 && lucroLinhasMes > 0) {
-          // Se há lucro mas não vendas, ajustar vendas baseado no lucro
-          totalVendasMes = Math.floor(lucroLinhasMes / 0.25) // Assumir 25% de margem
-        }
-      }
+      // Usar apenas dados reais - sem simulação
       
       vendas.push(Math.round(totalVendasMes))
       lucros.push(Math.round(lucroLinhasMes))

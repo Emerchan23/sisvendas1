@@ -189,8 +189,14 @@ export async function criarAcerto({
   return { acertoId }
 }
 
-export function pendenciasDeAcerto() {
-  return linhasPendentesDeAcerto()
+export async function pendenciasDeAcerto() {
+  console.log('🔍 DEBUG: Chamando pendenciasDeAcerto()');
+  const resultado = await linhasPendentesDeAcerto();
+  console.log('📋 DEBUG: pendenciasDeAcerto retornou:', resultado.length, 'linhas');
+  resultado.forEach(linha => {
+    console.log(`  - ${linha.cliente} (${linha.id}) - ${linha.paymentStatus}/${linha.settlementStatus}`);
+  });
+  return resultado;
 }
 
 // Despesas pendentes (persistentes)

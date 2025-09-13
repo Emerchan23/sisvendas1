@@ -7,8 +7,11 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS modalidades (
       id TEXT PRIMARY KEY,
-      nome TEXT NOT NULL UNIQUE,
+      codigo TEXT NOT NULL UNIQUE,
+      nome TEXT NOT NULL,
+      descricao TEXT,
       ativo BOOLEAN DEFAULT 1,
+      requer_numero_processo BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -33,20 +36,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nome } = body
+    const { codigo, nome, descricao, requer_numero_processo } = body
     
-    if (!nome) {
-      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
+    if (!codigo || !nome) {
+      return NextResponse.json({ error: 'Código e nome são obrigatórios' }, { status: 400 })
     }
     
     const id = uuidv4()
     
     db.prepare(`
-      INSERT INTO modalidades (id, nome, created_at, updated_at)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO modalidades (id, codigo, nome, descricao, requer_numero_processo, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
+      codigo,
       nome,
+      descricao || null,
+      requer_numero_processo || false,
       new Date().toISOString(),
       new Date().toISOString()
     )
@@ -55,7 +61,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating modalidade:', error)
     if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-      return NextResponse.json({ error: 'Modalidade já existe' }, { status: 409 })
+      return NextResponse.json({ error: 'Código da modalidade já existe' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

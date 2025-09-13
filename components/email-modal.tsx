@@ -1,15 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { Mail, Send } from "lucide-react"
+import { Mail, Send, Plus, X, Users, Search } from "lucide-react"
 import { makeOrcamentoHTML, generatePDFBlob } from "@/lib/print"
 import { getConfig } from "@/lib/config"
+import { getClientes, type Cliente } from "@/lib/api-client"
 // Removed empresa imports - system simplified
 
 interface EmailModalProps {
@@ -20,6 +23,14 @@ interface EmailModalProps {
 export function EmailModal({ orcamento, onEmailSent }: EmailModalProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState("orcamento")
+  const [recipients, setRecipients] = useState<string[]>([""])
+  const [clientesModalOpen, setClientesModalOpen] = useState(false)
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [clientesComEmail, setClientesComEmail] = useState<Cliente[]>([])
+  const [searchCliente, setSearchCliente] = useState("")
+  const [selectedClientes, setSelectedClientes] = useState<string[]>([])
+  const [loadingClientes, setLoadingClientes] = useState(false)
   const [formData, setFormData] = useState(() => {
     const config = getConfig()
     const defaultTemplate = config.emailTemplateOrcamento || `Prezado(a) {cliente},\n\nSegue em anexo o orçamento #{numero} solicitado.\n\nAtenciosamente,\nEquipe de Vendas`
@@ -35,30 +46,169 @@ export function EmailModal({ orcamento, onEmailSent }: EmailModalProps) {
       ))
     
     return {
-      to: "",
       subject: `Orçamento #${orcamento.numero} - ${orcamento.cliente?.nome || 'Cliente'}`,
       message: message
     }
   })
   const { toast } = useToast()
 
-  const handleSendEmail = async () => {
-    // Validar email do destinatário
-    if (!formData.to.trim()) {
+  // Carregar clientes quando o modal de clientes for aberto
+  useEffect(() => {
+    if (clientesModalOpen && clientes.length === 0) {
+      loadClientes()
+    }
+  }, [clientesModalOpen])
+
+  // Filtrar clientes com email
+  useEffect(() => {
+    const clientesFiltrados = clientes
+      .filter(cliente => cliente.email && cliente.email.trim() !== "")
+      .filter(cliente => 
+        searchCliente === "" || 
+        cliente.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
+        cliente.email?.toLowerCase().includes(searchCliente.toLowerCase())
+      )
+    setClientesComEmail(clientesFiltrados)
+  }, [clientes, searchCliente])
+
+  // Função para carregar clientes
+  const loadClientes = async () => {
+    setLoadingClientes(true)
+    try {
+      const clientesData = await getClientes()
+      setClientes(clientesData)
+    } catch (error) {
+      console.error('Erro ao carregar clientes:', error)
       toast({
         title: "Erro",
-        description: "Por favor, informe o e-mail do destinatário",
+        description: "Erro ao carregar lista de clientes",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingClientes(false)
+    }
+  }
+
+  // Função para alternar seleção de cliente
+  const toggleClienteSelection = (clienteId: string) => {
+    setSelectedClientes(prev => 
+      prev.includes(clienteId)
+        ? prev.filter(id => id !== clienteId)
+        : [...prev, clienteId]
+    )
+  }
+
+  // Função para adicionar emails dos clientes selecionados
+  const addSelectedClientesEmails = () => {
+    const emailsToAdd = clientes
+      .filter(cliente => selectedClientes.includes(cliente.id))
+      .map(cliente => cliente.email!)
+      .filter(email => email && email.trim() !== "")
+    
+    if (emailsToAdd.length === 0) {
+      toast({
+        title: "Aviso",
+        description: "Nenhum cliente com email válido foi selecionado",
         variant: "destructive"
       })
       return
     }
 
-    // Validar formato do email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.to.trim())) {
+    // Adicionar emails aos destinatários existentes
+    setRecipients(prev => {
+      const existingEmails = prev.filter(email => email.trim() !== "")
+      const newEmails = emailsToAdd.filter(email => !existingEmails.includes(email))
+      const allEmails = [...existingEmails, ...newEmails]
+      
+      // Se não há emails existentes, substituir o primeiro campo vazio
+      if (existingEmails.length === 0 && prev.length === 1 && prev[0] === "") {
+        return allEmails.length > 0 ? allEmails : [""]
+      }
+      
+      return allEmails.length > 0 ? allEmails : [""]
+    })
+
+    // Limpar seleção e fechar modal
+    setSelectedClientes([])
+    setSearchCliente("")
+    setClientesModalOpen(false)
+
+    toast({
+      title: "Sucesso",
+      description: `${emailsToAdd.length} email(s) adicionado(s) aos destinatários`
+    })
+  }
+
+  // Função para aplicar template selecionado
+  const applyTemplate = (templateType: string) => {
+    const config = getConfig()
+    let template = ""
+    
+    switch (templateType) {
+      case "orcamento":
+        template = config.emailTemplateOrcamento || `Prezado(a) {cliente},\n\nSegue em anexo o orçamento #{numero} solicitado.\n\nAtenciosamente,\nEquipe de Vendas`
+        break
+      case "vale":
+        template = config.emailTemplateVale || `Prezado(a) {cliente},\n\nSegue em anexo o vale solicitado.\n\nAtenciosamente,\nEquipe de Vendas`
+        break
+      case "relatorio":
+        template = config.emailTemplateRelatorio || `Prezado(a),\n\nSegue em anexo o relatório solicitado.\n\nAtenciosamente,\nEquipe de Vendas`
+        break
+      default:
+        template = `Prezado(a) {cliente},\n\nSegue em anexo o documento solicitado.\n\nAtenciosamente,\nEquipe de Vendas`
+    }
+    
+    // Substituir variáveis no template
+    const message = template
+      .replace(/{cliente}/g, orcamento.cliente?.nome || 'Cliente')
+      .replace(/{numero}/g, orcamento.numero)
+      .replace(/{data}/g, new Date().toLocaleDateString('pt-BR'))
+      .replace(/{total}/g, new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+        orcamento.itens?.reduce((acc: number, it: any) => 
+          acc + (Number(it.quantidade) || 0) * (Number(it.valor_unitario) || 0) - (Number(it.desconto) || 0), 0) || 0
+      ))
+    
+    setFormData(prev => ({ ...prev, message }))
+  }
+
+  // Função para adicionar destinatário
+  const addRecipient = () => {
+    setRecipients(prev => [...prev, ""])
+  }
+
+  // Função para remover destinatário
+  const removeRecipient = (index: number) => {
+    if (recipients.length > 1) {
+      setRecipients(prev => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  // Função para atualizar destinatário
+  const updateRecipient = (index: number, value: string) => {
+    setRecipients(prev => prev.map((email, i) => i === index ? value : email))
+  }
+
+  const handleSendEmail = async () => {
+    // Validar destinatários
+    const validRecipients = recipients.filter(email => email.trim() !== "")
+    
+    if (validRecipients.length === 0) {
       toast({
         title: "Erro",
-        description: "Por favor, informe um e-mail válido",
+        description: "Por favor, informe pelo menos um e-mail de destinatário",
+        variant: "destructive"
+      })
+      return
+    }
+
+    // Validar formato dos emails
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const invalidEmails = validRecipients.filter(email => !emailRegex.test(email.trim()))
+    
+    if (invalidEmails.length > 0) {
+      toast({
+        title: "Erro",
+        description: `E-mails inválidos: ${invalidEmails.join(", ")}`,
         variant: "destructive"
       })
       return
@@ -136,7 +286,7 @@ export function EmailModal({ orcamento, onEmailSent }: EmailModalProps) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          to: formData.to,
+          to: validRecipients.join(", "),
           subject: formData.subject,
           html: emailHTML,
           attachments: attachments
@@ -220,14 +370,72 @@ export function EmailModal({ orcamento, onEmailSent }: EmailModalProps) {
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid gap-2">
-            <Label htmlFor="email-to">Destinatário</Label>
-            <Input
-              id="email-to"
-              type="email"
-              placeholder="cliente@email.com"
-              value={formData.to}
-              onChange={(e) => setFormData(prev => ({ ...prev, to: e.target.value }))}
-            />
+            <Label htmlFor="template-select">Template de E-mail</Label>
+            <Select value={selectedTemplate} onValueChange={(value) => {
+              setSelectedTemplate(value)
+              applyTemplate(value)
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um template" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="orcamento">Template para Orçamentos</SelectItem>
+                <SelectItem value="vale">Template para Vales</SelectItem>
+                <SelectItem value="relatorio">Template para Relatórios</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="grid gap-2">
+            <div className="flex items-center justify-between">
+              <Label>Destinatários</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setClientesModalOpen(true)}
+                  className="h-8 px-2"
+                >
+                  <Users className="h-3 w-3 mr-1" />
+                  Buscar Clientes
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRecipient}
+                  className="h-8 px-2"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Adicionar
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {recipients.map((email, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    type="email"
+                    placeholder="cliente@email.com"
+                    value={email}
+                    onChange={(e) => updateRecipient(index, e.target.value)}
+                    className="flex-1"
+                  />
+                  {recipients.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeRecipient(index)}
+                      className="h-10 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
           
           <div className="grid gap-2">
@@ -267,6 +475,92 @@ export function EmailModal({ orcamento, onEmailSent }: EmailModalProps) {
           </div>
         </div>
       </DialogContent>
+      
+      {/* Modal de Seleção de Clientes */}
+      <Dialog open={clientesModalOpen} onOpenChange={setClientesModalOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Selecionar Clientes</DialogTitle>
+            <DialogDescription>
+              Selecione os clientes que possuem email cadastrado para adicionar aos destinatários.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Campo de busca */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por nome ou email..."
+                  value={searchCliente}
+                  onChange={(e) => setSearchCliente(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            {/* Lista de clientes */}
+            <div className="border rounded-lg max-h-[300px] overflow-y-auto">
+              {loadingClientes ? (
+                <div className="p-4 text-center text-gray-500">
+                  Carregando clientes...
+                </div>
+              ) : clientesComEmail.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">
+                  {searchCliente ? "Nenhum cliente encontrado" : "Nenhum cliente com email cadastrado"}
+                </div>
+              ) : (
+                <div className="space-y-1 p-2">
+                  {clientesComEmail.map((cliente) => (
+                    <div
+                      key={cliente.id}
+                      className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
+                      onClick={() => toggleClienteSelection(cliente.id)}
+                    >
+                      <Checkbox
+                        checked={selectedClientes.includes(cliente.id)}
+                        onChange={() => toggleClienteSelection(cliente.id)}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{cliente.nome}</p>
+                        <p className="text-xs text-gray-500 truncate">{cliente.email}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Contador de selecionados */}
+            {selectedClientes.length > 0 && (
+              <div className="text-sm text-gray-600">
+                {selectedClientes.length} cliente(s) selecionado(s)
+              </div>
+            )}
+            
+            {/* Botões de ação */}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setClientesModalOpen(false)
+                  setSelectedClientes([])
+                  setSearchCliente("")
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={addSelectedClientesEmails}
+                disabled={selectedClientes.length === 0}
+              >
+                Adicionar {selectedClientes.length > 0 ? `(${selectedClientes.length})` : ""}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

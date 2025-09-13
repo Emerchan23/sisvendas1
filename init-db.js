@@ -112,6 +112,7 @@ try {
       produto_id TEXT,
       descricao TEXT NOT NULL,
       marca TEXT,
+      unidade_medida TEXT DEFAULT 'un',
       quantidade REAL NOT NULL,
       valor_unitario REAL NOT NULL,
       valor_total REAL NOT NULL,

@@ -1,30 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
+import fs from 'fs/promises'
 import path from 'path'
 
 const dataPath = path.join(process.cwd(), 'data', 'categorias-fornecedores.json')
 
-// Garantir que o diretório data existe
-const dataDir = path.dirname(dataPath)
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true })
-}
-
-// Garantir que o arquivo existe
-if (!fs.existsSync(dataPath)) {
-  const defaultCategories = [
-    { id: '1', nome: 'Matéria Prima', cor: '#3B82F6' },
-    { id: '2', nome: 'Equipamentos', cor: '#10B981' },
-    { id: '3', nome: 'Serviços', cor: '#F59E0B' },
-    { id: '4', nome: 'Tecnologia', cor: '#8B5CF6' },
-    { id: '5', nome: 'Logística', cor: '#EF4444' }
-  ]
-  fs.writeFileSync(dataPath, JSON.stringify(defaultCategories, null, 2))
-}
-
-function getCategorias() {
+async function ensureDataFile() {
   try {
-    const data = fs.readFileSync(dataPath, 'utf8')
+    const dataDir = path.dirname(dataPath)
+    await fs.mkdir(dataDir, { recursive: true })
+    
+    try {
+      await fs.access(dataPath)
+    } catch {
+      const defaultCategories = [
+        { id: '1', nome: 'Matéria Prima', cor: '#3B82F6' },
+        { id: '2', nome: 'Equipamentos', cor: '#10B981' },
+        { id: '3', nome: 'Serviços', cor: '#F59E0B' },
+        { id: '4', nome: 'Tecnologia', cor: '#8B5CF6' },
+        { id: '5', nome: 'Logística', cor: '#EF4444' }
+      ]
+      await fs.writeFile(dataPath, JSON.stringify(defaultCategories, null, 2))
+    }
+  } catch (error) {
+    console.error('Erro ao garantir arquivo de dados:', error)
+  }
+}
+
+async function getCategorias() {
+  try {
+    await ensureDataFile()
+    const data = await fs.readFile(dataPath, 'utf8')
     return JSON.parse(data)
   } catch (error) {
     console.error('Erro ao ler categorias:', error)
@@ -32,9 +37,10 @@ function getCategorias() {
   }
 }
 
-function saveCategorias(categorias: any[]) {
+async function saveCategorias(categorias: any[]) {
   try {
-    fs.writeFileSync(dataPath, JSON.stringify(categorias, null, 2))
+    await ensureDataFile()
+    await fs.writeFile(dataPath, JSON.stringify(categorias, null, 2))
     return true
   } catch (error) {
     console.error('Erro ao salvar categorias:', error)
@@ -45,7 +51,7 @@ function saveCategorias(categorias: any[]) {
 // GET - Listar todas as categorias
 export async function GET() {
   try {
-    const categorias = getCategorias()
+    const categorias = await getCategorias()
     return NextResponse.json(categorias)
   } catch (error) {
     return NextResponse.json(
@@ -67,7 +73,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const categorias = getCategorias()
+    const categorias = await getCategorias()
     
     // Verificar se já existe categoria com o mesmo nome
     const categoriaExistente = categorias.find(
@@ -89,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     categorias.push(novaCategoria)
     
-    if (saveCategorias(categorias)) {
+    if (await saveCategorias(categorias)) {
       return NextResponse.json(novaCategoria, { status: 201 })
     } else {
       return NextResponse.json(
@@ -108,39 +114,51 @@ export async function POST(request: NextRequest) {
 // DELETE - Excluir categoria
 export async function DELETE(request: NextRequest) {
   try {
+    console.log('DELETE request received')
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    
+    console.log('Category ID to delete:', id)
+
     if (!id) {
+      console.log('No ID provided')
       return NextResponse.json(
         { error: 'ID da categoria é obrigatório' },
         { status: 400 }
       )
     }
 
-    const categorias = getCategorias()
+    const filePath = path.join(process.cwd(), 'data', 'categorias-fornecedores.json')
+    console.log('File path:', filePath)
+    
+    const fileData = await fs.readFile(filePath, 'utf8')
+    const categorias = JSON.parse(fileData)
+    console.log('Current categories:', categorias)
+
     const categoriaIndex = categorias.findIndex((cat: any) => cat.id === id)
+    console.log('Category index found:', categoriaIndex)
     
     if (categoriaIndex === -1) {
+      console.log('Category not found')
       return NextResponse.json(
         { error: 'Categoria não encontrada' },
         { status: 404 }
       )
     }
 
-    categorias.splice(categoriaIndex, 1)
+    const removedCategory = categorias[categoriaIndex]
+    console.log('Removing category:', removedCategory)
     
-    if (saveCategorias(categorias)) {
-      return NextResponse.json({ message: 'Categoria excluída com sucesso' })
-    } else {
-      return NextResponse.json(
-        { error: 'Erro ao excluir categoria' },
-        { status: 500 }
-      )
-    }
+    categorias.splice(categoriaIndex, 1)
+    console.log('Categories after removal:', categorias)
+    
+    await fs.writeFile(filePath, JSON.stringify(categorias, null, 2))
+    console.log('File written successfully')
+
+    return NextResponse.json({ success: true })
   } catch (error) {
+    console.error('Erro ao deletar categoria:', error)
     return NextResponse.json(
-      { error: 'Erro ao excluir categoria' },
+      { error: 'Erro interno do servidor', details: error.message },
       { status: 500 }
     )
   }

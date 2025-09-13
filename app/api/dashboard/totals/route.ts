@@ -34,18 +34,68 @@ export async function GET() {
       valorRecebido: number;
     }
     
-    // Dados de outros negócios
+    // Dados de outros negócios e cálculo de juros pendentes
     let outrosNegociosData = { receitasOutros: 0, despesasOutros: 0 }
+    let jurosPendentes = 0
     try {
       outrosNegociosData = db.prepare(`
         SELECT 
-          COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) as receitasOutros,
-          COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as despesasOutros
+          COALESCE(SUM(CASE WHEN tipo = 'venda' THEN valor ELSE 0 END), 0) as receitasOutros,
+      COALESCE(SUM(CASE WHEN tipo = 'emprestimo' THEN valor ELSE 0 END), 0) as despesasOutros
         FROM outros_negocios 
         WHERE status = 'ativo'
       `).get() as { receitasOutros: number; despesasOutros: number }
+      
+      // Calcular juros pendentes dos outros negócios
+      const outrosNegocios = db.prepare(`
+        SELECT id, valor, data_transacao, juros_ativo, juros_mes_percent, multa_ativa, multa_percent
+        FROM outros_negocios 
+        WHERE status = 'ativo' AND juros_ativo = 1
+      `).all() as Array<{
+        id: string;
+        valor: number;
+        data_transacao: string;
+        juros_ativo: number;
+        juros_mes_percent: number;
+        multa_ativa: number;
+        multa_percent: number;
+      }>
+      
+      const hoje = new Date().toISOString().split('T')[0]
+      
+      for (const negocio of outrosNegocios) {
+        try {
+          // Calcular juros compostos simples (sem pagamentos parciais por enquanto)
+          const taxaJuros = negocio.juros_mes_percent / 100
+          const meses = calcularMesesCompletos(negocio.data_transacao, hoje)
+          
+          if (meses > 0 && taxaJuros > 0) {
+            const jurosCalculados = negocio.valor * Math.pow(1 + taxaJuros, meses) - negocio.valor
+            jurosPendentes += jurosCalculados
+          }
+          
+          // Adicionar multa se aplicável
+          if (negocio.multa_ativa && negocio.multa_percent > 0 && meses > 0) {
+            const multa = negocio.valor * (negocio.multa_percent / 100)
+            jurosPendentes += multa
+          }
+        } catch (err) {
+          console.warn(`Erro ao calcular juros para negócio ${negocio.id}:`, err)
+        }
+      }
     } catch (e) {
-      console.warn('Tabela outros_negocios não existe:', e)
+      console.warn('Erro ao calcular dados de outros negócios:', e)
+    }
+    
+    // Função auxiliar para calcular meses completos
+    function calcularMesesCompletos(dataInicio: string, dataFim: string): number {
+      const inicio = new Date(dataInicio)
+      const fim = new Date(dataFim)
+      if (isNaN(inicio.getTime()) || isNaN(fim.getTime())) return 0
+      
+      let meses = (fim.getFullYear() - inicio.getFullYear()) * 12 + (fim.getMonth() - inicio.getMonth())
+      if (fim.getDate() < inicio.getDate()) meses -= 1
+      return Math.max(0, meses)
     }
     
     // Dados de orçamentos
@@ -80,6 +130,7 @@ export async function GET() {
       lucroTotal: Math.round(linhasVendaData.lucroTotalLinhas),
       lucroLiquido: Math.round(lucroLiquido),
       impostosTotais: Math.round(linhasVendaData.impostosTotalLinhas),
+      jurosPendentes: Math.round(jurosPendentes),
       totalVendas: vendasData.totalVendas + linhasVendaData.totalLinhas,
       pendentes: linhasVendaData.pendentes + orcamentosData.orcamentosPendentes,
     }

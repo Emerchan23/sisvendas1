@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
           produto_id TEXT,
           descricao TEXT NOT NULL,
           marca TEXT,
+          unidade_medida TEXT DEFAULT 'un',
           quantidade REAL NOT NULL,
           valor_unitario REAL NOT NULL,
           valor_total REAL NOT NULL,
@@ -177,6 +178,7 @@ export async function GET(request: NextRequest) {
             produto_id: item.produto_id,
             descricao: item.descricao,
             marca: item.marca || '',
+            unidade_medida: item.unidade_medida || 'un',
             quantidade: item.quantidade,
             valor_unitario: item.valor_unitario,
             link_ref: item.link_ref,
@@ -334,9 +336,9 @@ export async function POST(request: NextRequest) {
       try {
         const insertItem = db.prepare(`
           INSERT INTO orcamento_itens (
-            id, orcamento_id, produto_id, descricao, marca, quantidade,
+            id, orcamento_id, produto_id, descricao, marca, unidade_medida, quantidade,
             valor_unitario, valor_total, observacoes, link_ref, custo_ref
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         for (const item of itens) {
@@ -349,6 +351,7 @@ export async function POST(request: NextRequest) {
             item.produto_id || null,
             item.descricao,
             item.marca || '',
+            item.unidade_medida || 'un',
             item.quantidade,
             item.valor_unitario,
             valorTotalItem,
@@ -449,11 +452,11 @@ export async function PUT(request: NextRequest) {
         
         db.prepare(
           `INSERT INTO orcamento_itens (
-            id, orcamento_id, produto_id, descricao, quantidade, 
+            id, orcamento_id, produto_id, descricao, marca, unidade_medida, quantidade, 
             valor_unitario, valor_total, observacoes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-        ).run(itemId, id, item.produto_id, item.descricao, item.quantidade, 
-           item.valor_unitario, valorTotalItem, item.observacoes);
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(itemId, id, item.produto_id, item.descricao, item.marca || '', 
+           item.unidade_medida || 'un', item.quantidade, item.valor_unitario, valorTotalItem, item.observacoes);
       }
       
       // Update total value

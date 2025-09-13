@@ -140,9 +140,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Validate tipo field
-    if (tipo !== 'receita' && tipo !== 'despesa') {
+    if (tipo !== 'emprestimo' && tipo !== 'venda') {
       return NextResponse.json(
-        { error: 'Campo tipo deve ser "receita" ou "despesa"' },
+        { error: 'Campo tipo deve ser "emprestimo" ou "venda"' },
         { status: 400 }
       );
     }
