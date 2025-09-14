@@ -323,7 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasPermission = (permission: string): boolean => {
     if (!usuario) return false
     if (usuario.role === 'admin') return true
-    return usuario.permissoes[permission] === true
+    return usuario.permissoes && usuario.permissoes[permission] === true
   }
 
   // Verificar se usuário é admin

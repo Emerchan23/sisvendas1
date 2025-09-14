@@ -180,20 +180,7 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
-              <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <Shield className="h-4 w-4 text-blue-500" />
-                Credenciais padrão:
-              </h3>
-              <div className="space-y-2 text-sm">
-                <p className="text-slate-700">
-                  <span className="font-semibold text-blue-600">Email:</span> admin@sistema.com
-                </p>
-                <p className="text-slate-700">
-                  <span className="font-semibold text-blue-600">Senha:</span> admin123
-                </p>
-              </div>
-            </div>
+
           </CardContent>
         </Card>
       </div>

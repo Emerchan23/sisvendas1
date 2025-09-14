@@ -17,6 +17,7 @@ import { AppHeader } from "@/components/app-header"
 import { makeOrcamentoHTML, downloadPDF } from "@/lib/print"
 // Removed empresa imports - system simplified
 import { EmailModal } from "@/components/email-modal"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 // Using backend types
 type LocalOrcamento = Orcamento
@@ -28,7 +29,7 @@ function totalOrcamento(o: LocalOrcamento) {
   return o.itens.reduce((acc, it) => acc + (Number(it.quantidade) || 0) * (Number(it.valor_unitario) || 0) - (Number(it.desconto) || 0), 0)
 }
 
-export default function OrcamentosPage() {
+function OrcamentosContent() {
   const [orcamentos, setOrcamentos] = useState<LocalOrcamento[]>([])
   const [orcamentoEditando, setOrcamentoEditando] = useState<LocalOrcamento | null>(null)
   const [tabAtiva, setTabAtiva] = useState("criar")
@@ -104,7 +105,7 @@ export default function OrcamentosPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <AppHeader title="Orçamentos" />
-      <main className="container mx-auto max-w-6xl space-y-6 p-6">
+      <main className="container mx-auto max-w-7xl space-y-6 p-6">
 
         <Tabs value={tabAtiva} onValueChange={setTabAtiva}>
           <TabsList className="bg-white/80 backdrop-blur-sm border-2 border-white/20 shadow-lg">
@@ -198,17 +199,17 @@ export default function OrcamentosPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-xl border border-gray-200">
-                  <Table>
+                <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-xl border border-gray-200 overflow-x-auto">
+                  <Table className="min-w-full">
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-gray-100 to-gray-50 hover:from-gray-200 hover:to-gray-100 transition-all duration-200">
-                        <TableHead className="font-semibold text-gray-700 py-4">#</TableHead>
-                        <TableHead className="font-semibold text-gray-700 py-4">Cliente</TableHead>
-                        <TableHead className="font-semibold text-gray-700 py-4">Data</TableHead>
-                        <TableHead className="font-semibold text-gray-700 py-4">Status</TableHead>
-                        <TableHead className="font-semibold text-gray-700 py-4">Modalidade/Número</TableHead>
-                        <TableHead className="text-right font-semibold text-gray-700 py-4">Total</TableHead>
-                        <TableHead className="w-32 font-semibold text-gray-700 py-4">Ações</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-4 w-20">#</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-4 min-w-48">Cliente</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-4 w-28">Data</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-4 w-24">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-4 min-w-52">Modalidade/Número</TableHead>
+                        <TableHead className="text-right font-semibold text-gray-700 py-4 w-32">Total</TableHead>
+                        <TableHead className="font-semibold text-gray-700 py-4 w-60">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                   <TableBody>
@@ -423,5 +424,13 @@ export default function OrcamentosPage() {
         </Dialog>
       </main>
     </div>
+  )
+}
+
+export default function OrcamentosPage() {
+  return (
+    <ProtectedRoute requiredPermission="orcamentos">
+      <OrcamentosContent />
+    </ProtectedRoute>
   )
 }

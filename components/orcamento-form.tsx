@@ -623,10 +623,10 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead className="w-[50px] text-center">#</TableHead>
-                <TableHead className="min-w-[370px]">Produto/Serviço</TableHead>
-                <TableHead className="w-[140px]">Marca</TableHead>
-                <TableHead className="w-[70px]">Unidade</TableHead>
-                <TableHead className="w-[80px] text-center">Qtd.</TableHead>
+                <TableHead className="min-w-[450px]">Produto/Serviço</TableHead>
+                <TableHead className="w-[90px]">Marca</TableHead>
+                <TableHead className="w-[100px] text-center">Unidade</TableHead>
+                <TableHead className="w-[100px] text-center">Qtd.</TableHead>
                 <TableHead className="w-[120px] text-right">Valor Unit.</TableHead>
                 <TableHead className="w-[120px] text-right">Total</TableHead>
                 <TableHead className="w-[70px]" />
@@ -830,6 +830,9 @@ function ItemRow({
 
   return (
     <TableRow className={cn(open && "align-top")}>
+      <TableCell className="align-top text-center font-medium text-blue-800">
+        {index + 1}
+      </TableCell>
       <TableCell className="align-top">
         <div className="space-y-3">
           <Input
@@ -938,7 +941,7 @@ function ItemRow({
         />
       </TableCell>
 
-      <TableCell className="align-top">
+      <TableCell className="align-top text-center">
         <Select value={item.unidadeMedida} onValueChange={(value) => onChange(index, { unidadeMedida: value })}>
           <SelectTrigger className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200">
             <SelectValue />
@@ -953,27 +956,27 @@ function ItemRow({
         </Select>
       </TableCell>
 
-      <TableCell className="align-top">
+      <TableCell className="align-top text-center">
         <Input
           type="number"
           min={0}
           step="1"
           value={item.quantidade}
           onChange={(e) => onChange(index, { quantidade: Number(e.target.value) })}
-          className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200"
+          className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200 text-center"
         />
       </TableCell>
 
-      <TableCell className="align-top">
+      <TableCell className="align-top text-right">
         <CurrencyInput
           value={item.valorUnitario}
           onChange={(value) => onChange(index, { valorUnitario: Number(value.replace(',', '.')) })}
           placeholder="0,00"
-          className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200"
+          className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200 text-right"
         />
       </TableCell>
 
-      <TableCell className="align-top font-semibold text-emerald-700 bg-emerald-50 rounded-md">{fmtCurrency(subtotal)}</TableCell>
+      <TableCell className="align-top text-right font-semibold text-emerald-700 bg-emerald-50 rounded-md">{fmtCurrency(subtotal)}</TableCell>
 
       <TableCell className="align-top text-right">
         <Button 

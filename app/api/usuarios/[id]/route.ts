@@ -107,8 +107,19 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (permissoes !== undefined) {
+      // Processar permissões - converter array para objeto se necessário
+      let permissoesObj = {}
+      if (Array.isArray(permissoes)) {
+        // Se recebeu um array, converter para objeto
+        permissoes.forEach(perm => {
+          permissoesObj[perm] = true
+        })
+      } else if (typeof permissoes === 'object' && permissoes !== null) {
+        // Se já é um objeto, usar diretamente
+        permissoesObj = permissoes
+      }
       campos.push('permissoes = ?')
-      valores.push(JSON.stringify(permissoes))
+      valores.push(JSON.stringify(permissoesObj))
     }
 
     campos.push('updated_at = CURRENT_TIMESTAMP')

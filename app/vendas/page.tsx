@@ -4,6 +4,7 @@ import type React from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { AppHeader } from "@/components/app-header"
+import ProtectedRoute from "@/components/ProtectedRoute"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -73,6 +74,16 @@ const allColumns: Array<{ key: keyof LinhaVenda; label: string; essential?: bool
 ]
 
 function VendasPlanilhaPage() {
+  const searchParams = useSearchParams()
+
+  return (
+    <ProtectedRoute requiredPermission="vendas">
+      <VendasContent />
+    </ProtectedRoute>
+  )
+}
+
+function VendasContent() {
   const searchParams = useSearchParams()
   
   // Estados principais
@@ -158,12 +169,10 @@ function VendasPlanilhaPage() {
         getCapitalRates(),
         getImpostoRates()
       ])
-      setCapitalRates(Array.isArray(capital) ? capital : [])
-      setImpostoRates(Array.isArray(imposto) ? imposto : [])
+      setCapitalRates(capital)
+      setImpostoRates(imposto)
     } catch (error) {
-      console.error('Erro ao carregar taxas:', error)
-      setCapitalRates([])
-      setImpostoRates([])
+      console.error('Error refreshing rates:', error)
     }
   }
 
@@ -678,7 +687,7 @@ function VendasPlanilhaPage() {
       <ManageRatesDialog
         open={openRates}
         onOpenChange={setOpenRates}
-        onRatesUpdated={refreshRates}
+        onSaved={refreshRates}
       />
       
       <ManageModalidadesDialog

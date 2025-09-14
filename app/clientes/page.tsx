@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { AppHeader } from "@/components/app-header"
+import ProtectedRoute from "@/components/ProtectedRoute"
 import { type Cliente, ensureInit, getClientes } from "@/lib/data-store"
 // Removed empresa imports - system simplified
 import { api } from "@/lib/api-client"
@@ -16,6 +17,14 @@ import { toast } from "@/hooks/use-toast"
 import { Users, UserPlus, Search, Edit, Trash2, Mail, Phone, MapPin, FileText, Calendar, Plus } from "lucide-react"
 
 export default function ClientesPage() {
+  return (
+    <ProtectedRoute requiredPermission="clientes">
+      <ClientesContent />
+    </ProtectedRoute>
+  )
+}
+
+function ClientesContent() {
   const [list, setList] = useState<Cliente[]>([])
   const [filtro, setFiltro] = useState("")
   const [editing, setEditing] = useState<Cliente | null>(null)

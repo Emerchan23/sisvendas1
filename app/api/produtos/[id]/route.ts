@@ -7,6 +7,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       nome, 
       descricao, 
       marca, 
+      preco,
       precoVenda, 
       custo, 
       taxaImposto, 
@@ -16,7 +17,30 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       custoRef, 
       categoria 
     } = await request.json()
+    
+    // Use preco if available, otherwise use precoVenda, default to 0
+    const precoFinal = preco || precoVenda || 0
     const { id } = await params
+    
+    // Validate required fields
+    if (!nome) {
+      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
+    }
+    
+    console.log('Updating produto with data:', {
+      id,
+      nome,
+      descricao,
+      marca,
+      precoFinal,
+      custo: custo || 0,
+      taxaImposto: taxaImposto || 0,
+      modalidadeVenda,
+      estoque: estoque || 0,
+      linkRef,
+      custoRef,
+      categoria: categoria || null
+    })
     
     db.prepare(`
       UPDATE produtos 
@@ -27,7 +51,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       nome,
       descricao,
       marca,
-      precoVenda,
+      precoFinal,
       custo || 0,
       taxaImposto || 0,
       modalidadeVenda,

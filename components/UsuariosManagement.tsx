@@ -63,6 +63,7 @@ export function UsuariosManagement() {
     ativo: true,
     permissoes: []
   })
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (isAuthenticated && isAdmin()) {
@@ -85,10 +86,29 @@ export function UsuariosManagement() {
         const data = await response.json()
         // A API retorna { success: true, usuarios: [...] }
         const usuariosComPermissoes = Array.isArray(data.usuarios) 
-          ? data.usuarios.map((usuario: any) => ({
-              ...usuario,
-              permissoes: Array.isArray(usuario.permissoes) ? usuario.permissoes : []
-            }))
+          ? data.usuarios.map((usuario: any) => {
+              let permissoes = []
+              if (usuario.permissoes) {
+                let permissoesObj
+                // Verificar se já é um objeto ou se é uma string JSON
+                if (typeof usuario.permissoes === 'string') {
+                  try {
+                    permissoesObj = JSON.parse(usuario.permissoes)
+                  } catch (e) {
+                    console.error('Erro ao fazer parse das permissões:', e)
+                    permissoesObj = {}
+                  }
+                } else {
+                  permissoesObj = usuario.permissoes
+                }
+                // Converter objeto para array (pegar apenas as chaves onde o valor é true)
+                permissoes = Object.keys(permissoesObj).filter(key => permissoesObj[key] === true)
+              }
+              return {
+                ...usuario,
+                permissoes
+              }
+            })
           : []
         setUsuarios(usuariosComPermissoes)
       } else {
@@ -105,8 +125,18 @@ export function UsuariosManagement() {
   }
 
   const salvarUsuario = async () => {
+    if (loading) return
+    
     try {
+      setLoading(true)
+      setError(null)
+      
       const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast.error('Token não encontrado')
+        return
+      }
+      
       const url = usuarioEditando ? `/api/usuarios/${usuarioEditando.id}` : '/api/usuarios'
       const method = usuarioEditando ? 'PUT' : 'POST'
 
@@ -123,14 +153,20 @@ export function UsuariosManagement() {
         toast.success(usuarioEditando ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!')
         setDialogAberto(false)
         resetarFormulario()
-        carregarUsuarios()
+        await carregarUsuarios()
       } else {
         const error = await response.json()
-        toast.error(error.message || 'Erro ao salvar usuário')
+        const errorMsg = error.error || error.message || 'Erro ao salvar usuário'
+        setError(errorMsg)
+        toast.error(errorMsg)
       }
     } catch (error) {
       console.error('Erro ao salvar usuário:', error)
-      toast.error('Erro ao salvar usuário')
+      const errorMsg = 'Erro ao salvar usuário'
+      setError(errorMsg)
+      toast.error(errorMsg)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -160,6 +196,27 @@ export function UsuariosManagement() {
   }
 
   const editarUsuario = (usuario: Usuario) => {
+    // Garantir que as permissões sejam um array
+    let permissoes = []
+    if (usuario.permissoes) {
+      if (Array.isArray(usuario.permissoes)) {
+        permissoes = usuario.permissoes
+      } else {
+        let permissoesObj
+        if (typeof usuario.permissoes === 'string') {
+          try {
+            permissoesObj = JSON.parse(usuario.permissoes)
+          } catch (e) {
+            console.error('Erro ao fazer parse das permissões na edição:', e)
+            permissoesObj = {}
+          }
+        } else {
+          permissoesObj = usuario.permissoes
+        }
+        permissoes = Object.keys(permissoesObj).filter(key => permissoesObj[key] === true)
+      }
+    }
+    
     setUsuarioEditando(usuario)
     setNovoUsuario({
       nome: usuario.nome,
@@ -167,7 +224,7 @@ export function UsuariosManagement() {
       senha: '',
       role: usuario.role,
       ativo: usuario.ativo,
-      permissoes: Array.isArray(usuario.permissoes) ? usuario.permissoes : []
+      permissoes
     })
     setDialogAberto(true)
   }
@@ -368,8 +425,20 @@ export function UsuariosManagement() {
                 </div>
                 
                 <DialogFooter>
-                  <Button type="submit" onClick={salvarUsuario}>
-                    {usuarioEditando ? 'Atualizar' : 'Criar'} Usuário
+                  {error && (
+                    <div className="text-sm text-red-600 mb-2">
+                      {error}
+                    </div>
+                  )}
+                  <Button type="submit" onClick={salvarUsuario} disabled={loading}>
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Salvando...
+                      </>
+                    ) : (
+                      <>{usuarioEditando ? 'Atualizar' : 'Criar'} Usuário</>
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -378,8 +447,8 @@ export function UsuariosManagement() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
-            {Array.isArray(usuarios) && usuarios.map((usuario) => (
-              <Card key={usuario.id}>
+            {Array.isArray(usuarios) && usuarios.map((usuario, index) => (
+              <Card key={usuario.id || `usuario-${index}`}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">

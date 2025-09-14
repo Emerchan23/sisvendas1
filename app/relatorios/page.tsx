@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { getLinhas } from "@/lib/planilha"
 import { getAcertos, getParticipantes } from "@/lib/acertos"
-import { makeReportHTML, openPrintWindow, downloadPDF } from "@/lib/print"
+import { makeReportHTML, downloadPDF } from "@/lib/print"
 import { ERP_CHANGED_EVENT } from "@/lib/data-store"
 import { getConfig } from "@/lib/config"
-import { RefreshCw, Printer, Download, BarChart3, TrendingUp, DollarSign, Users, Calendar, FileText, Filter } from "lucide-react"
+import { RefreshCw, Download, BarChart3, TrendingUp, DollarSign, Users, Calendar, FileText, Filter } from "lucide-react"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 type DistRow = { participanteId: string; nome: string; total: number; totalBruto: number; totalDespesasIndiv: number; qtdAcertos: number }
 type FaturamentoAno = { ano: number; total: number }
@@ -65,7 +66,7 @@ function getValorVenda(l: any): number {
   return Number.isNaN(n) ? 0 : n
 }
 
-export default function RelatoriosPage() {
+function RelatoriosContent() {
   // Período padrão: ano atual
   const [inicio, setInicio] = useState<string>(() =>
     new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10),
@@ -339,26 +340,6 @@ export default function RelatoriosPage() {
     URL.revokeObjectURL(url)
   }
 
-  // Impressão (HTML renderizado no navegador)
-  async function imprimirRelatorio() {
-    const resumo = [
-      { label: "Faturamento do período", amount: faturamentoPeriodo, highlight: "green" as const },
-      { label: "Gasto com taxa de capital", amount: totalTaxaCapital, highlight: "red" as const },
-      { label: "Impostos pagos", amount: totalImpostos, highlight: "red" as const },
-      { label: "Lucro bruto (linhas)", amount: totalLucroBruto, highlight: "green" as const },
-      { label: "Despesas (acertos)", amount: totalDespesasAcertos, highlight: "red" as const },
-      { label: "Lucro líquido", amount: totalLucroLiquido, highlight: totalLucroLiquido >= 0 ? "green" as const : "red" as const },
-    ]
-    const periodLabel = `${new Date(inicio).toLocaleDateString()} a ${new Date(fim).toLocaleDateString()}`
-    const html = await makeReportHTML({
-      periodLabel,
-      resumo,
-      faturamentoAnual: faturamentoPorAno,
-      distribuicao: distribPorParticipante.map((d) => ({ nome: d.nome, total: d.total, totalBruto: d.totalBruto, totalDespesasIndiv: d.totalDespesasIndiv, qtdAcertos: d.qtdAcertos })),
-    })
-    openPrintWindow(html, "Relatório")
-  }
-
   // Download PDF do relatório
   async function baixarRelatorioPDF() {
     const resumo = [
@@ -406,10 +387,6 @@ export default function RelatoriosPage() {
             <Button variant="outline" onClick={reload} className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200">
               <RefreshCw className="mr-2 h-4 w-4" />
               Atualizar
-            </Button>
-            <Button onClick={imprimirRelatorio} className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200">
-              <Printer className="mr-2 h-4 w-4" />
-              Imprimir
             </Button>
             <Button variant="outline" onClick={baixarRelatorioPDF} className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200">
               <Download className="mr-2 h-4 w-4" />
@@ -486,73 +463,146 @@ export default function RelatoriosPage() {
           </CardContent>
         </Card>
 
+
+
         <div ref={reportRef} className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-5">
-            <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-green-800 text-sm font-medium">
-                  <TrendingUp className="h-4 w-4" />
-                  Faturamento do período
+          {/* Título do Resumo Numérico */}
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl">
+            <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-100 rounded-t-lg border-b">
+              <CardTitle className="flex items-center gap-3 text-indigo-800 text-xl">
+                <BarChart3 className="h-6 w-6" />
+                Resumo Numérico - Período: {new Date(inicio).toLocaleDateString()} a {new Date(fim).toLocaleDateString()}
+              </CardTitle>
+            </CardHeader>
+          </Card>
+
+          <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-6 mb-8">
+            <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-green-200/30 rounded-full -translate-y-10 translate-x-10"></div>
+              <CardHeader className="pb-2 relative z-10">
+                <CardTitle className="flex items-center justify-between text-green-800 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-green-200/50 rounded-lg">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                    <span>Faturamento</span>
+                  </div>
+                  <div className="text-xs bg-green-200/50 px-2 py-1 rounded-full">+</div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold text-green-700">{fmtCurrency(faturamentoPeriodo)}</div>
+              <CardContent className="pt-0 relative z-10">
+                <div className="text-2xl lg:text-3xl font-bold text-green-700 font-mono mb-1">{fmtCurrency(faturamentoPeriodo)}</div>
+                <div className="text-xs text-green-600 font-medium">Receita Total</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-orange-50 to-red-100 border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-orange-800 text-sm font-medium">
-                  <DollarSign className="h-4 w-4" />
-                  Gasto com taxa de capital
+            <Card className="bg-gradient-to-br from-orange-50 to-red-100 border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-orange-200/30 rounded-full -translate-y-10 translate-x-10"></div>
+              <CardHeader className="pb-2 relative z-10">
+                <CardTitle className="flex items-center justify-between text-orange-800 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-orange-200/50 rounded-lg">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <span>Taxa Capital</span>
+                  </div>
+                  <div className="text-xs bg-orange-200/50 px-2 py-1 rounded-full">-</div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold text-orange-700">{fmtCurrency(totalTaxaCapital)}</div>
+              <CardContent className="pt-0 relative z-10">
+                <div className="text-2xl lg:text-3xl font-bold text-orange-700 font-mono mb-1">{fmtCurrency(totalTaxaCapital)}</div>
+                <div className="text-xs text-orange-600 font-medium">Custo Financeiro</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-red-50 to-pink-100 border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-red-800 text-sm font-medium">
-                  <FileText className="h-4 w-4" />
-                  Impostos pagos
+            <Card className="bg-gradient-to-br from-red-50 to-pink-100 border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-red-200/30 rounded-full -translate-y-10 translate-x-10"></div>
+              <CardHeader className="pb-2 relative z-10">
+                <CardTitle className="flex items-center justify-between text-red-800 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-red-200/50 rounded-lg">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <span>Impostos</span>
+                  </div>
+                  <div className="text-xs bg-red-200/50 px-2 py-1 rounded-full">-</div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold text-red-700">{fmtCurrency(totalImpostos)}</div>
+              <CardContent className="pt-0 relative z-10">
+                <div className="text-2xl lg:text-3xl font-bold text-red-700 font-mono mb-1">{fmtCurrency(totalImpostos)}</div>
+                <div className="text-xs text-red-600 font-medium">Tributos Pagos</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-emerald-50 to-green-100 border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-emerald-800 text-sm font-medium">
-                  <BarChart3 className="h-4 w-4" />
-                  Lucro bruto (linhas)
+            <Card className="bg-gradient-to-br from-emerald-50 to-green-100 border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-200/30 rounded-full -translate-y-10 translate-x-10"></div>
+              <CardHeader className="pb-2 relative z-10">
+                <CardTitle className="flex items-center justify-between text-emerald-800 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-emerald-200/50 rounded-lg">
+                      <BarChart3 className="h-5 w-5" />
+                    </div>
+                    <span>Lucro Bruto</span>
+                  </div>
+                  <div className="text-xs bg-emerald-200/50 px-2 py-1 rounded-full">{totalLucroBruto >= 0 ? '+' : '-'}</div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold text-emerald-700">
+              <CardContent className="pt-0 relative z-10">
+                <div className="text-2xl lg:text-3xl font-bold text-emerald-700 font-mono mb-1">
                   {fmtCurrency(totalLucroBruto)}
                 </div>
+                <div className="text-xs text-emerald-600 font-medium">Margem das Linhas</div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-purple-50 to-indigo-100 border-0 shadow-lg hover:shadow-xl transition-all duration-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-purple-800 text-sm font-medium">
-                  <Users className="h-4 w-4" />
-                  Despesas (acertos)
+            <Card className="bg-gradient-to-br from-purple-50 to-indigo-100 border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-purple-200/30 rounded-full -translate-y-10 translate-x-10"></div>
+              <CardHeader className="pb-2 relative z-10">
+                <CardTitle className="flex items-center justify-between text-purple-800 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-purple-200/50 rounded-lg">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <span>Despesas</span>
+                  </div>
+                  <div className="text-xs bg-purple-200/50 px-2 py-1 rounded-full">-</div>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold text-purple-700">
+              <CardContent className="pt-0 relative z-10">
+                <div className="text-2xl lg:text-3xl font-bold text-purple-700 font-mono mb-1">
                   {fmtCurrency(totalDespesasAcertos)}
                 </div>
+                <div className="text-xs text-purple-600 font-medium">Acertos Individuais</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-cyan-100 border-0 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200/30 rounded-full -translate-y-10 translate-x-10"></div>
+              <CardHeader className="pb-2 relative z-10">
+                <CardTitle className="flex items-center justify-between text-blue-800 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-blue-200/50 rounded-lg">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                    <span>Lucro Líquido</span>
+                  </div>
+                  <div className={`text-xs px-2 py-1 rounded-full ${
+                    totalLucroLiquido >= 0 ? 'bg-green-200/50 text-green-700' : 'bg-red-200/50 text-red-700'
+                  }`}>
+                    {totalLucroLiquido >= 0 ? '+' : '-'}
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 relative z-10">
+                <div className={`text-2xl lg:text-3xl font-bold font-mono mb-1 ${
+                  totalLucroLiquido >= 0 ? 'text-blue-700' : 'text-red-700'
+                }`}>
+                  {fmtCurrency(totalLucroLiquido)}
+                </div>
+                <div className="text-xs text-blue-600 font-medium">Resultado Final</div>
               </CardContent>
             </Card>
           </div>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-lg border-b">
-              <CardTitle className="flex items-center gap-2 text-blue-800">
-                <TrendingUp className="h-5 w-5" />
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl mt-8">
+            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-100 rounded-t-lg border-b p-8">
+              <CardTitle className="flex items-center gap-3 text-blue-800">
+                <TrendingUp className="h-6 w-6" />
                 Faturamento por ano
               </CardTitle>
               <Button variant="outline" onClick={exportFaturamentoAnualCSV} className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200">
@@ -562,44 +612,48 @@ export default function RelatoriosPage() {
             </CardHeader>
             <CardContent className="overflow-auto p-0">
               <div className="bg-gradient-to-r from-blue-500/5 to-indigo-500/5 p-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
-                      <TableHead className="font-semibold text-gray-700">Ano</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Faturamento</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {faturamentoPorAno.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={2} className="text-center text-gray-500 py-8">
-                          <div className="flex flex-col items-center gap-2">
-                            <TrendingUp className="h-8 w-8 text-gray-400" />
-                            <span>Sem dados de faturamento.</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      faturamentoPorAno.map((r, index) => (
-                        <TableRow key={r.ano} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-blue-50/30'} hover:bg-blue-100/50 transition-all duration-200`}>
-                          <TableCell className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-blue-600" />
-                            <span className="font-medium">{r.ano}</span>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-green-700">{fmtCurrency(r.total)}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse min-w-[400px]">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
+                        <th className="border border-gray-200 px-3 py-3 text-left font-semibold text-gray-700 w-1/2 min-w-[120px]">Ano</th>
+                        <th className="border border-gray-200 px-3 py-3 text-right font-semibold text-gray-700 w-1/2 min-w-[150px]">Faturamento</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {faturamentoPorAno.length === 0 ? (
+                        <tr>
+                          <td colSpan={2} className="border border-gray-200 px-3 py-8 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-2">
+                              <TrendingUp className="h-8 w-8 text-gray-400" />
+                              <span>Sem dados de faturamento.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        faturamentoPorAno.map((r, index) => (
+                          <tr key={r.ano} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-blue-50/30'} hover:bg-blue-100/50 transition-all duration-200`}>
+                            <td className="border border-gray-200 px-3 py-3 text-gray-900 text-sm sm:text-base">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-blue-600" />
+                                <span className="font-medium">{r.ano}</span>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 px-3 py-3 text-right font-semibold text-green-700 font-mono text-sm sm:text-base">{fmtCurrency(r.total)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-purple-50 to-pink-100 rounded-t-lg border-b">
-              <CardTitle className="flex items-center gap-2 text-purple-800">
-                <Users className="h-5 w-5" />
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl mt-8">
+            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-purple-50 to-pink-100 rounded-t-lg border-b p-8">
+              <CardTitle className="flex items-center gap-3 text-purple-800">
+                <Users className="h-6 w-6" />
                 Distribuição por participante
               </CardTitle>
               <Button variant="outline" onClick={exportDistribuicaoCSV} className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200">
@@ -609,52 +663,56 @@ export default function RelatoriosPage() {
             </CardHeader>
             <CardContent className="overflow-auto p-0">
               <div className="bg-gradient-to-r from-purple-500/5 to-pink-500/5 p-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
-                      <TableHead className="font-semibold text-gray-700">Participante</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Lucro bruto</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Despesas indiv.</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Lucro líquido</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Qtd. acertos</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {distribPorParticipante.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                          <div className="flex flex-col items-center gap-2">
-                            <Users className="h-8 w-8 text-gray-400" />
-                            <span>Nenhuma distribuição no período.</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      distribPorParticipante.map((r, index) => (
-                        <TableRow key={r.participanteId} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-purple-50/30'} hover:bg-purple-100/50 transition-all duration-200`}>
-                          <TableCell className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-purple-600" />
-                            <span className="font-medium">{r.nome}</span>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-green-700">{fmtCurrency(r.totalBruto)}</TableCell>
-                          <TableCell className="text-right font-semibold text-red-600">{fmtCurrency(r.totalDespesasIndiv)}</TableCell>
-                          <TableCell className="text-right font-semibold" style={{ color: r.total >= 0 ? '#059669' : '#dc2626' }}>
-                            {fmtCurrency(r.total)}
-                          </TableCell>
-                          <TableCell className="text-right">{r.qtdAcertos}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
+                        <th className="border border-gray-200 px-2 py-3 text-left font-semibold text-gray-700 w-1/4 min-w-[120px]">Participante</th>
+                        <th className="border border-gray-200 px-2 py-3 text-right font-semibold text-gray-700 w-1/5 min-w-[120px]">Lucro bruto</th>
+                        <th className="border border-gray-200 px-2 py-3 text-right font-semibold text-gray-700 w-1/5 min-w-[120px]">Despesas indiv.</th>
+                        <th className="border border-gray-200 px-2 py-3 text-right font-semibold text-gray-700 w-1/5 min-w-[120px]">Lucro líquido</th>
+                        <th className="border border-gray-200 px-2 py-3 text-center font-semibold text-gray-700 w-1/6 min-w-[100px]">Qtd. acertos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {distribPorParticipante.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="border border-gray-200 px-2 py-8 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-2">
+                              <Users className="h-8 w-8 text-gray-400" />
+                              <span>Nenhuma distribuição no período.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        distribPorParticipante.map((r, index) => (
+                          <tr key={r.participanteId} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-purple-50/30'} hover:bg-purple-100/50 transition-all duration-200`}>
+                            <td className="border border-gray-200 px-2 py-3 text-gray-900 text-sm sm:text-base">
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-purple-600" />
+                                <span className="font-medium">{r.nome}</span>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 px-2 py-3 text-right font-semibold text-green-700 font-mono text-sm sm:text-base">{fmtCurrency(r.totalBruto)}</td>
+                            <td className="border border-gray-200 px-2 py-3 text-right font-semibold text-red-600 font-mono text-sm sm:text-base">{fmtCurrency(r.totalDespesasIndiv)}</td>
+                            <td className="border border-gray-200 px-2 py-3 text-right font-semibold font-mono text-sm sm:text-base" style={{ color: r.total >= 0 ? '#059669' : '#dc2626' }}>
+                              {fmtCurrency(r.total)}
+                            </td>
+                            <td className="border border-gray-200 px-2 py-3 text-center font-semibold text-blue-700 bg-blue-50 text-sm sm:text-base">{r.qtdAcertos}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-50 to-emerald-100 rounded-t-lg border-b">
-              <CardTitle className="flex items-center gap-2 text-green-800">
-                <Users className="h-5 w-5" />
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl mt-8">
+            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-50 to-emerald-100 rounded-t-lg border-b p-8">
+              <CardTitle className="flex items-center gap-3 text-green-800">
+                <Users className="h-6 w-6" />
                 Clientes com mais vendas (Top 10)
               </CardTitle>
               <Button variant="outline" onClick={exportClientesMaisVendasCSV} className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200">
@@ -664,49 +722,53 @@ export default function RelatoriosPage() {
             </CardHeader>
             <CardContent className="overflow-auto p-0">
               <div className="bg-gradient-to-r from-green-500/5 to-emerald-500/5 p-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
-                      <TableHead className="font-semibold text-gray-700">Cliente</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Total Vendas</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Qtd. Vendas</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {clientesMaisVendas.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center text-gray-500 py-8">
-                          <div className="flex flex-col items-center gap-2">
-                            <Users className="h-8 w-8 text-gray-400" />
-                            <span>Sem dados de vendas por cliente.</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      clientesMaisVendas.map((r, index) => (
-                        <TableRow key={r.cliente} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-green-50/30'} hover:bg-green-100/50 transition-all duration-200`}>
-                          <TableCell className="flex items-center gap-2">
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              #{index + 1}
-                            </span>
-                            <Users className="h-4 w-4 text-green-600" />
-                            <span className="font-medium">{r.cliente}</span>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-green-700">{fmtCurrency(r.totalVendas)}</TableCell>
-                          <TableCell className="text-right">{r.qtdVendas}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse min-w-[500px]">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 px-2 py-3 text-left font-semibold text-gray-700 w-1/2 min-w-[150px]">Cliente</th>
+                        <th className="border border-gray-200 px-2 py-3 text-center font-semibold text-gray-700 w-1/4 min-w-[100px]">Qtd. Vendas</th>
+                        <th className="border border-gray-200 px-2 py-3 text-right font-semibold text-gray-700 w-1/4 min-w-[120px]">Total Vendas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clientesMaisVendas.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="border border-gray-200 px-2 py-8 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-2">
+                              <Users className="h-8 w-8 text-gray-400" />
+                              <span>Sem dados de vendas por cliente.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        clientesMaisVendas.map((r, index) => (
+                          <tr key={r.cliente} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-green-50/30'} hover:bg-green-100/50 transition-all duration-200`}>
+                            <td className="border border-gray-200 px-2 py-3 text-gray-900 text-sm sm:text-base">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                  #{index + 1}
+                                </span>
+                                <Users className="h-4 w-4 text-green-600" />
+                                <span className="font-medium">{r.cliente}</span>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 px-2 py-3 text-center font-semibold text-blue-700 bg-blue-50 text-sm sm:text-base">{r.qtdVendas}</td>
+                            <td className="border border-gray-200 px-2 py-3 text-right font-semibold text-green-700 font-mono text-sm sm:text-base">{fmtCurrency(r.totalVendas)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-100 rounded-t-lg border-b">
-              <CardTitle className="flex items-center gap-2 text-emerald-800">
-                <DollarSign className="h-5 w-5" />
+            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-emerald-50 to-teal-100 rounded-t-lg border-b p-8">
+              <CardTitle className="flex items-center gap-3 text-emerald-800">
+                <DollarSign className="h-6 w-6" />
                 Clientes com mais lucro (Top 10)
               </CardTitle>
               <Button variant="outline" onClick={exportClientesMaisLucroCSV} className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200">
@@ -716,49 +778,53 @@ export default function RelatoriosPage() {
             </CardHeader>
             <CardContent className="overflow-auto p-0">
               <div className="bg-gradient-to-r from-emerald-500/5 to-teal-500/5 p-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
-                      <TableHead className="font-semibold text-gray-700">Cliente</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Total Lucro</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Qtd. Vendas</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {clientesMaisLucro.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={3} className="text-center text-gray-500 py-8">
-                          <div className="flex flex-col items-center gap-2">
-                            <DollarSign className="h-8 w-8 text-gray-400" />
-                            <span>Sem dados de lucro por cliente.</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      clientesMaisLucro.map((r, index) => (
-                        <TableRow key={r.cliente} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-emerald-50/30'} hover:bg-emerald-100/50 transition-all duration-200`}>
-                          <TableCell className="flex items-center gap-2">
-                            <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-medium">
-                              #{index + 1}
-                            </span>
-                            <Users className="h-4 w-4 text-emerald-600" />
-                            <span className="font-medium">{r.cliente}</span>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-emerald-700">{fmtCurrency(r.totalLucro)}</TableCell>
-                          <TableCell className="text-right">{r.qtdVendas}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse min-w-[500px]">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="border border-gray-200 px-2 py-3 text-left font-semibold text-gray-700 w-1/2 min-w-[150px]">Cliente</th>
+                        <th className="border border-gray-200 px-2 py-3 text-center font-semibold text-gray-700 w-1/4 min-w-[100px]">Qtd. Vendas</th>
+                        <th className="border border-gray-200 px-2 py-3 text-right font-semibold text-gray-700 w-1/4 min-w-[120px]">Lucro Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clientesMaisLucro.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="border border-gray-200 px-2 py-8 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-2">
+                              <DollarSign className="h-8 w-8 text-gray-400" />
+                              <span>Sem dados de lucro por cliente.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        clientesMaisLucro.map((r, index) => (
+                          <tr key={r.cliente} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-emerald-50/30'} hover:bg-emerald-100/50 transition-all duration-200`}>
+                            <td className="border border-gray-200 px-2 py-3 text-gray-900 text-sm sm:text-base">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded font-medium">
+                                  #{index + 1}
+                                </span>
+                                <Users className="h-4 w-4 text-emerald-600" />
+                                <span className="font-medium">{r.cliente}</span>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 px-2 py-3 text-center font-semibold text-blue-700 bg-blue-50 text-sm sm:text-base">{r.qtdVendas}</td>
+                            <td className="border border-gray-200 px-2 py-3 text-right font-semibold text-emerald-700 font-mono text-sm sm:text-base">{fmtCurrency(r.totalLucro)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-indigo-50 to-blue-100 rounded-t-lg border-b">
-              <CardTitle className="flex items-center gap-2 text-indigo-800">
-                <BarChart3 className="h-5 w-5" />
+            <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-indigo-50 to-blue-100 rounded-t-lg border-b p-8">
+              <CardTitle className="flex items-center gap-3 text-indigo-800">
+                <BarChart3 className="h-6 w-6" />
                 Lucro por modalidade
               </CardTitle>
               <Button variant="outline" onClick={exportLucroPorModalidadeCSV} className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-white hover:shadow-md transition-all duration-200">
@@ -768,65 +834,69 @@ export default function RelatoriosPage() {
             </CardHeader>
             <CardContent className="overflow-auto p-0">
               <div className="bg-gradient-to-r from-indigo-500/5 to-blue-500/5 p-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
-                      <TableHead className="font-semibold text-gray-700">Modalidade</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Total Lucro</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Total Vendas</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Qtd. Vendas</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Margem (%)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lucroPorModalidade.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center text-gray-500 py-8">
-                          <div className="flex flex-col items-center gap-2">
-                            <BarChart3 className="h-8 w-8 text-gray-400" />
-                            <span>Sem dados de lucro por modalidade.</span>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      lucroPorModalidade.map((r, index) => (
-                        <TableRow key={r.modalidade} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-indigo-50/30'} hover:bg-indigo-100/50 transition-all duration-200`}>
-                          <TableCell className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-indigo-600" />
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              r.modalidade.toLowerCase().includes('direta') 
-                                ? 'bg-blue-100 text-blue-800'
-                                : r.modalidade.toLowerCase().includes('licitação') || r.modalidade.toLowerCase().includes('licitacao')
-                                ? 'bg-purple-100 text-purple-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {r.modalidade}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-green-700">{fmtCurrency(r.totalLucro)}</TableCell>
-                          <TableCell className="text-right">{fmtCurrency(r.totalVendas)}</TableCell>
-                          <TableCell className="text-right">{r.qtdVendas}</TableCell>
-                          <TableCell className="text-right">
-                            <span className={`font-medium ${
-                              r.margemLucro >= 20 ? 'text-green-600' :
-                              r.margemLucro >= 10 ? 'text-yellow-600' : 'text-red-600'
-                            }`}>
-                              {r.margemLucro}%
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse min-w-[700px]">
+                    <thead>
+                      <tr className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
+                        <th className="border border-gray-200 px-2 py-3 text-left font-semibold text-gray-700 w-1/4 min-w-[120px]">Modalidade</th>
+                        <th className="border border-gray-200 px-2 py-3 text-right font-semibold text-gray-700 w-1/5 min-w-[120px]">Total Lucro</th>
+                        <th className="border border-gray-200 px-2 py-3 text-right font-semibold text-gray-700 w-1/5 min-w-[120px]">Total Vendas</th>
+                        <th className="border border-gray-200 px-2 py-3 text-center font-semibold text-gray-700 w-1/6 min-w-[100px]">Qtd. Vendas</th>
+                        <th className="border border-gray-200 px-2 py-3 text-center font-semibold text-gray-700 w-1/6 min-w-[100px]">Margem (%)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lucroPorModalidade.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="border border-gray-200 px-2 py-8 text-center text-gray-500">
+                            <div className="flex flex-col items-center gap-2">
+                              <BarChart3 className="h-8 w-8 text-gray-400" />
+                              <span>Sem dados de lucro por modalidade.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : (
+                        lucroPorModalidade.map((r, index) => (
+                          <tr key={r.modalidade} className={`${index % 2 === 0 ? 'bg-white/50' : 'bg-indigo-50/30'} hover:bg-indigo-100/50 transition-all duration-200`}>
+                            <td className="border border-gray-200 px-2 py-3 text-gray-900 text-sm sm:text-base">
+                              <div className="flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 text-indigo-600" />
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  r.modalidade.toLowerCase().includes('direta') 
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : r.modalidade.toLowerCase().includes('licitação') || r.modalidade.toLowerCase().includes('licitacao')
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {r.modalidade}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="border border-gray-200 px-2 py-3 text-right font-semibold text-green-700 font-mono text-sm sm:text-base">{fmtCurrency(r.totalLucro)}</td>
+                            <td className="border border-gray-200 px-2 py-3 text-right font-mono text-sm sm:text-base">{fmtCurrency(r.totalVendas)}</td>
+                            <td className="border border-gray-200 px-2 py-3 text-center font-semibold text-blue-700 bg-blue-50 text-sm sm:text-base">{r.qtdVendas}</td>
+                            <td className="border border-gray-200 px-2 py-3 text-center">
+                              <span className={`font-medium px-2 py-1 rounded-full text-xs ${
+                                r.margemLucro >= 20 ? 'text-green-600 bg-green-100' :
+                                r.margemLucro >= 10 ? 'text-yellow-600 bg-yellow-100' : 'text-red-600 bg-red-100'
+                              }`}>
+                                {r.margemLucro}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-100 rounded-t-lg border-b">
-              <CardTitle className="flex items-center gap-2 text-slate-800">
-                <FileText className="h-5 w-5" />
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl mt-8">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-100 rounded-t-lg border-b p-8">
+              <CardTitle className="flex items-center gap-3 text-slate-800">
+                <FileText className="h-6 w-6" />
                 Resumo numérico
               </CardTitle>
             </CardHeader>
@@ -835,31 +905,31 @@ export default function RelatoriosPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
-                      <TableHead className="font-semibold text-gray-700">Métrica</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700">Valor</TableHead>
+                      <TableHead className="font-semibold text-gray-700 text-sm uppercase tracking-wider py-4 px-6">Métrica</TableHead>
+                      <TableHead className="text-right font-semibold text-gray-700 text-sm uppercase tracking-wider py-4 px-6">Valor</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow className="bg-white/50 hover:bg-slate-100/50 transition-all duration-200">
-                      <TableCell className="flex items-center gap-2">
+                      <TableCell className="flex items-center gap-2 py-4 px-6">
                         <FileText className="h-4 w-4 text-slate-600" />
                         <span className="font-medium">Total de linhas no período</span>
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-slate-700">{linhasPeriodo.length}</TableCell>
+                      <TableCell className="text-right font-semibold text-slate-700 font-mono py-4 px-6">{linhasPeriodo.length.toLocaleString('pt-BR')}</TableCell>
                     </TableRow>
                     <TableRow className="bg-slate-50/30 hover:bg-slate-100/50 transition-all duration-200">
-                      <TableCell className="flex items-center gap-2">
+                      <TableCell className="flex items-center gap-2 py-4 px-6">
                         <BarChart3 className="h-4 w-4 text-slate-600" />
                         <span className="font-medium">Total de acertos no período</span>
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-slate-700">{acertosPeriodo.length}</TableCell>
+                      <TableCell className="text-right font-semibold text-slate-700 font-mono py-4 px-6">{acertosPeriodo.length.toLocaleString('pt-BR')}</TableCell>
                     </TableRow>
                     <TableRow className="bg-white/50 hover:bg-slate-100/50 transition-all duration-200">
-                      <TableCell className="flex items-center gap-2">
+                      <TableCell className="flex items-center gap-2 py-4 px-6">
                         <Users className="h-4 w-4 text-slate-600" />
                         <span className="font-medium">Participantes únicos</span>
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-slate-700">{participantes.length}</TableCell>
+                      <TableCell className="text-right font-semibold text-slate-700 font-mono py-4 px-6">{participantes.length.toLocaleString('pt-BR')}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -869,5 +939,13 @@ export default function RelatoriosPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function RelatoriosPage() {
+  return (
+    <ProtectedRoute requiredPermission="relatorios">
+      <RelatoriosContent />
+    </ProtectedRoute>
   )
 }

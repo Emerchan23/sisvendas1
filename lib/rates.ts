@@ -11,8 +11,8 @@ export async function getCapitalRates(): Promise<Rate[]> {
   const rates = await api.rates.capital.list()
   return rates.map(rate => ({
     id: rate.id,
-    name: rate.nome,
-    percentage: rate.percentual
+    nome: rate.nome,
+    percentual: rate.percentual
   }))
 }
 export async function saveCapitalRate(rate: Partial<Rate> & { id?: string }) {
@@ -29,8 +29,8 @@ export async function getImpostoRates(): Promise<Rate[]> {
   const rates = await api.rates.imposto.list()
   return rates.map(rate => ({
     id: rate.id,
-    name: rate.nome,
-    percentage: rate.percentual
+    nome: rate.nome,
+    percentual: rate.percentual
   }))
 }
 export async function saveImpostoRate(rate: Partial<Rate> & { id?: string }) {

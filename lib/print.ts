@@ -708,7 +708,7 @@ export async function downloadPDF(html: string, title = "Documento") {
     // Converter oklch para rgb nos estilos base
     const convertedStyles = convertOklchInCSS(baseStyles().replace('<style>', '').replace('</style>', ''))
     
-    // Adicionar estilos e conteúdo
+    // Adicionar estilos e conteúdo com melhor suporte a quebras de página
     tempDiv.innerHTML = `
       <style>
         ${convertedStyles}
@@ -739,6 +739,28 @@ export async function downloadPDF(html: string, title = "Documento") {
         .doc-header * { color: white !important; }
         .amount { color: rgb(37, 37, 37) !important; }
         strong { color: rgb(37, 37, 37) !important; }
+        
+        /* Melhorar quebras de página para html2canvas */
+        .report-section {
+          min-height: 200px;
+          margin-bottom: 40px;
+        }
+        
+        .report-section:nth-child(3) {
+          margin-top: 60px;
+        }
+        
+        .report-section:nth-child(4) {
+          margin-top: 80px;
+        }
+        
+        .participants-table {
+          margin-top: 20px;
+        }
+        
+        .section-header {
+          margin-bottom: 25px;
+        }
       </style>
       <div class="container">${html}</div>
     `
@@ -746,55 +768,126 @@ export async function downloadPDF(html: string, title = "Documento") {
     document.body.appendChild(tempDiv)
     
     // Aguardar um momento para renderização
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 200))
     
-    // Capturar como canvas com otimizações de tamanho
+    // Tentar usar a API nativa de impressão do navegador se disponível
+    if (window.print && typeof window.print === 'function') {
+      try {
+        // Criar uma nova janela para impressão
+        const printWindow = window.open('', '_blank')
+        if (printWindow) {
+          printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>${title}</title>
+              <style>
+                @media print {
+                  @page {
+                    size: A4;
+                    margin: 20mm;
+                  }
+                  
+                  .report-section {
+                    page-break-inside: avoid;
+                    margin-bottom: 30px;
+                  }
+                  
+                  .report-section:nth-child(3) {
+                    page-break-before: auto;
+                  }
+                  
+                  .report-section:nth-child(4) {
+                    page-break-before: auto;
+                  }
+                  
+                  .kpis-table {
+                    page-break-inside: avoid;
+                  }
+                  
+                  .data-table {
+                    page-break-inside: auto;
+                  }
+                  
+                  .data-table thead {
+                    page-break-inside: avoid;
+                    page-break-after: avoid;
+                  }
+                  
+                  .data-table tbody tr {
+                    page-break-inside: avoid;
+                  }
+                  
+                  .participants-table {
+                    page-break-before: auto;
+                  }
+                }
+                ${convertedStyles}
+              </style>
+            </head>
+            <body>
+              ${html}
+            </body>
+            </html>
+          `)
+          printWindow.document.close()
+          
+          // Aguardar carregamento e imprimir
+          printWindow.onload = () => {
+            setTimeout(() => {
+              printWindow.print()
+              printWindow.close()
+            }, 500)
+          }
+          
+          // Remover elemento temporário
+          document.body.removeChild(tempDiv)
+          return
+        }
+      } catch (printError) {
+        console.warn('Impressão nativa falhou, usando fallback:', printError)
+      }
+    }
+    
+    // Fallback: usar html2canvas com melhor divisão de páginas
     const canvas = await html2canvas(tempDiv, {
-      scale: 1.5, // Qualidade otimizada (reduzido de 2 para 1.5)
+      scale: 1.5,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      width: 794, // A4 width in pixels at 96 DPI
-      logging: false, // Desabilitar logs para melhor performance
-      removeContainer: true // Remover container após captura
-      // Removido height fixo para permitir altura dinâmica baseada no conteúdo
+      width: 794,
+      logging: false,
+      removeContainer: true
     })
     
     // Remover elemento temporário
     document.body.removeChild(tempDiv)
     
-    // Criar PDF com compressão
+    // Criar PDF com melhor divisão de páginas
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
-      compress: true // Habilitar compressão do PDF
+      compress: true
     })
 
-    // Usar JPEG com qualidade otimizada para reduzir tamanho
     const imgData = canvas.toDataURL('image/jpeg', 0.85)
-    const imgWidth = 210 // A4 width in mm
-    const pageHeight = 295 // A4 height in mm
+    const imgWidth = 210
+    const pageHeight = 280 // Reduzido para deixar margem
     const imgHeight = (canvas.height * imgWidth) / canvas.width
     
-    // Se o conteúdo cabe em uma página, adicionar apenas uma página
     if (imgHeight <= pageHeight) {
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight)
+      pdf.addImage(imgData, 'JPEG', 0, 10, imgWidth, imgHeight)
     } else {
-      // Se o conteúdo é maior que uma página, dividir em múltiplas páginas
-      let heightLeft = imgHeight
-      let position = 0
+      // Divisão mais inteligente de páginas
+      const sectionsPerPage = Math.ceil(imgHeight / pageHeight)
+      const sectionHeight = imgHeight / sectionsPerPage
       
-      // Adicionar primeira página
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-      heightLeft -= pageHeight
-      
-      // Adicionar páginas adicionais apenas se necessário
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight
-        pdf.addPage()
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
-        heightLeft -= pageHeight
+      for (let i = 0; i < sectionsPerPage; i++) {
+        if (i > 0) pdf.addPage()
+        
+        const yPosition = -(i * sectionHeight)
+        pdf.addImage(imgData, 'JPEG', 0, yPosition + 10, imgWidth, imgHeight)
       }
     }
     
@@ -885,6 +978,388 @@ async function currentHeader() {
 }
 
 /**
+ * Estilos CSS específicos para o relatório financeiro
+ */
+function getReportStyles() {
+  return `
+    <style>
+      .report-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 210mm;
+        margin: 0 auto;
+        padding: 20px;
+        background: white;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .report-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 3px solid #2563eb;
+      }
+
+      .header-logo img {
+        width: 80px;
+        height: 80px;
+        object-fit: contain;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .header-content {
+        flex: 1;
+      }
+
+      .report-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1e40af;
+        margin: 0 0 5px 0;
+      }
+
+      .report-subtitle {
+        font-size: 18px;
+        font-weight: 600;
+        color: #374151;
+        margin: 0 0 15px 0;
+      }
+
+      .company-info {
+        margin-top: 10px;
+      }
+
+      .company-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #111827;
+        margin-bottom: 5px;
+      }
+
+      .company-detail {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 3px;
+      }
+
+      .header-meta {
+        text-align: right;
+        min-width: 200px;
+      }
+
+      .period-info, .generation-info {
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      .period-label, .generation-label {
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .period-value, .generation-value {
+        color: #6b7280;
+        margin-left: 5px;
+      }
+
+      .report-section {
+        margin-bottom: 35px;
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .section-header {
+        margin-bottom: 20px;
+        text-align: center;
+      }
+
+      .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1e40af;
+        margin: 0 0 5px 0;
+      }
+
+      .section-subtitle {
+        font-size: 14px;
+        color: #6b7280;
+        margin: 0;
+      }
+
+      .kpis-grid {
+        display: flex;
+        justify-content: center;
+      }
+
+      .kpis-table {
+        width: 100%;
+        max-width: 600px;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .kpi-row {
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .kpi-row:last-child {
+        border-bottom: none;
+      }
+
+      .kpi-label {
+        padding: 15px 20px;
+        font-weight: 600;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .kpi-icon {
+        font-size: 18px;
+      }
+
+      .kpi-value {
+        padding: 15px 20px;
+        text-align: right;
+        font-weight: 700;
+        font-size: 16px;
+      }
+
+      .kpi-value.positive {
+        color: #059669;
+      }
+
+      .kpi-value.negative {
+        color: #dc2626;
+      }
+
+      .kpi-value.neutral {
+        color: #374151;
+      }
+
+      .table-container {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .table-header {
+        background: #1e40af;
+        color: white;
+        padding: 15px 12px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .amount-header, .count-header {
+        text-align: right;
+      }
+
+      .year-cell, .amount-cell, .count-cell {
+        padding: 12px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .year-cell {
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .amount-cell {
+        text-align: right;
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+      }
+
+      .amount-cell.positive {
+        color: #059669;
+      }
+
+      .amount-cell.negative {
+        color: #dc2626;
+      }
+
+      .count-cell {
+        text-align: right;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .participant-row:nth-child(even) {
+        background: #f9fafb;
+      }
+
+      .participant-name {
+        padding: 12px;
+        font-weight: 600;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .participant-icon {
+        font-size: 16px;
+      }
+
+      .result-icon {
+        margin-right: 5px;
+      }
+
+      .no-data {
+        padding: 20px;
+        text-align: center;
+        color: #6b7280;
+        font-style: italic;
+        background: #f9fafb;
+      }
+
+      .report-footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 2px solid #e5e7eb;
+      }
+
+      .footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      .footer-brand, .footer-page {
+        font-weight: 500;
+      }
+
+      @media print {
+        @page {
+          size: A4;
+          margin: 15mm 10mm 15mm 10mm;
+        }
+        
+        .report-container {
+          max-width: none;
+          margin: 0;
+          padding: 0;
+        }
+        
+        .report-header {
+          page-break-inside: avoid;
+          page-break-after: avoid;
+        }
+        
+        .report-section {
+          page-break-inside: avoid;
+          margin-bottom: 25px;
+          orphans: 3;
+          widows: 3;
+        }
+        
+        .section-header {
+          page-break-after: avoid;
+          page-break-inside: avoid;
+        }
+        
+        .section-title {
+          page-break-after: avoid;
+        }
+        
+        .kpis-table {
+          page-break-inside: avoid;
+        }
+        
+        .data-table {
+          page-break-inside: auto;
+        }
+        
+        .data-table thead {
+          page-break-inside: avoid;
+          page-break-after: avoid;
+        }
+        
+        .data-table tbody tr {
+          page-break-inside: avoid;
+        }
+        
+        .kpi-row {
+          page-break-inside: avoid;
+        }
+        
+        .participant-row {
+          page-break-inside: avoid;
+        }
+        
+        .table-container {
+          page-break-inside: avoid;
+        }
+        
+        .report-footer {
+          page-break-inside: avoid;
+        }
+        
+        /* Força quebra de página antes de seções específicas se necessário */
+        .report-section:nth-child(3) {
+          page-break-before: auto;
+          margin-top: 40px;
+        }
+        
+        .report-section:nth-child(4) {
+          page-break-before: always;
+          margin-top: 0;
+        }
+        
+        /* Melhor controle de quebras para tabelas grandes */
+        .participants-table {
+          page-break-before: auto;
+        }
+        
+        .participants-table thead {
+          page-break-after: avoid;
+        }
+        
+        .participants-table tbody tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        
+        /* Evita quebras órfãs em tabelas */
+        .data-table tbody {
+          orphans: 3;
+          widows: 3;
+        }
+        
+        /* Garante espaçamento adequado entre seções */
+        .report-section + .report-section {
+          margin-top: 50px;
+        }
+        
+        /* Força nova página para seção de distribuição se muito conteúdo */
+        .report-section:last-child {
+          page-break-before: auto;
+        }
+      }
+    </style>
+  `
+}
+
+/**
  * Monta o HTML de um Relatório com cabeçalho da empresa atual (Configurações Gerais).
  */
 export async function makeReportHTML(args: {
@@ -900,65 +1375,142 @@ export async function makeReportHTML(args: {
 
   const resumoRows = args.resumo
     .map((r) => {
-      const cls = r.highlight === "green" ? "green" : r.highlight === "red" ? "red" : ""
-      return `<tr><td>${r.label}</td><td class="amount ${cls}">${fmtCurrency(r.amount)}</td></tr>`
+      const cls = r.highlight === "green" ? "positive" : r.highlight === "red" ? "negative" : "neutral"
+      const icon = r.highlight === "green" ? "📈" : r.highlight === "red" ? "📉" : "📊"
+      return `
+        <tr class="kpi-row ${cls}">
+          <td class="kpi-label">
+            <span class="kpi-icon">${icon}</span>
+            ${r.label}
+          </td>
+          <td class="kpi-value ${cls}">${fmtCurrency(r.amount)}</td>
+        </tr>`
     })
     .join("")
 
   const faturamentoRows =
     args.faturamentoAnual
-      .map((r) => `<tr><td>${r.ano}</td><td class="right">${fmtCurrency(r.total)}</td></tr>`)
-      .join("") || `<tr><td colspan="2" class="muted">Sem dados.</td></tr>`
+      .map((r) => `
+        <tr>
+          <td class="year-cell">${r.ano}</td>
+          <td class="amount-cell">${fmtCurrency(r.total)}</td>
+        </tr>`)
+      .join("") || `<tr><td colspan="2" class="no-data">📊 Sem dados disponíveis para o período</td></tr>`
 
   const distRows =
     args.distribuicao
       .map(
         (r) => {
-          const netColor = r.total >= 0 ? "green" : "red"
-          return `<tr><td>${r.nome}</td><td class="right">${fmtCurrency(r.totalBruto)}</td><td class="right red">${fmtCurrency(r.totalDespesasIndiv)}</td><td class="right ${netColor}">${fmtCurrency(r.total)}</td><td class="right">${r.qtdAcertos}</td></tr>`
+          const netColor = r.total >= 0 ? "positive" : "negative"
+          const netIcon = r.total >= 0 ? "✅" : "❌"
+          return `
+            <tr class="participant-row">
+              <td class="participant-name">
+                <span class="participant-icon">👤</span>
+                ${r.nome}
+              </td>
+              <td class="amount-cell positive">${fmtCurrency(r.totalBruto)}</td>
+              <td class="amount-cell negative">${fmtCurrency(r.totalDespesasIndiv)}</td>
+              <td class="amount-cell ${netColor}">
+                <span class="result-icon">${netIcon}</span>
+                ${fmtCurrency(r.total)}
+              </td>
+              <td class="count-cell">${r.qtdAcertos}</td>
+            </tr>`
         }
       )
-      .join("") || `<tr><td colspan="5" class="muted">Nenhuma distribuição no período.</td></tr>`
+      .join("") || `<tr><td colspan="5" class="no-data">👥 Nenhuma distribuição registrada no período</td></tr>`
 
   return `
-    <div class="doc-header">
-      <img class="logo" src="${hdr.logoUrl}" alt="Logo" crossorigin="anonymous" />
-      <div>
-        <h1>${hdr.nomeDoSistema} - ${title}</h1>
-        <div class="meta">
-          <div><span class="strong">${hdr.nome}</span></div>
-          ${hdr.razaoSocial ? `<div>Razão Social: ${hdr.razaoSocial}</div>` : ""}
-          ${hdr.cnpj ? `<div>CNPJ: ${formatCNPJ(hdr.cnpj)}</div>` : ""}
-          ${hdr.endereco ? `<div>${hdr.endereco}</div>` : ""}
+    ${getReportStyles()}
+    <div class="report-container">
+      <div class="report-header">
+        <div class="header-logo">
+          <img src="${hdr.logoUrl}" alt="Logo da Empresa" crossorigin="anonymous" />
         </div>
-        <div class="muted">Período: ${args.periodLabel} • Emitido em ${now.toLocaleDateString()} ${now.toLocaleTimeString()}</div>
+        <div class="header-content">
+          <h1 class="report-title">${hdr.nomeDoSistema}</h1>
+          <h2 class="report-subtitle">${title}</h2>
+          <div class="company-info">
+            <div class="company-name">${hdr.nome}</div>
+            ${hdr.razaoSocial ? `<div class="company-detail">Razão Social: ${hdr.razaoSocial}</div>` : ""}
+            ${hdr.cnpj ? `<div class="company-detail">CNPJ: ${formatCNPJ(hdr.cnpj)}</div>` : ""}
+            ${hdr.endereco ? `<div class="company-detail">📍 ${hdr.endereco}</div>` : ""}
+          </div>
+        </div>
+        <div class="header-meta">
+          <div class="period-info">
+            <span class="period-label">📅 Período:</span>
+            <span class="period-value">${args.periodLabel}</span>
+          </div>
+          <div class="generation-info">
+            <span class="generation-label">🕒 Gerado em:</span>
+            <span class="generation-value">${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}</span>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <table class="kpis">
-      <thead><tr><th>Indicador</th><th>Valor</th></tr></thead>
-      <tbody>${resumoRows}</tbody>
-    </table>
+      <div class="report-section">
+        <div class="section-header">
+          <h3 class="section-title">📊 Resumo Numérico</h3>
+          <div class="section-subtitle">Principais indicadores financeiros do período</div>
+        </div>
+        <div class="kpis-grid">
+          <table class="kpis-table">
+            <tbody>${resumoRows}</tbody>
+          </table>
+        </div>
+      </div>
 
-    <div class="section">
-      <h2>Faturamento por ano</h2>
-      <table class="list">
-        <thead><tr><th>Ano</th><th class="right">Faturamento</th></tr></thead>
-        <tbody>${faturamentoRows}</tbody>
-      </table>
-    </div>
+      <div class="report-section">
+        <div class="section-header">
+          <h3 class="section-title">📈 Faturamento Anual</h3>
+          <div class="section-subtitle">Evolução do faturamento por ano</div>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="table-header">📅 Ano</th>
+                <th class="table-header amount-header">💰 Faturamento</th>
+              </tr>
+            </thead>
+            <tbody>${faturamentoRows}</tbody>
+          </table>
+        </div>
+      </div>
 
-    <div class="section">
-      <h2>Distribuição por participante</h2>
-      <table class="list">
-        <thead><tr><th>Participante</th><th class="right">Lucro bruto</th><th class="right">Despesas indiv.</th><th class="right">Lucro líquido</th><th class="right">Qtd. acertos</th></tr></thead>
-        <tbody>${distRows}</tbody>
-      </table>
-    </div>
+      <div class="report-section">
+        <div class="section-header">
+          <h3 class="section-title">👥 Distribuição por Participante</h3>
+          <div class="section-subtitle">Análise detalhada de lucros e despesas por participante</div>
+        </div>
+        <div class="table-container">
+          <table class="data-table participants-table">
+            <thead>
+              <tr>
+                <th class="table-header">👤 Participante</th>
+                <th class="table-header amount-header">💚 Lucro Bruto</th>
+                <th class="table-header amount-header">💸 Despesas Indiv.</th>
+                <th class="table-header amount-header">💰 Lucro Líquido</th>
+                <th class="table-header count-header">📋 Qtd. Acertos</th>
+              </tr>
+            </thead>
+            <tbody>${distRows}</tbody>
+          </table>
+        </div>
+      </div>
 
-    <div class="footer">
-      <div>Documento gerado pelo ERP</div>
-      <div>Página 1</div>
+      <div class="report-footer">
+        <div class="footer-content">
+          <div class="footer-left">
+            <span class="footer-brand">🏢 Documento gerado pelo Sistema ERP</span>
+          </div>
+          <div class="footer-right">
+            <span class="footer-page">📄 Página 1 de 1</span>
+          </div>
+        </div>
+      </div>
     </div>
   `
 }

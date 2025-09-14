@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge"
 import { Trash2, Plus, Minus, FileText, Download, CreditCard, Users, DollarSign, Calendar, Edit, Save, X } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { CurrencyInput } from "@/components/currency-input"
 import { ensureInit, getClientes, type Cliente } from "@/lib/data-store"
 import {
   addCredito,
@@ -28,15 +29,16 @@ import {
 } from "@/lib/vales"
 import { makeValeDocumentHTML, makeExtratoValeHTML, downloadPDF } from "@/lib/print"
 import { getConfig } from "@/lib/config"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 function brl(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0)
 }
 
-export default function ValesPage() {
+function ValesContent() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteCredito, setClienteCredito] = useState<string>("")
-  const [valorCredito, setValorCredito] = useState<string>("")
+  const [valorCredito, setValorCredito] = useState<number>(0)
   const [descCredito, setDescCredito] = useState<string>("")
 
   const [clienteDebito, setClienteDebito] = useState<string>("")
@@ -121,10 +123,9 @@ export default function ValesPage() {
   async function onAddCredito() {
     try {
       if (!clienteCredito) return toast({ title: "Selecione um cliente." })
-      const v = Number(String(valorCredito).replace(",", "."))
-      if (!v || v <= 0) return toast({ title: "Informe um valor válido." })
-      await addCredito(clienteCredito, v, descCredito)
-      setValorCredito("")
+      if (!valorCredito || valorCredito <= 0) return toast({ title: "Informe um valor válido." })
+      await addCredito(clienteCredito, valorCredito, descCredito)
+      setValorCredito(0)
       setDescCredito("")
       toast({ title: "Crédito adicionado com sucesso." })
       setRefreshTick((t) => t + 1)
@@ -320,11 +321,10 @@ export default function ValesPage() {
                       <DollarSign className="h-4 w-4 text-green-600" />
                       Valor do crédito (R$)
                     </Label>
-                    <Input
-                      inputMode="decimal"
-                      placeholder="0,00"
+                    <CurrencyInput
                       value={valorCredito}
-                      onChange={(e) => setValorCredito(e.target.value)}
+                      onChange={setValorCredito}
+                      placeholder="0,00"
                       className="bg-white border-2 border-green-200 focus:border-green-500 transition-colors"
                     />
                   </div>
@@ -734,5 +734,13 @@ function ExtratoDialog({
         <HistoricoMovimentacoes clienteId={clienteId} onChanged={onChanged} ano={ano} />
       </div>
     </DialogContent>
+  )
+}
+
+export default function ValesPage() {
+  return (
+    <ProtectedRoute requiredPermission="vales">
+      <ValesContent />
+    </ProtectedRoute>
   )
 }

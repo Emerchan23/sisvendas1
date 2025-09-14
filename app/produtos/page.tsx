@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { AppHeader } from "@/components/app-header"
+import ProtectedRoute from "@/components/ProtectedRoute"
 import { type Produto, ensureInit, getProdutos, deleteProduto } from "@/lib/data-store"
 // Removed empresa imports - system simplified
 import { Button } from "@/components/ui/button"
@@ -18,7 +19,7 @@ function brl(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0)
 }
 
-export default function ProdutosPage() {
+function ProdutosContent() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<Produto | null>(null)
@@ -261,5 +262,13 @@ export default function ProdutosPage() {
         </Card>
       </main>
     </div>
+  )
+}
+
+export default function ProdutosPage() {
+  return (
+    <ProtectedRoute requiredPermission="produtos">
+      <ProdutosContent />
+    </ProtectedRoute>
   )
 }

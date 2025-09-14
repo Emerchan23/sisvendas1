@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AppHeader } from '@/components/app-header'
+import ProtectedRoute from "@/components/ProtectedRoute"
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,7 +25,7 @@ interface Categoria {
   cor: string
 }
 
-export default function FornecedoresPage() {
+function FornecedoresContent() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -726,5 +727,13 @@ export default function FornecedoresPage() {
       </Dialog>
       </div>
     </div>
+  )
+}
+
+export default function FornecedoresPage() {
+  return (
+    <ProtectedRoute requiredPermission="fornecedores">
+      <FornecedoresContent />
+    </ProtectedRoute>
   )
 }

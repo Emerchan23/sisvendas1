@@ -206,7 +206,7 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
 
   CREATE TABLE IF NOT EXISTS outros_negocios (
     id TEXT PRIMARY KEY,
-    tipo TEXT NOT NULL CHECK (tipo IN ('emprestimo', 'venda')),
+    tipo TEXT NOT NULL CHECK (tipo IN ('emprestimo', 'venda', 'receita', 'despesa')),
     valor REAL NOT NULL,
     descricao TEXT,
     categoria TEXT,

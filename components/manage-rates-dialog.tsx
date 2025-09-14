@@ -73,6 +73,8 @@ export function ManageRatesDialog({
       setNomeCap("")
       setPercCap("")
       await refresh()
+      // Notify parent component immediately
+      onSaved?.()
     } catch (error) {
       console.error('Error saving capital rate:', error)
       if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
@@ -103,6 +105,8 @@ export function ManageRatesDialog({
       setNomeImp("")
       setPercImp("")
       await refresh()
+      // Notify parent component immediately
+      onSaved?.()
     } catch (error) {
       console.error('Error saving imposto rate:', error)
       if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
@@ -167,7 +171,7 @@ export function ManageRatesDialog({
                   {capital.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.nome}</TableCell>
-                      <TableCell>{r.percentual.toFixed(2)}%</TableCell>
+                      <TableCell>{(r.percentual ?? 0).toFixed(2)}%</TableCell>
                       <TableCell className="text-right">
                         <Button
                           size="sm"
@@ -242,7 +246,7 @@ export function ManageRatesDialog({
                   {imposto.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{r.nome}</TableCell>
-                      <TableCell>{r.percentual.toFixed(2)}%</TableCell>
+                      <TableCell>{(r.percentual ?? 0).toFixed(2)}%</TableCell>
                       <TableCell className="text-right">
                         <Button
                           size="sm"

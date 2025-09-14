@@ -14,28 +14,42 @@ import { LogOut, User, LayoutDashboard, ShoppingCart, Calculator, Users, Buildin
 
 import { ERP_CHANGED_EVENT } from "@/lib/data-store"
 
-
 const routes = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/vendas", label: "Vendas", icon: ShoppingCart },
-  { href: "/acertos", label: "Acertos", icon: Calculator },
-  { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/fornecedores", label: "Fornecedores", icon: Building2 },
-  { href: "/produtos", label: "Produtos", icon: Package },
-  { href: "/vales", label: "Vale", icon: CreditCard },
-  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
-  { href: "/outros-negocios", label: "Outros negócios", icon: Briefcase },
-  { href: "/orcamentos", label: "Orçamentos", icon: FileText },
-  { href: "/configuracoes", label: "Configurações", icon: Settings },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: null }, // Dashboard sempre visível
+  { href: "/vendas", label: "Vendas", icon: ShoppingCart, permission: "vendas" },
+  { href: "/acertos", label: "Acertos", icon: Calculator, permission: "acertos" },
+  { href: "/clientes", label: "Clientes", icon: Users, permission: "clientes" },
+  { href: "/fornecedores", label: "Fornecedores", icon: Building2, permission: "fornecedores" },
+  { href: "/produtos", label: "Produtos", icon: Package, permission: "produtos" },
+  { href: "/vales", label: "Vale", icon: CreditCard, permission: "vales" },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3, permission: "relatorios" },
+  { href: "/outros-negocios", label: "Outros negócios", icon: Briefcase, permission: "outros-negocios" },
+  { href: "/orcamentos", label: "Orçamentos", icon: FileText, permission: "orcamentos" },
+  { href: "/configuracoes", label: "Configurações", icon: Settings, permission: "configuracoes" },
 ]
 
 export function AppHeader({ className = "" }: { className?: string }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { usuario, logout } = useAuth()
+  const { usuario, logout, hasPermission, isAdmin } = useAuth()
   const [brand, setBrand] = useState<string>("LP IND")
   const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined)
 
+  // Filtrar rotas baseado nas permissões do usuário
+  const filteredRoutes = useMemo(() => {
+    if (!usuario) return []
+    
+    return routes.filter(route => {
+      // Dashboard sempre visível
+      if (route.permission === null) return true
+      
+      // Admin tem acesso a tudo
+      if (isAdmin()) return true
+      
+      // Verificar permissão específica
+      return hasPermission(route.permission)
+    })
+  }, [usuario, hasPermission, isAdmin])
 
   const placeholderLogo = useMemo(() => "/placeholder.svg?height=28&width=28", [])
   
@@ -75,8 +89,6 @@ export function AppHeader({ className = "" }: { className?: string }) {
       setLogoUrl(cfg?.logoUrl || undefined)
     }
 
-
-
     window.addEventListener(CONFIG_CHANGED_EVENT, onConfigChanged as EventListener)
     
     return () => {
@@ -114,11 +126,10 @@ export function AppHeader({ className = "" }: { className?: string }) {
         {/* Navegação principal */}
         <nav
           aria-label="Principal"
-          className="hidden md:flex flex-1 items-center gap-2 overflow-x-auto whitespace-nowrap
-                     [-ms-overflow-style:none] [scrollbar-width:none] min-w-0"
+          className="hidden md:flex flex-1 items-center gap-2 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] min-w-0"
           style={{ scrollbarWidth: "none" } as React.CSSProperties}
         >
-          {routes.map((r) => {
+          {filteredRoutes.map((r) => {
             const active = pathname === r.href
             const IconComponent = r.icon
             return (
@@ -181,11 +192,10 @@ export function AppHeader({ className = "" }: { className?: string }) {
       {/* Barra secundária no mobile */}
       <div className="md:hidden border-t bg-gradient-to-r from-background/95 to-background/90 backdrop-blur-sm">
         <div
-          className="flex items-center gap-2 overflow-x-auto px-3 py-3 whitespace-nowrap
-                     [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex items-center gap-2 overflow-x-auto px-3 py-3 whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none]"
           style={{ scrollbarWidth: "none" } as React.CSSProperties}
         >
-          {routes.map((r) => {
+          {filteredRoutes.map((r) => {
             const active = pathname === r.href
             return (
               <Link key={r.href} href={r.href} className="shrink-0">
@@ -202,36 +212,6 @@ export function AppHeader({ className = "" }: { className?: string }) {
                   {r.label}
                 </Button>
               </Link>
-            )
-          })}
-
-        </div>
-      </div>
-
-      {/* Mobile menu dropdown */}
-      <div className="md:hidden">
-        <div className="px-2 pt-2 pb-3 space-y-2 sm:px-3">
-          {routes.map((route) => {
-            const isActive = pathname === route.href
-            const IconComponent = route.icon
-            return (
-              <Button
-                key={route.href}
-                variant={isActive ? "default" : "ghost"}
-                size="sm"
-                asChild
-                className={cn(
-                  "w-full justify-start transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-lg border",
-                  isActive
-                    ? "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white shadow-lg border-transparent"
-                    : "text-gray-700 hover:text-white hover:bg-gradient-to-r hover:from-blue-400 hover:to-purple-400 border-gray-200 hover:border-transparent hover:shadow-md"
-                )}
-              >
-                <Link href={route.href} className="flex items-center gap-3 w-full">
-                  <IconComponent className="w-5 h-5" />
-                  <span>{route.label}</span>
-                </Link>
-              </Button>
             )
           })}
         </div>

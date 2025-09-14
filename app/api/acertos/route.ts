@@ -84,6 +84,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Data é obrigatória' }, { status: 400 })
     }
     
+    if (!titulo || !titulo.trim()) {
+      return NextResponse.json({ error: 'Título do acerto é obrigatório' }, { status: 400 })
+    }
+    
     const id = uuidv4()
     
     db.prepare(`

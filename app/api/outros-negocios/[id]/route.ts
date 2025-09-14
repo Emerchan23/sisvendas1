@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  let id: string | undefined;
+  let body: any;
   try {
-    const body = await request.json();
-    const { id } = await params;
+    body = await request.json();
+    const resolvedParams = await params;
+    id = resolvedParams.id;
     
     if (!id) {
       return NextResponse.json(
@@ -47,17 +50,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     
     return NextResponse.json(negocioAtualizado);
   } catch (error) {
-    console.error('Erro ao atualizar outro negócio:', error);
+    console.error('Erro ao atualizar outro negócio:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      id: id || 'undefined',
+      body: body || 'undefined'
+    });
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: 'Erro interno do servidor', details: error instanceof Error ? error.message : 'Erro desconhecido' },
       { status: 500 }
     );
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  let id: string | undefined;
   try {
-    const { id } = await params;
+    const resolvedParams = await params;
+    id = resolvedParams.id;
     
     if (!id) {
       return NextResponse.json(
@@ -66,20 +76,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       );
     }
     
-    // Verificar se há dependências em outras tabelas
-    const acertosRelacionados = db.prepare(`
-      SELECT COUNT(*) as count 
-      FROM acertos 
-      WHERE outro_negocio_id = ?
-    `).get(id) as { count: number }
-    
-    const totalDependencias = acertosRelacionados.count
-    
-    if (totalDependencias > 0) {
-      return NextResponse.json({ 
-        error: 'Não é possível excluir este outro negócio pois ele possui registros associados (acertos).' 
-      }, { status: 400 })
-    }
+    // Note: Removed acertos dependency check as the acertos table doesn't have outro_negocio_id column
     
     // Primeiro, excluir os pagamentos relacionados
     db.prepare('DELETE FROM pagamentos_parciais WHERE outro_negocio_id = ?').run(id);
@@ -96,9 +93,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Erro ao excluir outro negócio:', error);
+    console.error('Erro ao excluir outro negócio:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      id: id || 'undefined'
+    });
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: 'Erro interno do servidor', details: error instanceof Error ? error.message : 'Erro desconhecido' },
       { status: 500 }
     );
   }

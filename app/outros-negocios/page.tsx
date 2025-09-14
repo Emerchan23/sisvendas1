@@ -18,6 +18,7 @@ import { AppHeader } from "@/components/app-header"
 import { api } from "@/lib/api-client"
 import { loadOutrosNegocios, addPagamento, removePagamento, calcularJurosCompostosComPagamentos } from "@/lib/outros-negocios"
 import { downloadPDF, makeOutroNegocioDocumentHTML } from "@/lib/print"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 type TipoOperacao = "emprestimo" | "venda"
 
@@ -141,7 +142,7 @@ type HistoryModal = {
   item?: OutroNegocio
 }
 
-export default function OutrosNegociosPage() {
+function OutrosNegociosContent() {
   const [items, setItems] = useState<OutroNegocio[]>([])
   const [pessoaFilter, setPessoaFilter] = useState<string>("all")
   const [somentePendentes, setSomentePendentes] = useState(false)
@@ -763,7 +764,7 @@ export default function OutrosNegociosPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Pessoa</TableHead>
+                    <TableHead className="w-[180px]">Pessoa</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Valor Original</TableHead>
@@ -780,7 +781,7 @@ export default function OutrosNegociosPage() {
                     const isPago = calc.saldoComJuros <= 0
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.pessoa}</TableCell>
+                        <TableCell className="font-medium w-[180px]">{item.pessoa}</TableCell>
                         <TableCell>
                           <Badge variant={item.tipo === "emprestimo" ? "destructive" : "default"}>
                             {item.tipo === "emprestimo" ? "Empréstimo" : "Venda"}
@@ -1070,5 +1071,13 @@ export default function OutrosNegociosPage() {
         </Dialog>
       </div>
     </div>
+  )
+}
+
+export default function OutrosNegociosPage() {
+  return (
+    <ProtectedRoute requiredPermission="outros-negocios">
+      <OutrosNegociosContent />
+    </ProtectedRoute>
   )
 }

@@ -133,14 +133,14 @@ export function VendaDialog({
   const handleCapitalRateChange = (rateId: string) => {
     const rate = capitalRates.find(r => r.id === rateId)
     if (rate) {
-      setFormData(prev => ({ ...prev, taxaCapitalPerc: rate.percentage }))
+      setFormData(prev => ({ ...prev, taxaCapitalPerc: rate.percentual }))
     }
   }
 
   const handleImpostoRateChange = (rateId: string) => {
     const rate = impostoRates.find(r => r.id === rateId)
     if (rate) {
-      setFormData(prev => ({ ...prev, taxaImpostoPerc: rate.percentage }))
+      setFormData(prev => ({ ...prev, taxaImpostoPerc: rate.percentual }))
     }
   }
 
@@ -334,7 +334,7 @@ export function VendaDialog({
                         <SelectContent>
                           {capitalRates.map((rate) => (
                             <SelectItem key={rate.id} value={rate.id}>
-                              {rate.percentage}% - {rate.name}
+                              {rate.percentual}% - {rate.nome}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -366,7 +366,7 @@ export function VendaDialog({
                         <SelectContent>
                           {impostoRates.map((rate) => (
                             <SelectItem key={rate.id} value={rate.id}>
-                              {rate.percentage}% - {rate.name}
+                              {rate.percentual}% - {rate.nome}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -3,6 +3,7 @@
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { AppHeader } from "@/components/app-header"
+import ProtectedRoute from "@/components/ProtectedRoute"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -24,7 +25,7 @@ import DocumentPreview from '@/components/document-preview';
 import { AlertTriangle, Building, Save, Palette, FileText, Mail, TestTube, HardDrive, Download, Upload, Clock, Users, Package, Plus, Trash2, Edit, Ruler, List, Check, X, Eye, EyeOff, Shield } from "lucide-react"
 import { UsuariosManagement } from "@/components/UsuariosManagement"
 
-export default function ConfiguracoesPage() {
+function ConfiguracoesContent() {
   const [formData, setFormData] = useState<Partial<Config>>({})
   const [smtpConfig, setSmtpConfig] = useState({
     host: "",
@@ -2062,5 +2063,13 @@ export default function ConfiguracoesPage() {
         </Tabs>
       </main>
     </div>
+  )
+}
+
+export default function ConfiguracoesPage() {
+  return (
+    <ProtectedRoute requiredPermission="configuracoes">
+      <ConfiguracoesContent />
+    </ProtectedRoute>
   )
 }

@@ -44,6 +44,8 @@ export async function POST(request: NextRequest) {
     
     const id = uuidv4()
     
+    const now = new Date().toISOString()
+    
     db.prepare(`
       INSERT INTO modalidades (id, codigo, nome, descricao, requer_numero_processo, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -52,9 +54,9 @@ export async function POST(request: NextRequest) {
       codigo,
       nome,
       descricao || null,
-      requer_numero_processo || false,
-      new Date().toISOString(),
-      new Date().toISOString()
+      requer_numero_processo ? 1 : 0,
+      now,
+      now
     )
     
     return NextResponse.json({ id })

@@ -21,102 +21,105 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  let codigo = ''
   try {
-    const { codigo, descricao } = await request.json()
+    const body = await request.json()
+    codigo = body.codigo
+    const { descricao } = body
 
     if (!codigo || !descricao) {
       return NextResponse.json(
-        { error: 'Código e descrição são obrigatórios' },
+        { message: 'Código e descrição são obrigatórios' },
         { status: 400 }
       )
     }
 
-    // Verificar se o código já existe
-    const existingUnit = db.prepare(
-      'SELECT id FROM unidades_medida WHERE codigo = ? AND ativo = 1'
-    ).get(codigo)
-
-    if (existingUnit) {
-      return NextResponse.json(
-        { error: 'Código já existe' },
-        { status: 409 }
-      )
-    }
-
-    const id = uuidv4()
     const stmt = db.prepare(`
       INSERT INTO unidades_medida (id, codigo, descricao, ativo)
       VALUES (?, ?, ?, 1)
     `)
     
-    stmt.run(id, codigo.trim().toLowerCase(), descricao.trim())
-
-    const newUnit = db.prepare(
-      'SELECT * FROM unidades_medida WHERE id = ?'
-    ).get(id)
+    const id = uuidv4()
+    const result = stmt.run(id, codigo.trim().toLowerCase(), descricao.trim())
+    
+    const newUnit = {
+      id,
+      codigo: codigo.trim().toLowerCase(),
+      descricao: descricao.trim(),
+      ativo: 1
+    }
 
     return NextResponse.json(newUnit, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao criar unidade de medida:', error)
+    
+    // Verificar se é erro de código duplicado
+    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return NextResponse.json(
+        { message: `Já existe uma unidade de medida com o código "${codigo.trim()}". Por favor, use um código diferente.` },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { message: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
 }
 
 export async function PUT(request: NextRequest) {
+  let codigo = ''
   try {
-    const { id, codigo, descricao, ativo } = await request.json()
+    const body = await request.json()
+    const { id, descricao, ativo } = body
+    codigo = body.codigo
 
     if (!id || !codigo || !descricao) {
       return NextResponse.json(
-        { error: 'ID, código e descrição são obrigatórios' },
+        { message: 'ID, código e descrição são obrigatórios' },
         { status: 400 }
       )
     }
 
     // Verificar se a unidade existe
     const existingUnit = db.prepare(
-      'SELECT id FROM unidades_medida WHERE id = ?'
+      'SELECT * FROM unidades_medida WHERE id = ?'
     ).get(id)
 
     if (!existingUnit) {
       return NextResponse.json(
-        { error: 'Unidade de medida não encontrada' },
+        { message: 'Unidade de medida não encontrada' },
         { status: 404 }
-      )
-    }
-
-    // Verificar se o código já existe em outra unidade
-    const duplicateUnit = db.prepare(
-      'SELECT id FROM unidades_medida WHERE codigo = ? AND id != ? AND ativo = 1'
-    ).get(codigo, id)
-
-    if (duplicateUnit) {
-      return NextResponse.json(
-        { error: 'Código já existe em outra unidade' },
-        { status: 409 }
       )
     }
 
     const stmt = db.prepare(`
       UPDATE unidades_medida 
-      SET codigo = ?, descricao = ?, ativo = ?, updated_at = CURRENT_TIMESTAMP
+      SET codigo = ?, descricao = ?, ativo = ?
       WHERE id = ?
     `)
     
     stmt.run(codigo.trim().toLowerCase(), descricao.trim(), ativo ? 1 : 0, id)
-
+    
     const updatedUnit = db.prepare(
       'SELECT * FROM unidades_medida WHERE id = ?'
     ).get(id)
 
     return NextResponse.json(updatedUnit)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao atualizar unidade de medida:', error)
+    
+    // Verificar se é erro de código duplicado
+    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return NextResponse.json(
+        { message: `Já existe uma unidade de medida com o código "${codigo.trim()}". Por favor, use um código diferente.` },
+        { status: 400 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { message: 'Erro interno do servidor' },
       { status: 500 }
     )
   }

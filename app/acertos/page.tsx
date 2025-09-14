@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { AppHeader } from "@/components/app-header"
+import ProtectedRoute from "@/components/ProtectedRoute"
 // Removed empresa imports - system simplified
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,9 +37,10 @@ import {
   type UltimoRecebimento,
 } from "@/lib/acertos"
 import type { LinhaVenda } from "@/lib/planilha"
+import { getLinhas } from "@/lib/planilha"
 import { fmtCurrency } from "@/lib/format"
 import { toast } from "@/hooks/use-toast"
-import { Users, Plus, Receipt, Eye, Pencil, Trash2, Calculator, DollarSign, TrendingUp, Calendar, Building, Save, FileText, CheckCircle, Hash, History, CreditCard, Download } from "lucide-react"
+import { Users, Plus, Receipt, Eye, Pencil, Trash2, Calculator, DollarSign, TrendingUp, Calendar, Building, Save, FileText, CheckCircle, Hash, History, CreditCard, Download, ShoppingCart } from "lucide-react"
 import jsPDF from 'jspdf'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import DespesasPendentesPanel from "@/components/acertos/despesas-pendentes-panel"
@@ -53,7 +55,7 @@ function generateId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-function AcertosPage() {
+function AcertosContent() {
   // Participantes
   const [participantes, setParticipantes] = useState<Participante[]>([])
   const [nomePart, setNomePart] = useState("")
@@ -88,6 +90,9 @@ function AcertosPage() {
 
   // Histórico
   const [acertos, setAcertos] = useState<Acerto[]>([])
+  
+  // Linhas de venda (para exibir detalhes nos acertos)
+  const [linhas, setLinhas] = useState<LinhaVenda[]>([])
 
   // Modal de edição do "último recebimento" no histórico
   const [editRecOpen, setEditRecOpen] = useState(false)
@@ -125,12 +130,13 @@ function AcertosPage() {
     console.log('🔄 DEBUG: Iniciando refreshAll()');
     try {
       console.log('📞 DEBUG: Chamando APIs...');
-      const [participantesData, acertosData, despesasPendentesData, pendentesData, ultimosRecebimentosData] = await Promise.all([
+      const [participantesData, acertosData, despesasPendentesData, pendentesData, ultimosRecebimentosData, linhasData] = await Promise.all([
         getParticipantes(),
         getAcertos(),
         getDespesasPendentes(),
         pendenciasDeAcerto(),
-        getUltimosRecebimentos()
+        getUltimosRecebimentos(),
+        getLinhas()
       ])
       console.log('✅ DEBUG: APIs responderam');
       
@@ -148,6 +154,7 @@ function AcertosPage() {
       setDespesasPendentes(despesasPendentesData.filter((d) => d.status === "pendente"))
       setPendentes(pendentesData)
       setUltimosRecebimentos(ultimosRecebimentosData)
+      setLinhas(linhasData)
     } catch (error) {
       console.error('Erro ao carregar dados:', error)
       setParticipantes([])
@@ -155,6 +162,7 @@ function AcertosPage() {
       setDespesasPendentes([])
       setPendentes([])
       setUltimosRecebimentos([])
+      setLinhas([])
     }
   }
 
@@ -267,6 +275,10 @@ function AcertosPage() {
     }
     if (participantes.length === 0) {
       toast({ title: "Cadastre ao menos um participante." })
+      return;
+    }
+    if (!titulo.trim()) {
+      toast({ title: "O título do acerto é obrigatório.", variant: "destructive" })
       return;
     }
     const soma = participantes.reduce((a, p) => a + (dist[p.id] ?? p.defaultPercent ?? 0), 0)
@@ -538,6 +550,61 @@ function AcertosPage() {
       if (acerto.observacoes) {
         yPos += 8
         doc.text(`Observações: ${acerto.observacoes}`, 20, yPos)
+      }
+      
+      // Vendas Incluídas no Acerto
+      if (acerto.linhaIds && acerto.linhaIds.length > 0) {
+        yPos += 15
+        doc.setFontSize(16)
+        doc.setFont('helvetica', 'bold')
+        doc.text('VENDAS INCLUÍDAS NO ACERTO', 20, yPos)
+        
+        yPos += 10
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'normal')
+        
+        // Buscar dados das vendas
+        const vendasDoAcerto = pendentes.filter(linha => acerto.linhaIds.includes(linha.id))
+        
+        if (vendasDoAcerto.length > 0) {
+          vendasDoAcerto.forEach((venda, index) => {
+            // Verificar se precisa de nova página
+            if (yPos > 250) {
+              doc.addPage()
+              yPos = 20
+            }
+            
+            doc.setFont('helvetica', 'bold')
+            doc.text(`Venda ${index + 1}:`, 20, yPos)
+            yPos += 6
+            
+            doc.setFont('helvetica', 'normal')
+            doc.text(`Cliente: ${venda.cliente || 'N/A'}`, 25, yPos)
+            yPos += 5
+            doc.text(`Pedido: ${venda.numeroPedido || 'N/A'}`, 25, yPos)
+            yPos += 5
+            doc.text(`Data: ${venda.dataPedido ? new Date(venda.dataPedido).toLocaleDateString('pt-BR') : 'N/A'}`, 25, yPos)
+            yPos += 5
+            doc.text(`Produto: ${venda.produto || 'N/A'}`, 25, yPos)
+            yPos += 5
+            doc.text(`Valor: ${fmtCurrency(venda.valorVenda || 0)}`, 25, yPos)
+            yPos += 5
+            doc.text(`Lucro: ${fmtCurrency(venda.lucroValor || 0)}`, 25, yPos)
+            yPos += 8
+          })
+          
+          // Total das vendas
+          const totalVendas = vendasDoAcerto.reduce((sum, venda) => sum + (venda.valorVenda || 0), 0)
+          const totalLucroVendas = vendasDoAcerto.reduce((sum, venda) => sum + (venda.lucroValor || 0), 0)
+          
+          yPos += 5
+          doc.setFont('helvetica', 'bold')
+          doc.text(`Total em Vendas: ${fmtCurrency(totalVendas)}`, 20, yPos)
+          yPos += 6
+          doc.text(`Total Lucro das Vendas: ${fmtCurrency(totalLucroVendas)}`, 20, yPos)
+        } else {
+          doc.text('Nenhuma venda encontrada para este acerto.', 20, yPos)
+        }
       }
       
       // Último Recebimento
@@ -961,12 +1028,13 @@ function AcertosPage() {
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-6 rounded-xl border border-purple-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-purple-700 font-medium">Título do Acerto</Label>
+                    <Label className="text-purple-700 font-medium">Título do Acerto *</Label>
                     <Input
                       value={titulo}
                       onChange={(e) => setTitulo(e.target.value)}
                       placeholder="Ex: Acerto Janeiro 2024"
                       className="shadow-sm border-purple-200 focus:border-purple-400 mt-1"
+                      required
                     />
                   </div>
                   <div>
@@ -1268,6 +1336,46 @@ function AcertosPage() {
                 </div>
               )}
 
+              {/* Vendas Incluídas */}
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-700 mb-4 flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Vendas Incluídas no Acerto
+                </h3>
+                <div className="space-y-3">
+                  {selectedAcerto.linhaIds.map((linhaId) => {
+                    const linha = linhas.find(l => l.id === linhaId)
+                    if (!linha) return null
+                    return (
+                      <div key={linhaId} className="flex justify-between items-center p-4 bg-blue-50 rounded-lg border border-blue-100 hover:shadow-sm transition-shadow">
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-800">{linha.cliente}</p>
+                          <div className="text-sm text-blue-600 space-y-1">
+                            <p>OF: {linha.numeroOF} | Data: {new Date(linha.dataPedido).toLocaleDateString('pt-BR')}</p>
+                            <p>Produto: {linha.produto}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-green-600">{fmtCurrency(linha.valorVenda)}</div>
+                          <div className="text-sm text-gray-600">Lucro: {fmtCurrency(linha.lucroValor || 0)}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-blue-700">Total de Vendas:</span>
+                    <span className="text-xl font-bold text-blue-600">
+                      {fmtCurrency(selectedAcerto.linhaIds.reduce((total, linhaId) => {
+                        const linha = linhas.find(l => l.id === linhaId)
+                        return total + (linha?.valorVenda || 0)
+                      }, 0))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Distribuições */}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-purple-200">
                 <h3 className="text-lg font-semibold text-purple-700 mb-4 flex items-center gap-2">
@@ -1351,4 +1459,10 @@ function AcertosPage() {
   )
 }
 
-export default AcertosPage
+export default function AcertosPage() {
+  return (
+    <ProtectedRoute requiredPermission="acertos">
+      <AcertosContent />
+    </ProtectedRoute>
+  )
+}

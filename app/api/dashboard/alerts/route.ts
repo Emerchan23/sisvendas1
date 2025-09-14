@@ -14,8 +14,8 @@ function getCurrentCompanyId(): string | null {
       }
     }
     
-    // If no preferences, get the first available company
-    const firstCompany = db.prepare("SELECT id FROM empresas LIMIT 1").get() as { id: string } | undefined
+    // If no preferences, get the first available company with valid ID (not null)
+    const firstCompany = db.prepare("SELECT id FROM empresas WHERE id IS NOT NULL LIMIT 1").get() as { id: string } | undefined
     return firstCompany?.id || null
   } catch {
     return null

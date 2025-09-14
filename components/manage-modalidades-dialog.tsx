@@ -18,6 +18,7 @@ export function ManageModalidadesDialog({
   onSaved?: () => void
 }) {
   const [list, setList] = useState<Modalidade[]>([])
+  const [codigo, setCodigo] = useState("")
   const [nome, setNome] = useState("")
 
   async function refresh() {
@@ -35,28 +36,40 @@ export function ManageModalidadesDialog({
   }, [open])
 
   async function add() {
-    if (!nome.trim()) return
+    if (!codigo.trim() || !nome.trim()) {
+      alert('Código e nome são obrigatórios!')
+      return
+    }
     
+    const trimmedCode = codigo.trim().toUpperCase()
     const trimmedName = nome.trim()
     
     try {
       // Refresh the list to get the most current data before checking
       const currentModalidades = await getModalidades()
       
-      // Check for duplicate names with fresh data
-      const existingModalidade = currentModalidades.find(m => m.nome.toLowerCase() === trimmedName.toLowerCase())
+      // Check for duplicate codes or names with fresh data
+      const existingModalidade = currentModalidades.find(m => 
+        m.codigo.toLowerCase() === trimmedCode.toLowerCase() || 
+        m.nome.toLowerCase() === trimmedName.toLowerCase()
+      )
       if (existingModalidade) {
-        alert('Já existe uma modalidade com este nome!')
+        if (existingModalidade.codigo.toLowerCase() === trimmedCode.toLowerCase()) {
+          alert('Já existe uma modalidade com este código!')
+        } else {
+          alert('Já existe uma modalidade com este nome!')
+        }
         return
       }
       
-      await saveModalidade({ nome: trimmedName })
+      await saveModalidade({ codigo: trimmedCode, nome: trimmedName })
+      setCodigo("")
       setNome("")
       await refresh()
     } catch (error) {
       console.error('Erro ao salvar modalidade:', error)
       if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-        alert('Já existe uma modalidade com este nome!')
+        alert('Já existe uma modalidade com este código!')
       } else {
         alert('Erro ao salvar modalidade. Tente novamente.')
       }
@@ -73,8 +86,21 @@ export function ManageModalidadesDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-5 gap-2">
-            <div className="col-span-4">
+          <div className="grid grid-cols-6 gap-2">
+            <div className="col-span-2">
+              <Label className="sr-only" htmlFor="codigo">
+                Código
+              </Label>
+              <Input
+                id="codigo"
+                placeholder="Ex.: DIR, LIC, ECOM"
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+                maxLength={10}
+                className="uppercase"
+              />
+            </div>
+            <div className="col-span-3">
               <Label className="sr-only" htmlFor="nome">
                 Nome
               </Label>
