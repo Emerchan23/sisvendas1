@@ -18,10 +18,9 @@ const nextConfig = {
   },
   // Configurar pacotes externos para server components
   serverExternalPackages: ['better-sqlite3'],
-  // Configurar servidor para aceitar conexões de qualquer IP
-  experimental: {
-    allowedDevOrigins: ['*'], // Permitir qualquer origem em desenvolvimento
-  },
+  // Configurações experimentais removidas (não necessárias)
+  // Configurar raiz do projeto para resolver warning de múltiplos lockfiles
+  outputFileTracingRoot: process.cwd(),
   // Configurar headers para CORS
   async headers() {
     return [

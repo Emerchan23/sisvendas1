@@ -1,0 +1,204 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "JavaScript",
+    "Next.js 15.5.3",
+    "React 19",
+    "Node.js",
+    "SQLite",
+    "Better-SQLite3",
+    "Tailwind CSS 4.1.9",
+    "Radix UI",
+    "Shadcn/ui",
+    "Zod 3.25.67",
+    "React Hook Form",
+    "Lucide React",
+    "Docker",
+    "bcryptjs",
+    "jsonwebtoken",
+    "nodemailer",
+    "jsPDF",
+    "xlsx",
+    "recharts",
+    "date-fns",
+    "nanoid",
+    "uuid"
+  ],
+  "features": [
+    {
+      "name": "Sistema de Autenticação",
+      "description": "Sistema completo de login e autenticação com JWT e bcrypt",
+      "files": ["app/login/page.tsx", "app/api/auth/route.ts", "lib/auth.ts", "contexts/AuthContext.tsx", "middleware.ts"]
+    },
+    {
+      "name": "Gestão de Clientes",
+      "description": "CRUD completo para cadastro e gerenciamento de clientes",
+      "files": ["app/clientes/page.tsx", "app/api/clientes/route.ts", "app/api/clientes/[id]/route.ts"]
+    },
+    {
+      "name": "Catálogo de Produtos",
+      "description": "Sistema de cadastro e gerenciamento de produtos com preços e categorias",
+      "files": ["app/produtos/page.tsx", "app/api/produtos/route.ts", "app/api/produtos/[id]/route.ts"]
+    },
+    {
+      "name": "Sistema de Vendas",
+      "description": "Módulo completo para registro e controle de vendas",
+      "files": ["app/vendas/page.tsx", "app/api/vendas/route.ts", "app/api/vendas/[id]/route.ts"]
+    },
+    {
+      "name": "Sistema de Orçamentos",
+      "description": "Criação, edição e envio de orçamentos por email com layout customizável",
+      "files": ["app/orcamentos/page.tsx", "app/api/orcamentos/route.ts", "app/api/orcamentos/[id]/route.ts", "app/api/orcamentos/[id]/email/route.ts", "lib/orcamentos.ts"]
+    },
+    {
+      "name": "Sistema de Acertos Financeiros",
+      "description": "Controle financeiro de acertos e fechamentos",
+      "files": ["app/acertos/page.tsx", "app/api/acertos/route.ts", "app/api/acertos/[id]/route.ts", "lib/acertos.ts"]
+    },
+    {
+      "name": "Sistema de Vales",
+      "description": "Gestão de vales de crédito e débito",
+      "files": ["app/vales/page.tsx", "app/api/vales/route.ts", "lib/vales.ts"]
+    },
+    {
+      "name": "Outros Negócios",
+      "description": "Controle de receitas e despesas extras",
+      "files": ["app/outros-negocios/page.tsx", "app/api/outros-negocios/route.ts", "app/api/outros-negocios/[id]/route.ts", "lib/outros-negocios.ts"]
+    },
+    {
+      "name": "Gestão de Fornecedores",
+      "description": "Cadastro e controle de fornecedores",
+      "files": ["app/fornecedores/page.tsx", "app/api/fornecedores/route.ts"]
+    },
+    {
+      "name": "Sistema de Relatórios",
+      "description": "Dashboard e relatórios financeiros e de vendas",
+      "files": ["app/relatorios/page.tsx", "app/api/relatorios/route.ts", "app/api/relatorios/vendas/route.ts", "app/api/dashboard/route.ts"]
+    },
+    {
+      "name": "Sistema de Backup",
+      "description": "Exportação e importação completa de dados em JSON",
+      "files": ["app/backup/export/page.tsx", "app/backup/import/page.tsx", "app/api/backup/route.ts", "app/api/backup/export/route.ts", "app/api/backup/import/route.ts"]
+    },
+    {
+      "name": "Configurações do Sistema",
+      "description": "Configurações gerais da empresa e sistema",
+      "files": ["app/configuracoes/page.tsx", "app/api/config/route.ts", "lib/config.ts", "lib/company-config.ts"]
+    },
+    {
+      "name": "Sistema de Email",
+      "description": "Envio de emails para orçamentos e notificações",
+      "files": ["app/api/email/route.ts"]
+    },
+    {
+      "name": "Gestão de Modalidades",
+      "description": "Configuração de modalidades de pagamento",
+      "files": ["app/api/modalidades/route.ts", "lib/modalidades.ts"]
+    },
+    {
+      "name": "Unidades de Medida",
+      "description": "Cadastro de unidades de medida para produtos",
+      "files": ["app/api/unidades-medida/route.ts"]
+    },
+    {
+      "name": "Sistema de Taxas",
+      "description": "Configuração de taxas e tarifas",
+      "files": ["app/api/taxas/route.ts", "lib/rates.ts"]
+    },
+    {
+      "name": "Gestão de Usuários",
+      "description": "Controle de usuários do sistema",
+      "files": ["app/api/usuarios/route.ts"]
+    },
+    {
+      "name": "Preferências do Usuário",
+      "description": "Configurações personalizadas por usuário",
+      "files": ["app/api/user-prefs/route.ts", "lib/user-prefs.ts"]
+    },
+    {
+      "name": "Sistema de Pagamentos",
+      "description": "Controle de pagamentos e parcelas",
+      "files": ["app/api/pagamentos/route.ts"]
+    },
+    {
+      "name": "Menu Principal",
+      "description": "Interface principal de navegação do sistema",
+      "files": ["app/menu/page.tsx"]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Painel principal com métricas e indicadores",
+      "files": ["app/page.tsx", "app/api/dashboard/metrics/route.ts"]
+    },
+    {
+      "name": "Banco de Dados SQLite",
+      "description": "Sistema de banco de dados com Better-SQLite3",
+      "files": ["lib/db.ts", "init-database.ts", "init-database.js"]
+    },
+    {
+      "name": "Sistema de Cache",
+      "description": "Cache para otimização de performance",
+      "files": ["lib/cache.ts"]
+    },
+    {
+      "name": "Utilitários de Formatação",
+      "description": "Funções para formatação de dados e máscaras",
+      "files": ["lib/format.ts", "lib/masks.ts", "lib/utils.ts", "lib/util.ts"]
+    },
+    {
+      "name": "Sistema de Impressão",
+      "description": "Geração de PDFs e impressão de documentos",
+      "files": ["lib/print.ts"]
+    },
+    {
+      "name": "Integração com Planilhas",
+      "description": "Exportação e importação de dados em Excel",
+      "files": ["lib/planilha.ts"]
+    },
+    {
+      "name": "Componentes UI",
+      "description": "Biblioteca de componentes reutilizáveis com Radix UI",
+      "files": ["components/ui/button.tsx", "components/ui/card.tsx", "components/ui/dialog.tsx", "components/ui/form.tsx", "components/ui/input.tsx", "components/ui/table.tsx", "components/ui/select.tsx", "components/ui/toast.tsx"]
+    },
+    {
+      "name": "Componentes de Gráficos",
+      "description": "Componentes para visualização de dados com Recharts",
+      "files": ["components/charts/", "components/ui/chart.tsx"]
+    },
+    {
+      "name": "Hooks Customizados",
+      "description": "Hooks React personalizados para funcionalidades específicas",
+      "files": ["hooks/use-mobile.ts", "hooks/use-toast.ts"]
+    },
+    {
+      "name": "Sistema de Diagnóstico",
+      "description": "Ferramentas de diagnóstico e verificação do sistema",
+      "files": ["scripts/diagnose.js", "auto-install.js", "auto-start.js"]
+    },
+    {
+      "name": "Containerização Docker",
+      "description": "Configuração completa para Docker e Docker Compose",
+      "files": ["Dockerfile", "docker-compose.yml", "server.js"]
+    },
+    {
+      "name": "Sistema de Migração",
+      "description": "Scripts para migração e atualização do banco de dados",
+      "files": ["run-migration.js", "migrate-modalidades.js", "migrations/"]
+    },
+    {
+      "name": "Testes Automatizados",
+      "description": "Suite de testes para validação das funcionalidades",
+      "files": ["test-api-acertos.js", "test-backup-restore.js", "test-database.js", "test-final-user-flow.js", "test-validation.js"]
+    },
+    {
+      "name": "API de Saúde",
+      "description": "Endpoint para verificação de status do sistema",
+      "files": ["app/api/health/route.ts"]
+    },
+    {
+      "name": "Middleware de Segurança",
+      "description": "Middleware para autenticação e autorização",
+      "files": ["middleware.ts"]
+    }
+  ]
+}

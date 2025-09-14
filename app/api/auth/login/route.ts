@@ -9,13 +9,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-muito-segura-aqu
 async function getAuthConfig() {
   try {
     const config = db.prepare(`
-      SELECT chave, valor FROM configuracoes 
-      WHERE chave IN ('normalExpiryHours', 'rememberMeExpiryDays')
-    `).all() as { chave: string; valor: string }[]
+      SELECT config_key, config_value FROM configuracoes 
+      WHERE config_key IN ('normalExpiryHours', 'rememberMeExpiryDays')
+    `).all() as { config_key: string; config_value: string }[]
     
     const configObj: any = {}
     config.forEach(item => {
-      configObj[item.chave] = JSON.parse(item.valor)
+      configObj[item.config_key] = JSON.parse(item.config_value)
     })
     
     return {

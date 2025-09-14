@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3145",
+  "loginUser": "admin@sistema.com",
+  "loginPassword": "admin123",
+  "executionArgs": {
+    "projectName": "gestao vendas",
+    "projectPath": "c:\\Users\\skile\\OneDrive\\Área de Trabalho\\gestao vendas",
+    "testIds": [],
+    "additionalInstruction": "Executar testes completos de todas as funcionalidades do sistema ERP incluindo: autenticação, CRUD de clientes/produtos/vendas, orçamentos, relatórios, backup, configurações, acertos financeiros, vales, outros negócios, fornecedores. Verificar todos os campos, validações, APIs e fluxos críticos do sistema em ambiente real.",
+    "envs": {
+      "API_KEY": "sk-user-r-PGJDfj69c3OgK_yD3skNZ1hZK3leY_Lz7B8rN5w1CE1TNrDiQPwdVXfjixurvSP8WqF5vmY7xKea6XZi14uPtFCCU1e2kmcYOSnF7-uyNq51JhNSz0drq0UgS4Vseijtk"
+    }
+  },
+  "proxy": "http://53afc155-940c-4500-a475-f67a41a9f9cf:6tGGdweHuoP9ufnPdpmpGxIOV7RITeOi@tun.testsprite.com:8080"
+}
