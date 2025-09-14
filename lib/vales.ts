@@ -1,0 +1,160 @@
+"use client"
+
+import { api } from "@/lib/api-client"
+import { ERP_CHANGED_EVENT } from "@/lib/data-store"
+
+export type ValeMovimento = {
+  id: string
+  clienteId: string
+  data: string
+  tipo: "credito" | "debito"
+  valor: number
+  descricao?: string
+  referenciaId?: string // opcional: id de venda/recebimento
+}
+
+function dispatchChange() {
+  try {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(ERP_CHANGED_EVENT, { detail: { key: "vales" } }))
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export async function getMovimentos(): Promise<ValeMovimento[]> {
+  try {
+    const response = await api.get('/api/vales')
+    return response
+  } catch (error) {
+    console.error('Erro ao buscar movimentos:', error)
+    return []
+  }
+}
+
+export async function getMovimentosDoCliente(clienteId: string): Promise<ValeMovimento[]> {
+  try {
+    const response = await api.get(`/api/vales?cliente_id=${clienteId}`)
+    return response
+  } catch (error) {
+    console.error('Erro ao buscar movimentos do cliente:', error)
+    return []
+  }
+}
+
+export async function deleteMovimento(id: string): Promise<void> {
+  try {
+    await api.delete(`/api/vales/${id}`)
+    dispatchChange()
+  } catch (error) {
+    console.error('Erro ao deletar movimento:', error)
+    throw error
+  }
+}
+
+export async function deleteMovimentosDoCliente(clienteId: string): Promise<void> {
+  try {
+    await api.delete(`/api/vales?cliente_id=${clienteId}`)
+    dispatchChange()
+  } catch (error) {
+    console.error('Erro ao deletar movimentos do cliente:', error)
+    throw error
+  }
+}
+
+export async function addCredito(clienteId: string, valor: number, descricao?: string): Promise<ValeMovimento> {
+  const movimento = {
+    clienteId,
+    data: new Date().toISOString(),
+    tipo: "credito" as const,
+    valor: Math.max(0, Number(valor) || 0),
+    descricao: descricao?.trim(),
+  }
+  
+  try {
+    const result = await api.post('/api/vales', movimento)
+    dispatchChange()
+    return { ...movimento, id: result.id }
+  } catch (error) {
+    console.error('Erro ao adicionar crédito:', error)
+    throw error
+  }
+}
+
+export async function abaterCredito(clienteId: string, valor: number, descricao?: string): Promise<ValeMovimento> {
+  const movimento = {
+    clienteId,
+    data: new Date().toISOString(),
+    tipo: "debito" as const,
+    valor: Math.max(0, Number(valor) || 0),
+    descricao: descricao?.trim(),
+  }
+  
+  try {
+    const result = await api.post('/api/vales', movimento)
+    dispatchChange()
+    return { ...movimento, id: result.id }
+  } catch (error) {
+    console.error('Erro ao abater crédito:', error)
+    throw error
+  }
+}
+
+export async function getSaldoCliente(clienteId: string): Promise<number> {
+  try {
+    const saldos = await api.get('/api/vales?saldos=true')
+    return saldos[clienteId] || 0
+  } catch (error) {
+    console.error('Erro ao buscar saldo do cliente:', error)
+    return 0
+  }
+}
+
+export async function getSaldosPorCliente(): Promise<Record<string, number>> {
+  try {
+    const saldos = await api.get('/api/vales?saldos=true')
+    return saldos
+  } catch (error) {
+    console.error('Erro ao buscar saldos:', error)
+    return {}
+  }
+}
+
+export async function getSaldosPorClientePorAno(ano: number): Promise<Record<string, number>> {
+  try {
+    const movimentos = await getMovimentos()
+    const movimentosFiltrados = movimentos.filter(m => {
+      const anoMovimento = new Date(m.data).getFullYear()
+      return anoMovimento === ano
+    })
+    
+    const saldos: Record<string, number> = {}
+    movimentosFiltrados.forEach(m => {
+      if (!saldos[m.clienteId]) saldos[m.clienteId] = 0
+      if (m.tipo === 'credito') {
+        saldos[m.clienteId] += m.valor
+      } else {
+        saldos[m.clienteId] -= m.valor
+      }
+    })
+    
+    return saldos
+  } catch (error) {
+    console.error('Erro ao buscar saldos por ano:', error)
+    return {}
+  }
+}
+
+export async function getMovimentosDoClientePorAno(clienteId: string, ano: number): Promise<ValeMovimento[]> {
+  try {
+    const movimentos = await getMovimentosDoCliente(clienteId)
+    return movimentos.filter(m => {
+      const anoMovimento = new Date(m.data).getFullYear()
+      return anoMovimento === ano
+    })
+  } catch (error) {
+    console.error('Erro ao buscar movimentos do cliente por ano:', error)
+    return []
+  }
+}
