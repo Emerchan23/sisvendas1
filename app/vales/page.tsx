@@ -27,7 +27,7 @@ import {
   deleteMovimentosDoCliente,
   type ValeMovimento,
 } from "@/lib/vales"
-import { makeValeDocumentHTML, makeExtratoValeHTML, downloadPDF } from "@/lib/print"
+import { makeValeDocumentHTML, makeExtratoValeHTML } from "@/lib/print"
 import { getConfig } from "@/lib/config"
 import ProtectedRoute from "@/components/ProtectedRoute"
 
@@ -229,7 +229,7 @@ function ValesContent() {
       const saldo = await getSaldoCliente(cliente.id)
       const config = getConfig()
       
-      const html = makeValeDocumentHTML({
+      const htmlContent = makeValeDocumentHTML({
         cliente: {
           nome: cliente.nome,
           cnpj: cliente.documento,
@@ -240,7 +240,97 @@ function ValesContent() {
         config
       })
       
-      await downloadPDF(html, `Vale_${cliente.nome}`)
+      // Criar um documento HTML completo com estilos
+      const fullHTML = `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Documento de Vale - ${cliente.nome}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              min-height: 100vh;
+              padding: 20px;
+              color: #333;
+            }
+            .print-actions {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              display: flex;
+              gap: 10px;
+              z-index: 1000;
+            }
+            .btn {
+              padding: 12px 24px;
+              border: none;
+              border-radius: 8px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            }
+            .btn-primary {
+              background: #4f46e5;
+              color: white;
+            }
+            .btn-primary:hover {
+              background: #4338ca;
+              transform: translateY(-2px);
+            }
+            .btn-secondary {
+              background: #6b7280;
+              color: white;
+            }
+            .btn-secondary:hover {
+              background: #4b5563;
+              transform: translateY(-2px);
+            }
+            @media print {
+              .print-actions { display: none; }
+              body { background: white; padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-actions">
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn btn-secondary" onclick="downloadAsImage()">📷 Baixar Imagem</button>
+            <button class="btn btn-secondary" onclick="window.close()">❌ Fechar</button>
+          </div>
+          
+          ${htmlContent}
+          
+          <script>
+            function downloadAsImage() {
+              // Usar html2canvas se disponível, senão mostrar instrução
+              if (typeof html2canvas !== 'undefined') {
+                html2canvas(document.body).then(canvas => {
+                  const link = document.createElement('a');
+                  link.download = 'vale-${cliente.nome.replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.png';
+                  link.href = canvas.toDataURL();
+                  link.click();
+                });
+              } else {
+                alert('Para baixar como imagem, use a função de impressão do navegador e selecione "Salvar como PDF" ou "Imprimir para arquivo".');
+              }
+            }
+          </script>
+        </body>
+        </html>
+      `
+      
+      // Abrir documento em nova janela para impressão/download
+      const newWindow = window.open('', '_blank')
+      if (newWindow) {
+        newWindow.document.write(fullHTML)
+        newWindow.document.close()
+      } else {
+        alert('Por favor, permita pop-ups para visualizar o documento.')
+      }
     } catch (error) {
       console.error('Erro ao baixar documento de vale:', error)
       toast({ title: "Erro ao baixar documento de vale" })
@@ -249,26 +339,247 @@ function ValesContent() {
 
 
 
-  // Função para baixar extrato de despesas como PDF
+  // Função para baixar extrato de despesas como documento
   async function baixarExtratoDespesas(cliente: Cliente) {
     try {
       const movimentos = await getMovimentosDoCliente(cliente.id)
       const config = getConfig()
       
-      const html = makeExtratoValeHTML({
-        cliente: {
-          nome: cliente.nome,
-          cnpj: cliente.documento,
-          cpf: cliente.documento
-        },
-        movimentos,
-        config
-      })
+      // Calcular totais
+      const totalCreditos = movimentos.filter(m => m.tipo === 'credito').reduce((sum, m) => sum + m.valor, 0)
+      const totalDebitos = movimentos.filter(m => m.tipo === 'debito').reduce((sum, m) => sum + m.valor, 0)
+      const saldoAtual = totalCreditos - totalDebitos
       
-      await downloadPDF(html, `Extrato_Despesas_${cliente.nome}`)
+      // Criar um documento HTML completo com estilos únicos
+      const fullHTML = `
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Documento de Vale - ${cliente.nome}</title>
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              min-height: 100vh;
+              padding: 20px;
+              color: #333;
+            }
+            .container {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              border-radius: 20px;
+              box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+              overflow: hidden;
+            }
+            .header {
+              background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+              color: white;
+              padding: 30px;
+              text-align: center;
+            }
+            .header h1 {
+              font-size: 2.5rem;
+              margin-bottom: 10px;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            }
+            .header p {
+              font-size: 1.1rem;
+              opacity: 0.9;
+            }
+            .content {
+              padding: 40px;
+            }
+            .info-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              gap: 20px;
+              margin-bottom: 30px;
+            }
+            .info-card {
+              background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+              padding: 20px;
+              border-radius: 15px;
+              border-left: 5px solid #4f46e5;
+            }
+            .info-card h3 {
+              color: #4f46e5;
+              margin-bottom: 10px;
+              font-size: 1.1rem;
+            }
+            .info-card p {
+              font-size: 1.2rem;
+              font-weight: 600;
+              color: #1e293b;
+            }
+            .movements-section {
+              margin-top: 30px;
+            }
+            .movements-section h2 {
+              color: #4f46e5;
+              margin-bottom: 20px;
+              font-size: 1.5rem;
+              border-bottom: 2px solid #e2e8f0;
+              padding-bottom: 10px;
+            }
+            .movement-item {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 15px;
+              background: #f1f5f9;
+              margin-bottom: 10px;
+              border-radius: 10px;
+            }
+            .movement-item.credito {
+              border-left: 4px solid #10b981;
+            }
+            .movement-item.debito {
+              border-left: 4px solid #ef4444;
+            }
+            .movement-value.credito {
+              color: #10b981;
+              font-weight: 600;
+            }
+            .movement-value.debito {
+              color: #ef4444;
+              font-weight: 600;
+            }
+            .footer {
+              background: #f8fafc;
+              padding: 20px;
+              text-align: center;
+              color: #64748b;
+              border-top: 1px solid #e2e8f0;
+            }
+            .print-actions {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              display: flex;
+              gap: 10px;
+              z-index: 1000;
+            }
+            .btn {
+              padding: 12px 24px;
+              border: none;
+              border-radius: 8px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+            }
+            .btn-primary {
+              background: #4f46e5;
+              color: white;
+            }
+            .btn-primary:hover {
+              background: #4338ca;
+              transform: translateY(-2px);
+            }
+            .btn-secondary {
+              background: #6b7280;
+              color: white;
+            }
+            .btn-secondary:hover {
+              background: #4b5563;
+              transform: translateY(-2px);
+            }
+            @media print {
+              .print-actions { display: none; }
+              body { background: white; padding: 0; }
+              .container { box-shadow: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-actions">
+            <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="btn btn-secondary" onclick="downloadAsImage()">📷 Baixar Imagem</button>
+            <button class="btn btn-secondary" onclick="window.close()">❌ Fechar</button>
+          </div>
+          
+          <div class="container">
+            <div class="header">
+              <h1>Documento de Vale</h1>
+              <p>Cliente: ${cliente.nome} • ${cliente.documento ? `CNPJ: ${cliente.documento}` : ''}</p>
+              <p>Emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
+            </div>
+            
+            <div class="content">
+              <div class="info-grid">
+                <div class="info-card">
+                  <h3>💰 Total de Créditos</h3>
+                  <p style="color: #10b981">${brl(totalCreditos)}</p>
+                </div>
+                <div class="info-card">
+                  <h3>💳 Total de Débitos</h3>
+                  <p style="color: #ef4444">${brl(totalDebitos)}</p>
+                </div>
+                <div class="info-card">
+                  <h3>📊 Saldo Atual</h3>
+                  <p style="color: ${saldoAtual >= 0 ? '#10b981' : '#ef4444'}">${brl(saldoAtual)}</p>
+                </div>
+              </div>
+              
+              ${movimentos.length > 0 ? `
+                <div class="movements-section">
+                  <h2>📋 Histórico de Movimentações</h2>
+                  ${movimentos
+                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                    .map(mov => `
+                    <div class="movement-item ${mov.tipo}">
+                      <div>
+                        <span>📅 ${new Date(mov.data).toLocaleDateString('pt-BR')}</span>
+                        <span style="margin-left: 15px; font-weight: 500;">${mov.tipo === 'credito' ? '💰 Crédito' : '💳 Débito'}</span>
+                        ${mov.descricao ? `<br><small style="color: #64748b; margin-left: 20px;">${mov.descricao}</small>` : ''}
+                      </div>
+                      <span class="movement-value ${mov.tipo}">${brl(mov.valor)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : '<div class="movements-section"><h2>📋 Histórico de Movimentações</h2><p style="color: #64748b; font-style: italic;">Nenhuma movimentação registrada</p></div>'}
+            </div>
+            
+            <div class="footer">
+              <p>📄 Documento gerado automaticamente pelo Sistema de Gestão</p>
+              <p>🕒 ${new Date().toLocaleString('pt-BR')}</p>
+            </div>
+          </div>
+          
+          <script>
+            function downloadAsImage() {
+              // Usar html2canvas se disponível, senão mostrar instrução
+              if (typeof html2canvas !== 'undefined') {
+                html2canvas(document.querySelector('.container')).then(canvas => {
+                  const link = document.createElement('a');
+                  link.download = 'vale-${cliente.nome.replace(/[^a-zA-Z0-9]/g, '_')}-${new Date().toISOString().split('T')[0]}.png';
+                  link.href = canvas.toDataURL();
+                  link.click();
+                });
+              } else {
+                alert('Para baixar como imagem, use a função de impressão do navegador e selecione "Salvar como PDF" ou "Imprimir para arquivo".');
+              }
+            }
+          </script>
+        </body>
+        </html>
+      `
+
+      // Abrir em nova aba
+      const newWindow = window.open('', '_blank')
+      if (newWindow) {
+        newWindow.document.write(fullHTML)
+        newWindow.document.close()
+      } else {
+        alert('Por favor, permita pop-ups para visualizar o documento.')
+      }
+      
     } catch (error) {
-      console.error('Erro ao baixar extrato de despesas:', error)
-      toast({ title: "Erro ao baixar extrato de despesas" })
+      console.error('Erro ao gerar documento:', error)
+      alert('Erro ao gerar documento. Tente novamente.')
     }
   }
 
@@ -547,23 +858,15 @@ function ValesContent() {
                                ano={anoSelecionado}
                              />
                            </Dialog>
-                           <Button
-                             size="sm"
-                             onClick={() => baixarDocumentoVale({...c, createdAt: new Date().toISOString()})}
-                             title="Baixar documento de vale (PDF)"
-                             className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 text-xs px-3 py-1"
-                           >
-                             <Download className="h-3 w-3 mr-1" />
-                             Vale
-                           </Button>
+
                            <Button
                              size="sm"
                              onClick={() => baixarExtratoDespesas({...c, createdAt: new Date().toISOString()})}
                              title="Baixar extrato de despesas (PDF)"
-                             className="bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 text-xs px-3 py-1"
+                             className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 text-xs px-3 py-1"
                            >
                              <Download className="h-3 w-3 mr-1" />
-                             Despesas
+                             Vale
                            </Button>
                            <Button
                              size="sm"

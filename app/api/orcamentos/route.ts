@@ -206,6 +206,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
+    console.log('🔍 [BACKEND DEBUG] POST - Dados recebidos:', body);
+    console.log('🔍 [BACKEND DEBUG] POST - Itens recebidos:', body.itens);
+    
     const {
       numero,
       cliente_id,
@@ -333,17 +336,29 @@ export async function POST(request: NextRequest) {
     
     // Insert items if provided
     if (itens && Array.isArray(itens)) {
+      console.log('🔍 [BACKEND DEBUG] POST - Inserindo itens no banco. Total:', itens.length);
       try {
         const insertItem = db.prepare(`
           INSERT INTO orcamento_itens (
-            id, orcamento_id, produto_id, descricao, marca, unidade_medida, quantidade,
+            id, orcamento_id, produto_id, descricao, marca, quantidade,
             valor_unitario, valor_total, observacoes, link_ref, custo_ref
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         for (const item of itens) {
           const itemId = uuidv4();
           const valorTotalItem = item.quantidade * item.valor_unitario;
+          
+          console.log('🔍 [BACKEND DEBUG] POST - Inserindo item:', {
+            itemId,
+            orcamento_id: id,
+            produto_id: item.produto_id || null,
+            descricao: item.descricao,
+            marca: item.marca || '',
+            quantidade: item.quantidade,
+            valor_unitario: item.valor_unitario,
+            valorTotalItem
+          });
           
           insertItem.run(
             itemId,
@@ -351,7 +366,6 @@ export async function POST(request: NextRequest) {
             item.produto_id || null,
             item.descricao,
             item.marca || '',
-            item.unidade_medida || 'un',
             item.quantidade,
             item.valor_unitario,
             valorTotalItem,
@@ -360,16 +374,23 @@ export async function POST(request: NextRequest) {
             item.custo_ref || 0
           );
         }
+        console.log('🔍 [BACKEND DEBUG] POST - Todos os itens inseridos com sucesso');
       } catch (itemsError) {
-        console.error('Error inserting orcamento items:', itemsError);
+        console.error('🔍 [BACKEND DEBUG] POST - Erro ao inserir itens:', itemsError);
         // Continue execution - orcamento was created successfully
       }
+    } else {
+      console.log('🔍 [BACKEND DEBUG] POST - Nenhum item para inserir ou itens inválidos');
     }
     
     // Get the complete orcamento with items
     const novoOrcamento = db.prepare('SELECT * FROM orcamentos WHERE id = ?').get(id) as any;
     const itensOrcamento = db.prepare('SELECT * FROM orcamento_itens WHERE orcamento_id = ?').all(id);
     novoOrcamento.itens = itensOrcamento;
+    
+    console.log('🔍 [BACKEND DEBUG] POST - Orçamento criado:', novoOrcamento);
+    console.log('🔍 [BACKEND DEBUG] POST - Itens retornados do banco:', itensOrcamento);
+    console.log('🔍 [BACKEND DEBUG] POST - Quantidade de itens retornados:', itensOrcamento.length);
     
     return NextResponse.json(novoOrcamento, { status: 201 });
   } catch (error) {
@@ -452,11 +473,11 @@ export async function PUT(request: NextRequest) {
         
         db.prepare(
           `INSERT INTO orcamento_itens (
-            id, orcamento_id, produto_id, descricao, marca, unidade_medida, quantidade, 
+            id, orcamento_id, produto_id, descricao, marca, quantidade, 
             valor_unitario, valor_total, observacoes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
         ).run(itemId, id, item.produto_id, item.descricao, item.marca || '', 
-           item.unidade_medida || 'un', item.quantidade, item.valor_unitario, valorTotalItem, item.observacoes);
+           item.quantidade, item.valor_unitario, valorTotalItem, item.observacoes);
       }
       
       // Update total value

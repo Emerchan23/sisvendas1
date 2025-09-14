@@ -84,7 +84,8 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await request.json();
+    
+    console.log('🔍 [API] PATCH recebido para ID:', id);
     
     if (!id) {
       return NextResponse.json(
@@ -92,11 +93,20 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    const body = await request.json();
+    console.log('🔍 [API] Body da requisição:', JSON.stringify(body, null, 2));
+    console.log('🔍 [API] Tipo do body:', typeof body);
+    console.log('🔍 [API] Keys do body:', Object.keys(body));
     
     // Check if orcamento exists
     const orcamento = db.prepare('SELECT id FROM orcamentos WHERE id = ?').get(id);
     
+    console.log('🔍 [API] Orçamento encontrado no banco:', !!orcamento);
+    console.log('🔍 [API] Dados do orçamento existente:', orcamento);
+    
     if (!orcamento) {
+      console.log('❌ [API] Orçamento não encontrado para ID:', id);
       return NextResponse.json(
         { error: 'Orçamento não encontrado' },
         { status: 404 }
@@ -121,29 +131,86 @@ export async function PATCH(
     
     // Handle itens separately if provided
     if (body.itens && Array.isArray(body.itens)) {
+      console.log('🔍 [API] Processando', body.itens.length, 'itens');
+      
       // Delete existing items
-      db.prepare('DELETE FROM orcamento_itens WHERE orcamento_id = ?').run(id);
+      console.log('🔍 [API] Deletando itens existentes...');
+      const deleteResult = db.prepare('DELETE FROM orcamento_itens WHERE orcamento_id = ?').run(id);
+      console.log('🔍 [API] Itens deletados:', deleteResult.changes);
       
       // Insert new items
-      for (const item of body.itens) {
-        const itemId = require('uuid').v4();
-        const valorTotalItem = item.quantidade * item.valor_unitario;
+      console.log('🔍 [API] Inserindo novos itens...');
+      for (let i = 0; i < body.itens.length; i++) {
+        const item = body.itens[i];
+        console.log(`🔍 [API] Processando item ${i + 1}:`, JSON.stringify(item, null, 2));
         
-        db.prepare(
-          `INSERT INTO orcamento_itens (
-            id, orcamento_id, produto_id, descricao, marca, quantidade,
-            valor_unitario, valor_total, observacoes, link_ref, custo_ref
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).run(itemId, id, item.produto_id, item.descricao, item.marca, item.quantidade,
-           item.valor_unitario, valorTotalItem, item.observacoes, item.link_ref, item.custo_ref);
+        try {
+          const itemId = require('uuid').v4();
+          const valorTotalItem = (item.quantidade || 0) * (item.valor_unitario || 0);
+          
+          console.log('🔍 [API] Dados para inserção:', {
+            itemId,
+            orcamento_id: id,
+            produto_id: item.produto_id || null,
+            descricao: item.descricao || '',
+            marca: item.marca || '',
+            quantidade: item.quantidade || 0,
+            valor_unitario: item.valor_unitario || 0,
+            valor_total: valorTotalItem,
+            observacoes: item.observacoes || '',
+            link_ref: item.link_ref || '',
+            custo_ref: item.custo_ref || 0
+          });
+          
+          const insertResult = db.prepare(
+            `INSERT INTO orcamento_itens (
+              id, orcamento_id, produto_id, descricao, marca, quantidade,
+              valor_unitario, valor_total, observacoes, link_ref, custo_ref
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          ).run(
+            itemId, 
+            id, 
+            item.produto_id || null, 
+            item.descricao || '', 
+            item.marca || '', 
+            item.quantidade || 0,
+            item.valor_unitario || 0, 
+            valorTotalItem, 
+            item.observacoes || '', 
+            item.link_ref || '', 
+            item.custo_ref || 0
+          );
+          
+          console.log(`✅ [API] Item ${i + 1} inserido com sucesso:`, insertResult.changes);
+        } catch (itemError) {
+          console.error(`❌ [API] Erro ao inserir item ${i + 1}:`, itemError);
+          console.error('❌ [API] Stack trace do item:', itemError instanceof Error ? itemError.stack : 'N/A');
+          throw itemError; // Re-throw para ser capturado pelo catch principal
+        }
       }
+      console.log('✅ [API] Todos os itens processados com sucesso');
     }
     
+    console.log('✅ [API] Orçamento atualizado com sucesso');
     return NextResponse.json({ ok: true, message: 'Orçamento atualizado com sucesso' });
   } catch (error) {
-    console.error('Erro ao atualizar orçamento:', error);
+    console.error('❌ [API] Erro ao atualizar orçamento:', error);
+    console.error('❌ [API] Stack trace completo:', error instanceof Error ? error.stack : 'N/A');
+    console.error('❌ [API] Mensagem do erro:', error instanceof Error ? error.message : String(error));
+    console.error('❌ [API] Tipo do erro:', typeof error);
+    
+    // Log adicional para debugging
+    if (error instanceof Error) {
+      console.error('❌ [API] Nome do erro:', error.name);
+      console.error('❌ [API] Causa do erro:', error.cause);
+    }
+    
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { 
+        error: 'Erro interno do servidor',
+        details: error instanceof Error ? error.message : String(error),
+        type: error instanceof Error ? error.name : typeof error
+      },
       { status: 500 }
     );
   }
@@ -156,6 +223,8 @@ export async function GET(
   try {
     const { id } = await params;
     
+    console.log('🔍 [API] GET recebido para ID:', id);
+    
     if (!id) {
       return NextResponse.json(
         { error: 'ID é obrigatório' },
@@ -163,12 +232,19 @@ export async function GET(
       );
     }
     
+    // Primeiro, vamos ver todos os orçamentos no banco
+    const allOrcamentos = db.prepare('SELECT id, numero FROM orcamentos LIMIT 10').all();
+    console.log('🔍 [API] Orçamentos no banco:', allOrcamentos);
+    
     // Get orcamento with items
     const orcamento = db.prepare(`
       SELECT * FROM orcamentos WHERE id = ?
     `).get(id);
     
+    console.log('🔍 [API] Orçamento encontrado:', !!orcamento);
+    
     if (!orcamento) {
+      console.log('❌ [API] Orçamento não encontrado para ID:', id);
       return NextResponse.json(
         { error: 'Orçamento não encontrado' },
         { status: 404 }

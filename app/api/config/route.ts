@@ -164,6 +164,32 @@ export async function POST(request: NextRequest) {
         updateValues.push(data.validadeOrcamento)
       }
       
+      // Campos de configuração de backup
+      if (data.autoBackupEnabled !== undefined) {
+        updateFields.push('auto_backup_enabled = ?')
+        updateValues.push(data.autoBackupEnabled ? 1 : 0)
+      }
+      if (data.backupFrequency !== undefined) {
+        updateFields.push('backup_frequency = ?')
+        updateValues.push(data.backupFrequency)
+      }
+      if (data.backupTime !== undefined) {
+        updateFields.push('backup_time = ?')
+        updateValues.push(data.backupTime)
+      }
+      if (data.keepLocalBackup !== undefined) {
+        updateFields.push('keep_local_backup = ?')
+        updateValues.push(data.keepLocalBackup ? 1 : 0)
+      }
+      if (data.maxBackups !== undefined) {
+        updateFields.push('max_backups = ?')
+        updateValues.push(data.maxBackups)
+      }
+      if (data.lastBackup !== undefined) {
+        updateFields.push('last_backup = ?')
+        updateValues.push(data.lastBackup)
+      }
+      
       if (updateFields.length > 0) {
         updateFields.push('updated_at = CURRENT_TIMESTAMP')
         updateValues.push(existingEmpresa.rowid)
@@ -183,9 +209,10 @@ export async function POST(request: NextRequest) {
         INSERT INTO empresas (
           nome, razao_social, cnpj, endereco, email, telefone, logo_url,
           nome_do_sistema, imposto_padrao, capital_padrao, smtp_host, smtp_port,
-          smtp_secure, smtp_user, smtp_password, smtp_from_name, smtp_from_email
+          smtp_secure, smtp_user, smtp_password, smtp_from_name, smtp_from_email,
+          auto_backup_enabled, backup_frequency, backup_time, keep_local_backup, max_backups
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
       `
       
@@ -208,7 +235,12 @@ export async function POST(request: NextRequest) {
         data.smtpUser || null,
         data.smtpPassword || null,
         data.smtpFromName || null,
-        data.smtpFromEmail || null
+        data.smtpFromEmail || null,
+        data.autoBackupEnabled ? 1 : 0,
+        data.backupFrequency || 'daily',
+        data.backupTime || '02:00',
+        data.keepLocalBackup ? 1 : 0,
+        data.maxBackups || 7
       )
     }
     

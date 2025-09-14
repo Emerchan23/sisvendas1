@@ -35,6 +35,13 @@ export type Config = {
   emailTemplateOrcamento?: string
   emailTemplateVale?: string
   emailTemplateRelatorio?: string
+  // Configurações de backup automático
+  autoBackupEnabled?: boolean
+  backupFrequency?: string
+  backupTime?: string
+  keepLocalBackup?: boolean
+  maxBackups?: number
+  lastBackup?: string
   [key: string]: any
 }
 
@@ -111,7 +118,13 @@ export async function saveConfig(config: Partial<Config>): Promise<void> {
         tamanhoTitulo: result.config.tamanho_titulo || 24,
         tamanhoTexto: result.config.tamanho_texto || 14,
         logoPersonalizada: result.config.logo_personalizada || '',
-        validadeOrcamento: result.config.validade_orcamento || 30
+        validadeOrcamento: result.config.validade_orcamento || 30,
+        autoBackupEnabled: result.config.auto_backup_enabled === 1,
+        backupFrequency: result.config.backup_frequency || 'daily',
+        backupTime: result.config.backup_time || '02:00',
+        keepLocalBackup: result.config.keep_local_backup === 1,
+        maxBackups: result.config.max_backups || 7,
+        lastBackup: result.config.last_backup || null
       }
     }
     
@@ -171,7 +184,13 @@ export async function loadConfig(): Promise<Config> {
       tamanhoTitulo: config.tamanho_titulo || 24,
       tamanhoTexto: config.tamanho_texto || 14,
       logoPersonalizada: config.logo_personalizada || '',
-      validadeOrcamento: config.validade_orcamento || 30
+      validadeOrcamento: config.validade_orcamento || 30,
+      autoBackupEnabled: config.auto_backup_enabled === 1,
+      backupFrequency: config.backup_frequency || 'daily',
+      backupTime: config.backup_time || '02:00',
+      keepLocalBackup: config.keep_local_backup === 1,
+      maxBackups: config.max_backups || 7,
+      lastBackup: config.last_backup || null
     }
     
     return currentConfig

@@ -68,6 +68,7 @@
     "html2canvas": "^1.4.1",
     "input-otp": "1.4.1",
     "js-sha256": "latest",
+    "jsdom": "^27.0.0",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^3.0.2",
     "lucide-react": "^0.454.0",

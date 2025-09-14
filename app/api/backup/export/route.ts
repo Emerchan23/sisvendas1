@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
       'vendas',
       'acertos',
       'orcamentos',
+      'orcamento_itens', // CRÍTICO: Exportar itens dos orçamentos
       'vales',
       'outros_negocios',
       'empresas',

@@ -9,7 +9,7 @@ export async function GET() {
     const db = new Database(dbPath)
     
     const modalidades = db.prepare(`
-      SELECT id, codigo, nome, descricao, ativo, created_at, updated_at
+      SELECT id, codigo, nome, descricao, ativo, requer_numero_processo, created_at, updated_at
       FROM modalidades_compra
       ORDER BY nome ASC
     `).all()
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const result = stmt.run(codigo.toUpperCase(), nome, descricao || null)
     
     const novaModalidade = db.prepare(`
-      SELECT id, codigo, nome, descricao, ativo, created_at, updated_at
+      SELECT id, codigo, nome, descricao, ativo, requer_numero_processo, created_at, updated_at
       FROM modalidades_compra
       WHERE id = ?
     `).get(result.lastInsertRowid)
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, codigo, nome, descricao, ativo } = await request.json()
+    const { id, codigo, nome, descricao, ativo, requer_numero_processo } = await request.json()
     
     if (!id || !codigo || !nome) {
       return NextResponse.json(
@@ -99,7 +99,7 @@ export async function PUT(request: NextRequest) {
     
     const stmt = db.prepare(`
       UPDATE modalidades_compra 
-      SET codigo = ?, nome = ?, descricao = ?, ativo = ?, updated_at = CURRENT_TIMESTAMP
+      SET codigo = ?, nome = ?, descricao = ?, ativo = ?, requer_numero_processo = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `)
     
@@ -107,7 +107,8 @@ export async function PUT(request: NextRequest) {
       codigo.toUpperCase(), 
       nome, 
       descricao || null, 
-      ativo !== undefined ? (ativo ? 1 : 0) : 1, 
+      ativo !== undefined ? (ativo ? 1 : 0) : 1,
+      requer_numero_processo !== undefined ? (requer_numero_processo ? 1 : 0) : 0,
       id
     )
     
@@ -120,7 +121,7 @@ export async function PUT(request: NextRequest) {
     }
     
     const modalidadeAtualizada = db.prepare(`
-      SELECT id, codigo, nome, descricao, ativo, created_at, updated_at
+      SELECT id, codigo, nome, descricao, ativo, requer_numero_processo, created_at, updated_at
       FROM modalidades_compra
       WHERE id = ?
     `).get(id)

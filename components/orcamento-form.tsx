@@ -172,11 +172,13 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
 
   const clearDraft = () => {
     try {
+      console.log('🧹 [FORM DEBUG] Limpando draft do localStorage...')
       localStorage.removeItem(DRAFT_STORAGE_KEY)
       localStorage.removeItem(DRAFT_TIMESTAMP_KEY)
       setHasDraft(false)
+      console.log('✅ [FORM DEBUG] Draft limpo com sucesso')
     } catch (error) {
-      console.error('Erro ao limpar rascunho:', error)
+      console.error('❌ [FORM DEBUG] Erro ao limpar rascunho:', error)
     }
   }
 
@@ -317,6 +319,15 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
   // Carrega dados do orçamento para edição
   useEffect(() => {
     if (orcamentoParaEdicao) {
+      console.log('🔍 [FORM DEBUG] Orçamento completo para edição:', orcamentoParaEdicao)
+      console.log('🔍 [FORM DEBUG] ID do orçamento para edição:', orcamentoParaEdicao.id)
+      console.log('🔍 [FORM DEBUG] Verificando se ID existe no localStorage...')
+      
+      // Verificar se há dados antigos no localStorage
+      const localStorageKeys = Object.keys(localStorage)
+      const orcamentoKeys = localStorageKeys.filter(key => key.includes('orcamento'))
+      console.log('🔍 [FORM DEBUG] Chaves relacionadas a orçamento no localStorage:', orcamentoKeys)
+      
       setCliente(orcamentoParaEdicao.cliente || { nome: "" })
       setObservacoes(orcamentoParaEdicao.observacoes || "")
       
@@ -378,6 +389,9 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
   const onSalvar = async () => {
     if (!canSave) return
     try {
+      console.log('🔍 [DEBUG] Iniciando salvamento do orçamento');
+      console.log('🔍 [DEBUG] Dados dos itens originais:', itens);
+      
       // Convert FormOrcamentoItem format to match backend API expectations
       const backendItens = itens.map(item => ({
         id: generateId(),
@@ -391,6 +405,8 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         link_ref: item.linkRef || null,
         custo_ref: item.custoRef || null
       }))
+      
+      console.log('🔍 [DEBUG] Itens convertidos para backend:', backendItens);
       
       // Generate numero if creating new orcamento
       const numero = orcamentoParaEdicao ? orcamentoParaEdicao.numero : await generateOrcamentoNumber()
@@ -411,7 +427,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         observacoes,
         modalidade,
         numero_pregao: modalidade === "LICITADO" && numeroPregao ? `${numeroPregao}/${new Date().getFullYear()}` : null,
-      numero_dispensa: modalidade === "DISPENSA" && numeroDispensa ? `${numeroDispensa}/${new Date().getFullYear()}` : null,
+        numero_dispensa: modalidade === "DISPENSA" && numeroDispensa ? `${numeroDispensa}/${new Date().getFullYear()}` : null,
         itens: backendItens
       } : { 
         numero: numero, // Enviar o número completo no formato "número/ano"
@@ -425,7 +441,17 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         itens: backendItens
       }
       
+      console.log('🔍 [DEBUG] Dados completos para salvar:', dadosParaSalvar);
+      console.log('🔍 [DEBUG] Tipo de operação:', orcamentoParaEdicao ? 'EDIÇÃO' : 'CRIAÇÃO');
+      console.log('🔍 [DEBUG] Quantidade de itens:', backendItens.length);
+      console.log('🔍 [DEBUG] ID do orçamento para edição:', orcamentoParaEdicao?.id);
+      console.log('🔍 [DEBUG] Orçamento para edição completo:', orcamentoParaEdicao);
+      console.log('🔍 [DEBUG] Tem ID nos dados?', !!dadosParaSalvar.id);
+      console.log('🔍 [DEBUG] Dados para salvar completos:', dadosParaSalvar);
+      
       const result = await saveOrcamento(dadosParaSalvar)
+      
+      console.log('🔍 [DEBUG] Resultado da API:', result);
       
       // Salvar produtos únicos no catálogo automaticamente
       if (result && !orcamentoParaEdicao) {

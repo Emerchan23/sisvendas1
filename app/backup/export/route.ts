@@ -17,6 +17,7 @@ function getCurrentCompanyId(): string | null {
 export async function GET() {
   try {
     const companyId = getCurrentCompanyId()
+    console.log('📤 Iniciando exportação de backup para empresa:', companyId || 'TODAS')
     
     // Buscar todos os dados do sistema
     const empresas = db.prepare("SELECT * FROM empresas ORDER BY created_at DESC").all()
@@ -29,13 +30,28 @@ export async function GET() {
     const orcamentos = companyId
       ? db.prepare("SELECT * FROM orcamentos WHERE empresa_id = ? ORDER BY created_at DESC").all(companyId)
       : db.prepare("SELECT * FROM orcamentos ORDER BY created_at DESC").all()
-    const orcamentoItens = db.prepare("SELECT * FROM orcamento_itens ORDER BY created_at DESC").all()
+    const orcamentoItens = companyId
+      ? db.prepare("SELECT oi.* FROM orcamento_itens oi INNER JOIN orcamentos o ON oi.orcamento_id = o.id WHERE o.empresa_id = ? ORDER BY oi.created_at DESC").all(companyId)
+      : db.prepare("SELECT * FROM orcamento_itens ORDER BY created_at DESC").all()
     // Buscar dados das tabelas que existem, com tratamento de erro para tabelas que podem não existir
     let linhasVenda: Record<string, unknown>[] = []
     try {
+      // Tentar primeiro com empresa_id (padrão), depois com companyId (legado)
       linhasVenda = companyId
-        ? db.prepare("SELECT * FROM linhas_venda WHERE companyId = ? ORDER BY createdAt DESC").all(companyId) as Record<string, unknown>[]
-        : db.prepare("SELECT * FROM linhas_venda ORDER BY createdAt DESC").all() as Record<string, unknown>[]
+        ? (() => {
+            try {
+              return db.prepare("SELECT * FROM linhas_venda WHERE empresa_id = ? ORDER BY created_at DESC").all(companyId) as Record<string, unknown>[]
+            } catch {
+              return db.prepare("SELECT * FROM linhas_venda WHERE companyId = ? ORDER BY createdAt DESC").all(companyId) as Record<string, unknown>[]
+            }
+          })()
+        : (() => {
+            try {
+              return db.prepare("SELECT * FROM linhas_venda ORDER BY created_at DESC").all() as Record<string, unknown>[]
+            } catch {
+              return db.prepare("SELECT * FROM linhas_venda ORDER BY createdAt DESC").all() as Record<string, unknown>[]
+            }
+          })()
     } catch (e) {
       console.warn('Tabela linhas_venda não existe:', e)
     }
@@ -96,6 +112,39 @@ export async function GET() {
       console.warn('Tabela vale_movimentos não existe:', e)
     }
     const userPrefs = db.prepare("SELECT * FROM user_prefs").all()
+    
+    // Log dos dados coletados
+    console.log('📊 Dados coletados para backup:')
+    console.log(`  - Empresas: ${empresas.length}`)
+    console.log(`  - Clientes: ${clientes.length}`)
+    console.log(`  - Produtos: ${produtos.length}`)
+    console.log(`  - Orçamentos: ${orcamentos.length}`)
+    console.log(`  - Itens de Orçamento: ${orcamentoItens.length}`)
+    
+    // Debug específico para orçamentos
+    if (orcamentos.length > 0) {
+      console.log('🔍 Debug Orçamentos:')
+      orcamentos.slice(0, 3).forEach((orc: any, idx: number) => {
+        console.log(`  Orçamento ${idx + 1}: ID=${orc.id}, Empresa=${orc.empresa_id}, Total=${orc.total}`)
+      })
+    }
+    
+    if (orcamentoItens.length > 0) {
+      console.log('🔍 Debug Itens de Orçamento:')
+      orcamentoItens.slice(0, 5).forEach((item: any, idx: number) => {
+        console.log(`  Item ${idx + 1}: ID=${item.id}, Orçamento=${item.orcamento_id}, Produto=${item.produto_nome}, Qtd=${item.quantidade}, Valor=${item.valor_unitario}`)
+      })
+    }
+    console.log(`  - Linhas de Venda: ${linhasVenda.length}`)
+    console.log(`  - Acertos: ${acertos.length}`)
+    console.log(`  - Participantes: ${participantes.length}`)
+    console.log(`  - Despesas Pendentes: ${despesasPendentes.length}`)
+    console.log(`  - Modalidades: ${modalidades.length}`)
+    console.log(`  - Taxas: ${taxas.length}`)
+    console.log(`  - Outros Negócios: ${outrosNegocios.length}`)
+    console.log(`  - Pagamentos Parciais: ${pagamentosParciais.length}`)
+    console.log(`  - Vale Movimentos: ${valeMovimentos.length}`)
+    console.log(`  - Preferências: ${userPrefs.length}`)
     
     // Criar payload de backup
     const backup = {

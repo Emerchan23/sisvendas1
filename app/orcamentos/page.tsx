@@ -39,7 +39,10 @@ function OrcamentosContent() {
 
   const reload = async () => {
     try {
+      console.log('🔄 [PAGE DEBUG] Recarregando orçamentos...')
       const data = await getOrcamentos()
+      console.log('📋 [PAGE DEBUG] Orçamentos carregados:', data)
+      console.log('📋 [PAGE DEBUG] IDs dos orçamentos:', data.map(o => o.id))
       setOrcamentos(data)
     } catch (error) {
       console.error("Erro ao carregar orçamentos:", error)
@@ -88,6 +91,8 @@ function OrcamentosContent() {
   }
 
   const handleEditar = (o: LocalOrcamento) => {
+    console.log('🔍 [PAGE DEBUG] Editando orçamento:', o)
+    console.log('🔍 [PAGE DEBUG] ID do orçamento:', o.id)
     setOrcamentoEditando(o)
     setTabAtiva("criar")
   }

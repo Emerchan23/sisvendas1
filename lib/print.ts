@@ -18,12 +18,12 @@ function customStyles(layout: any) {
   const layoutConfig = layout.layout || {}
   
   const {
-    primaria: corPrimaria = "#2563eb",
-    secundaria: corSecundaria = "#64748b",
+    primaria: corPrimaria = "#1e40af",
+    secundaria: corSecundaria = "#3b82f6",
     texto: corTexto = "#1f2937",
-    textoSecundario: corTextoSecundario = "#64748b",
+    textoSecundario: corTextoSecundario = "#6b7280",
     fundo: corFundo = "#ffffff",
-    borda: corBorda = "#e2e8f0"
+    borda: corBorda = "#d1d5db"
   } = cores
   
   const {
@@ -47,7 +47,7 @@ function customStyles(layout: any) {
     moderno: `
       background: linear-gradient(135deg, ${corPrimaria} 0%, ${corSecundaria} 100%);
       border-radius: ${bordaRadius}px;
-      ${sombra ? `box-shadow: 0 8px 25px ${corPrimaria}30;` : ''}
+      ${sombra ? `box-shadow: 0 4px 20px rgba(30, 64, 175, 0.25);` : ''}
     `,
     classico: `
       background: ${corPrimaria};
@@ -66,7 +66,7 @@ function customStyles(layout: any) {
     <style>
       @page {
         size: A4;
-        margin: 20mm 18mm 20mm 18mm;
+        margin: 25mm 20mm 25mm 20mm;
       }
       * { box-sizing: border-box; }
       html, body { 
@@ -80,9 +80,7 @@ function customStyles(layout: any) {
       .container { 
         width: 100%; 
         background: ${corFundo};
-        border-radius: ${bordaRadius}px;
-        ${sombra ? `box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);` : ''}
-        padding: ${espacamento}px;
+        padding: ${espacamento + 5}px;
         margin: 0 auto;
       }
       .doc-header {
@@ -99,11 +97,8 @@ function customStyles(layout: any) {
       .logo {
         width: 48px; 
         height: 48px; 
-        border-radius: ${bordaRadius}px; 
         object-fit: contain; 
-        border: 2px solid ${estiloHeader === 'minimalista' ? corBorda : 'rgba(255, 255, 255, 0.2)'};
         background: ${estiloHeader === 'minimalista' ? corFundo : 'rgba(255, 255, 255, 0.1)'};
-        ${sombra ? 'backdrop-filter: blur(10px);' : ''}
       }
       .logo-id {
         width: 80px; 
@@ -151,6 +146,8 @@ function customStyles(layout: any) {
       .section { 
         margin: ${espacamento + 16}px 0 0; 
         page-break-inside: avoid;
+        orphans: 3;
+        widows: 3;
       }
       .section h2 { 
         font-size: 18px; 
@@ -175,14 +172,17 @@ function customStyles(layout: any) {
         width: 100%; 
         border-collapse: collapse;
         page-break-inside: auto;
-        border-radius: ${bordaRadius}px;
-        overflow: hidden;
-        ${sombra ? 'box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);' : ''}
+      }
+      table.list thead {
+        page-break-inside: avoid;
+        page-break-after: avoid;
+      }
+      table.list tbody tr {
+        page-break-inside: avoid;
       }
       table.list th, table.list td { 
         padding: 12px 16px; 
         border: none;
-        border-bottom: 1px solid ${corBorda};
         font-size: ${tamanhoFonteTexto - 1}px;
         page-break-inside: avoid;
       }
@@ -193,13 +193,14 @@ function customStyles(layout: any) {
       table.list th:nth-child(5), table.list td:nth-child(5) { width: 10%; }
       table.list th:nth-child(6), table.list td:nth-child(6) { width: 10%; }
       table.list th { 
-        background: ${corHeaderTabela}; 
+        background: linear-gradient(135deg, ${corPrimaria} 0%, ${corSecundaria} 100%); 
         color: white !important;
         text-align: left; 
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        font-size: ${tamanhoFonteTexto - 2}px;
+        font-size: ${tamanhoFonteTexto - 1}px;
+        ${sombra ? 'text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);' : ''}
       }
       table.list tbody tr:hover { background: ${corLinhasAlternadas}; }
       table.list tbody tr:nth-child(even) { background: ${corLinhasAlternadas}; }
@@ -210,7 +211,6 @@ function customStyles(layout: any) {
       .footer {
         margin-top: ${espacamento + 12}px; 
         padding-top: 16px; 
-        border-top: 2px solid ${corBorda}; 
         font-size: 12px; 
         color: ${corTextoSecundario}; 
         display: flex; 
@@ -226,14 +226,10 @@ function customStyles(layout: any) {
         page-break-inside: avoid;
       }
       .card { 
-        padding: ${espacamento}px; 
-        background: ${corFundo};
-        border: 1px solid ${corBorda}; 
-        border-radius: ${bordaRadius}px;
-        ${sombra ? 'box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);' : ''}
+        padding: ${espacamento + 2}px; 
+        background: #f8fafc;
         page-break-inside: avoid;
         position: relative;
-        overflow: hidden;
       }
       .card::before {
         content: '';
@@ -241,7 +237,7 @@ function customStyles(layout: any) {
         top: 0;
         left: 0;
         right: 0;
-        height: 4px;
+        height: 3px;
         background: linear-gradient(135deg, ${corPrimaria} 0%, ${corSecundaria} 100%);
       }
       .title-sm { 
@@ -258,9 +254,6 @@ function customStyles(layout: any) {
         width: 100%; 
         border-collapse: collapse;
         page-break-inside: avoid;
-        border-radius: ${bordaRadius}px;
-        overflow: hidden;
-        ${sombra ? 'box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);' : ''}
       }
       .totals td { padding: 16px ${espacamento}px; font-size: ${tamanhoFonteTexto}px; }
       .totals .label { text-align: right; font-weight: 600; color: ${corTexto}; }
@@ -323,35 +316,29 @@ function getCustomizedStyles() {
         line-height: 1.5;
         background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
       }
-      .container { 
+      .container {
         width: 100%; 
+        max-width: 190mm;
         background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        padding: 24px;
+        padding: 15mm;
         margin: 0 auto;
       }
       .doc-header {
         display: grid;
         grid-template-columns: 80px 1fr;
-        gap: 20px;
+        gap: 15px;
         align-items: center;
         background: linear-gradient(135deg, #171717 0%, #404040 100%);
         color: white;
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 28px;
-        box-shadow: 0 8px 25px rgba(23, 23, 23, 0.3);
+        padding: 15px;
+        margin-bottom: 20px;
         page-break-inside: avoid;
       }
       .logo {
         width: 72px; 
         height: 72px; 
-        border-radius: 12px; 
         object-fit: contain; 
-        border: 2px solid rgba(255, 255, 255, 0.2);
         background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
       }
       .muted { color: #64748b; font-size: 13px; font-weight: 500; }
       h1 { 
@@ -375,11 +362,8 @@ function getCustomizedStyles() {
         border-collapse: collapse; 
         margin: 16px 0 24px; 
         page-break-inside: avoid;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
       }
-      .kpis th, .kpis td { padding: 20px 24px; border: none; font-size: 14px; line-height: 1.6; }
+      .kpis th, .kpis td { padding: 20px 24px; font-size: 14px; line-height: 1.6; }
       .kpis th { 
         text-align: left; 
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
@@ -414,21 +398,16 @@ function getCustomizedStyles() {
         width: 100%; 
         border-collapse: collapse;
         page-break-inside: auto;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
       }
       table.list th, table.list td { 
         padding: 12px 16px; 
-        border: none;
-        border-bottom: 1px solid #e2e8f0;
         font-size: 13px;
         page-break-inside: avoid;
       }
-      table.list th:nth-child(1), table.list td:nth-child(1) { width: 5%; }
-      table.list th:nth-child(2), table.list td:nth-child(2) { width: 45%; }
-      table.list th:nth-child(3), table.list td:nth-child(3) { width: 12%; }
-      table.list th:nth-child(4), table.list td:nth-child(4) { width: 10%; }
+      table.list th:nth-child(1), table.list td:nth-child(1) { width: 18%; }
+      table.list th:nth-child(2), table.list td:nth-child(2) { width: 16%; }
+      table.list th:nth-child(3), table.list td:nth-child(3) { width: 18%; }
+      table.list th:nth-child(4), table.list td:nth-child(4) { width: 48%; }
       table.list th:nth-child(5), table.list td:nth-child(5) { width: 12.5%; }
       table.list th:nth-child(6), table.list td:nth-child(6) { width: 15.5%; }
       table.list th { 
@@ -449,7 +428,6 @@ function getCustomizedStyles() {
       .footer {
         margin-top: 32px; 
         padding-top: 16px; 
-        border-top: 2px solid #e2e8f0; 
         font-size: 12px; 
         color: #64748b; 
         display: flex; 
@@ -468,12 +446,8 @@ function getCustomizedStyles() {
       .card { 
         padding: 20px; 
         background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border: 1px solid #e2e8f0; 
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
         page-break-inside: avoid;
         position: relative;
-        overflow: hidden;
       }
       .card::before {
         content: '';
@@ -498,9 +472,6 @@ function getCustomizedStyles() {
         width: 100%; 
         border-collapse: collapse;
         page-break-inside: avoid;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
       }
       .totals td { padding: 16px 20px; font-size: 14px; }
       .totals .label { text-align: right; font-weight: 600; color: #334155; }
@@ -708,58 +679,151 @@ export async function downloadPDF(html: string, title = "Documento") {
     // Converter oklch para rgb nos estilos base
     const convertedStyles = convertOklchInCSS(baseStyles().replace('<style>', '').replace('</style>', ''))
     
-    // Adicionar estilos e conteúdo com melhor suporte a quebras de página
+    // Adicionar estilos e conteúdo com cores profissionais melhoradas
     tempDiv.innerHTML = `
       <style>
         ${convertedStyles}
-        /* Fallback colors for html2canvas */
+        /* Cores profissionais para o documento */
         :root {
           --background: rgb(255, 255, 255);
-          --foreground: rgb(37, 37, 37);
+          --foreground: rgb(30, 41, 59);
           --card: rgb(255, 255, 255);
-          --card-foreground: rgb(37, 37, 37);
-          --primary: rgb(52, 52, 52);
-          --primary-foreground: rgb(251, 251, 251);
-          --secondary: rgb(247, 247, 247);
-          --secondary-foreground: rgb(52, 52, 52);
-          --muted: rgb(247, 247, 247);
-          --muted-foreground: rgb(142, 142, 142);
-          --accent: rgb(247, 247, 247);
-          --accent-foreground: rgb(52, 52, 52);
-          --destructive: rgb(239, 68, 68);
-          --destructive-foreground: rgb(255, 255, 255);
-          --border: rgb(235, 235, 235);
-          --input: rgb(235, 235, 235);
-          --ring: rgb(180, 180, 180);
-        }
-        /* Forçar cores específicas para evitar problemas com html2canvas */
-        .text-green-600 { color: rgb(22, 163, 74) !important; }
-        .text-red-600 { color: rgb(220, 38, 38) !important; }
-        * { color: rgb(37, 37, 37) !important; }
-        .doc-header * { color: white !important; }
-        .amount { color: rgb(37, 37, 37) !important; }
-        strong { color: rgb(37, 37, 37) !important; }
-        
-        /* Melhorar quebras de página para html2canvas */
-        .report-section {
-          min-height: 200px;
-          margin-bottom: 40px;
+          --card-foreground: rgb(30, 41, 59);
+          --primary: rgb(37, 99, 235);
+          --primary-foreground: rgb(255, 255, 255);
+          --secondary: rgb(241, 245, 249);
+          --secondary-foreground: rgb(30, 41, 59);
+          --muted: rgb(248, 250, 252);
+          --muted-foreground: rgb(100, 116, 139);
+          --accent: rgb(59, 130, 246);
+          --accent-foreground: rgb(255, 255, 255);
+          --border: rgb(226, 232, 240);
         }
         
-        .report-section:nth-child(3) {
-          margin-top: 60px;
+        /* Estilos profissionais para o orçamento */
+        .doc-header {
+          background: linear-gradient(135deg, rgb(37, 99, 235) 0%, rgb(59, 130, 246) 100%) !important;
+          color: white !important;
+          padding: 20px !important;
+          border-radius: 8px !important;
+          margin-bottom: 30px !important;
         }
         
-        .report-section:nth-child(4) {
-          margin-top: 80px;
+        .doc-header * {
+          color: white !important;
         }
         
-        .participants-table {
-          margin-top: 20px;
+        .doc-title {
+          font-size: 24px !important;
+          font-weight: 700 !important;
+          margin-bottom: 8px !important;
         }
         
-        .section-header {
-          margin-bottom: 25px;
+        .doc-subtitle {
+          font-size: 16px !important;
+          opacity: 0.9 !important;
+        }
+        
+        .company-info {
+          background: rgb(248, 250, 252) !important;
+          padding: 16px !important;
+          border-radius: 6px !important;
+          border-left: 4px solid rgb(37, 99, 235) !important;
+          margin-bottom: 20px !important;
+        }
+        
+        .client-info {
+          background: rgb(255, 255, 255) !important;
+          border: 1px solid rgb(226, 232, 240) !important;
+          padding: 16px !important;
+          border-radius: 6px !important;
+          margin-bottom: 20px !important;
+        }
+        
+        .items-table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          margin: 20px 0 !important;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+          border-radius: 6px !important;
+          overflow: hidden !important;
+        }
+        
+        .items-table th {
+          background: rgb(37, 99, 235) !important;
+          color: white !important;
+          padding: 12px 8px !important;
+          text-align: left !important;
+          font-weight: 600 !important;
+          font-size: 14px !important;
+        }
+        
+        .items-table td {
+          padding: 10px 8px !important;
+          border-bottom: 1px solid rgb(226, 232, 240) !important;
+          color: rgb(30, 41, 59) !important;
+          font-size: 13px !important;
+        }
+        
+        .items-table tbody tr:nth-child(even) {
+          background: rgb(248, 250, 252) !important;
+        }
+        
+        .total-section {
+          background: rgb(37, 99, 235) !important;
+          color: white !important;
+          padding: 16px !important;
+          border-radius: 6px !important;
+          margin: 20px 0 !important;
+          text-align: right !important;
+        }
+        
+        .total-label {
+          font-size: 18px !important;
+          font-weight: 600 !important;
+        }
+        
+        .total-value {
+          font-size: 24px !important;
+          font-weight: 700 !important;
+        }
+        
+        .observations {
+          background: rgb(255, 251, 235) !important;
+          border: 1px solid rgb(251, 191, 36) !important;
+          padding: 16px !important;
+          border-radius: 6px !important;
+          margin: 20px 0 !important;
+        }
+        
+        .observations h3 {
+          color: rgb(146, 64, 14) !important;
+          margin-bottom: 8px !important;
+          font-size: 16px !important;
+        }
+        
+        .validity {
+          background: rgb(240, 253, 244) !important;
+          border: 1px solid rgb(34, 197, 94) !important;
+          padding: 12px !important;
+          border-radius: 6px !important;
+          color: rgb(21, 128, 61) !important;
+          font-weight: 500 !important;
+          text-align: center !important;
+        }
+        
+        /* Forçar cores específicas */
+        * { color: rgb(30, 41, 59) !important; }
+        .amount { color: rgb(30, 41, 59) !important; }
+        strong { color: rgb(30, 41, 59) !important; }
+        
+        /* Layout melhorado */
+        .container {
+          max-width: 210mm !important;
+          margin: 0 auto !important;
+          padding: 20px !important;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+          line-height: 1.5 !important;
         }
       </style>
       <div class="container">${html}</div>
@@ -768,102 +832,32 @@ export async function downloadPDF(html: string, title = "Documento") {
     document.body.appendChild(tempDiv)
     
     // Aguardar um momento para renderização
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise(resolve => setTimeout(resolve, 300))
     
-    // Tentar usar a API nativa de impressão do navegador se disponível
-    if (window.print && typeof window.print === 'function') {
-      try {
-        // Criar uma nova janela para impressão
-        const printWindow = window.open('', '_blank')
-        if (printWindow) {
-          printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <title>${title}</title>
-              <style>
-                @media print {
-                  @page {
-                    size: A4;
-                    margin: 20mm;
-                  }
-                  
-                  .report-section {
-                    page-break-inside: avoid;
-                    margin-bottom: 30px;
-                  }
-                  
-                  .report-section:nth-child(3) {
-                    page-break-before: auto;
-                  }
-                  
-                  .report-section:nth-child(4) {
-                    page-break-before: auto;
-                  }
-                  
-                  .kpis-table {
-                    page-break-inside: avoid;
-                  }
-                  
-                  .data-table {
-                    page-break-inside: auto;
-                  }
-                  
-                  .data-table thead {
-                    page-break-inside: avoid;
-                    page-break-after: avoid;
-                  }
-                  
-                  .data-table tbody tr {
-                    page-break-inside: avoid;
-                  }
-                  
-                  .participants-table {
-                    page-break-before: auto;
-                  }
-                }
-                ${convertedStyles}
-              </style>
-            </head>
-            <body>
-              ${html}
-            </body>
-            </html>
-          `)
-          printWindow.document.close()
-          
-          // Aguardar carregamento e imprimir
-          printWindow.onload = () => {
-            setTimeout(() => {
-              printWindow.print()
-              printWindow.close()
-            }, 500)
-          }
-          
-          // Remover elemento temporário
-          document.body.removeChild(tempDiv)
-          return
-        }
-      } catch (printError) {
-        console.warn('Impressão nativa falhou, usando fallback:', printError)
-      }
-    }
-    
-    // Fallback: usar html2canvas com melhor divisão de páginas
+    // Usar html2canvas para gerar o PDF diretamente
     const canvas = await html2canvas(tempDiv, {
-      scale: 1.5,
+      scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       width: 794,
+      height: tempDiv.scrollHeight,
       logging: false,
-      removeContainer: true
+      removeContainer: true,
+      imageTimeout: 15000,
+      onclone: (clonedDoc) => {
+        // Garantir que as fontes sejam carregadas no clone
+        const clonedDiv = clonedDoc.querySelector('.container')
+        if (clonedDiv) {
+          clonedDiv.style.fontFamily = 'Arial, sans-serif'
+        }
+      }
     })
     
     // Remover elemento temporário
     document.body.removeChild(tempDiv)
     
-    // Criar PDF com melhor divisão de páginas
+    // Criar PDF otimizado
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -871,33 +865,40 @@ export async function downloadPDF(html: string, title = "Documento") {
       compress: true
     })
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.85)
+    const imgData = canvas.toDataURL('image/png', 0.95)
     const imgWidth = 210
-    const pageHeight = 280 // Reduzido para deixar margem
+    const pageHeight = 297 // A4 height
     const imgHeight = (canvas.height * imgWidth) / canvas.width
+    const margin = 10
     
-    if (imgHeight <= pageHeight) {
-      pdf.addImage(imgData, 'JPEG', 0, 10, imgWidth, imgHeight)
+    if (imgHeight <= pageHeight - (margin * 2)) {
+      // Documento cabe em uma página
+      pdf.addImage(imgData, 'PNG', 0, margin, imgWidth, imgHeight)
     } else {
-      // Divisão mais inteligente de páginas
-      const sectionsPerPage = Math.ceil(imgHeight / pageHeight)
-      const sectionHeight = imgHeight / sectionsPerPage
+      // Dividir em múltiplas páginas
+      const pageContentHeight = pageHeight - (margin * 2)
+      const totalPages = Math.ceil(imgHeight / pageContentHeight)
       
-      for (let i = 0; i < sectionsPerPage; i++) {
+      for (let i = 0; i < totalPages; i++) {
         if (i > 0) pdf.addPage()
         
-        const yPosition = -(i * sectionHeight)
-        pdf.addImage(imgData, 'JPEG', 0, yPosition + 10, imgWidth, imgHeight)
+        const yOffset = -(i * pageContentHeight)
+        pdf.addImage(imgData, 'PNG', 0, yOffset + margin, imgWidth, imgHeight)
       }
     }
     
-    // Fazer download
-    const fileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+    // Fazer download direto do arquivo PDF
+    const fileName = `${title.replace(/[^a-zA-Z0-9\s]/g, '_').replace(/\s+/g, '_')}.pdf`
     pdf.save(fileName)
+    
+    console.log('PDF gerado e baixado com sucesso:', fileName)
     
   } catch (error) {
     console.error('Erro ao gerar PDF:', error)
-    alert('Erro ao gerar PDF. Tente novamente.')
+    // Em ambiente de navegador, mostrar alert
+    if (typeof window !== 'undefined' && window.alert) {
+      alert('Erro ao gerar PDF. Tente novamente.')
+    }
   }
 }
 

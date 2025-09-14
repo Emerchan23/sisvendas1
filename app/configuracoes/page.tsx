@@ -656,10 +656,15 @@ function ConfiguracoesContent() {
       const currentConfig = getConfig()
       saveConfig({ ...currentConfig, ...configData })
       
+      // Disparar evento para atualizar outros componentes
+      window.dispatchEvent(new CustomEvent(ERP_CHANGED_EVENT, { detail: { key: "config" } }))
+      
       toast({
         title: "Sucesso",
         description: "Configurações de personalização salvas com sucesso!",
       })
+      
+      await reload()
     } catch (error) {
       console.error('Erro ao salvar personalização:', error)
       toast({
@@ -1613,7 +1618,8 @@ function ConfiguracoesContent() {
                     titleSize: personalizacaoConfig.tamanhoTitulo,
                     bodySize: personalizacaoConfig.tamanhoTexto,
                     logoUrl: personalizacaoConfig.logoPersonalizada,
-                    validadeOrcamento: personalizacaoConfig.validadeOrcamento
+                    validadeOrcamento: personalizacaoConfig.validadeOrcamento,
+                    textColor: personalizacaoConfig.corTexto
                   }}
                 />
               </CardContent>
