@@ -82,7 +82,7 @@ export function OrcamentoPreview({ layoutConfig }: OrcamentoPreviewProps) {
           </thead>
           <tbody>
             <tr>
-              <td style={tdStyle}>Produto Exemplo</td>
+              <td style={tdStyle}>Item Exemplo</td>
               <td style={tdStyle}>un</td>
               <td style={tdStyle}>2</td>
               <td style={tdStyle}>R$ 50,00</td>

@@ -88,11 +88,11 @@ async function setupDatabase() {
     try {
         console.log('\n🗄️ Configurando banco de dados...');
         
-        // Criar diretório data se não existir
-        const dataDir = path.join(__dirname, 'data');
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-            console.log('📁 Diretório data criado');
+        // Verificar se o diretório do banco de dados externo existe
+        const dbDir = path.join(__dirname, '..', 'Banco de dados Aqui');
+        if (!fs.existsSync(dbDir)) {
+            console.log('⚠️ Diretório do banco de dados externo não encontrado:', dbDir);
+            console.log('📁 Certifique-se de que a pasta "Banco de dados Aqui" existe no diretório pai');
         }
         
         // Verificar se o script de inicialização do banco existe

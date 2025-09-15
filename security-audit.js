@@ -50,7 +50,7 @@ try {
 console.log('\n🗄️  4. SEGURANÇA DO BANCO:');
 const Database = require('better-sqlite3');
 try {
-  const db = new Database('./data/erp.sqlite');
+  const db = new Database('../Banco de dados Aqui/erp.sqlite');
   
   // Verificar se há usuários com senhas fracas
   const usuarios = db.prepare('SELECT id, email, senha FROM usuarios').all();

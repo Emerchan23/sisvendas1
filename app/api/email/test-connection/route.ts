@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extrair configurações SMTP do banco
+    // Extrair configurações SMTP do banco (declarar fora do try para usar no catch)
     const smtpHost = config.smtp_host
     const smtpPort = config.smtp_port || 587
     const smtpSecure = Boolean(config.smtp_secure)
@@ -95,11 +95,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Criar transporter
-    const transporter = nodemailer.createTransport({
+    // Criar transporter com configuração correta para diferentes provedores
+    const transporterConfig: any = {
       host: smtpHost,
       port: Number(smtpPort),
-      secure: Boolean(smtpSecure), // true para 465, false para outras portas
+      secure: Number(smtpPort) === 465, // true apenas para porta 465
       auth: {
         user: smtpUser,
         pass: smtpPassword
@@ -108,7 +108,14 @@ export async function POST(request: NextRequest) {
       connectionTimeout: 10000, // 10 segundos
       greetingTimeout: 5000, // 5 segundos
       socketTimeout: 10000 // 10 segundos
-    })
+    }
+    
+    // Para portas diferentes de 465, usar STARTTLS
+    if (Number(smtpPort) !== 465) {
+      transporterConfig.requireTLS = true
+    }
+    
+    const transporter = nodemailer.createTransport(transporterConfig)
 
     // Testar conexão com logs detalhados
     console.log('🔄 Iniciando teste de conexão SMTP...')
@@ -149,9 +156,9 @@ export async function POST(request: NextRequest) {
     let troubleshootingTips: string[] = []
     
     // Detectar provedor baseado no host
-    const isGmail = config?.smtp_host?.includes('gmail.com')
-    const isOutlook = config?.smtp_host?.includes('outlook') || config?.smtp_host?.includes('hotmail')
-    const isYahoo = config?.smtp_host?.includes('yahoo.com')
+    const isGmail = smtpHost?.includes('gmail.com')
+    const isOutlook = smtpHost?.includes('outlook') || smtpHost?.includes('hotmail')
+    const isYahoo = smtpHost?.includes('yahoo.com')
     
     if (error.code === 'EAUTH' || error.responseCode === 535) {
       errorMessage = 'Falha na autenticação'

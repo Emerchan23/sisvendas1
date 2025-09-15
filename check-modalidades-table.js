@@ -4,7 +4,7 @@ const path = require('path');
 console.log('=== Verificando tabela modalidades_compra ===');
 
 // Configurar caminho do banco correto
-const dbPath = path.join(process.cwd(), 'data', 'erp.sqlite');
+const dbPath = path.join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite');
 console.log('Caminho do banco:', dbPath);
 
 try {

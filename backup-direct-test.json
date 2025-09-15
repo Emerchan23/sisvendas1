@@ -1,0 +1,362 @@
+{
+  "timestamp": "2025-09-15T21:46:02.753Z",
+  "version": "1.0",
+  "data": {
+    "clientes": [
+      {
+        "id": "a219e386-99d9-4285-b1c1-84b8e66a50c3",
+        "nome": "dfgfdgfdgdf",
+        "cpf_cnpj": "051.961.901-39",
+        "endereco": "fgdfdg",
+        "telefone": "(64) 99958-4512",
+        "email": null,
+        "empresa_id": null,
+        "created_at": "2025-09-14T20:27:03.972Z",
+        "updated_at": "2025-09-14 20:27:03"
+      },
+      {
+        "id": "d6699a27-ea60-4305-b2d7-1e4ed6979798",
+        "nome": "Cliente Teste API",
+        "cpf_cnpj": null,
+        "endereco": null,
+        "telefone": "11999999999",
+        "email": "teste@api.com",
+        "empresa_id": null,
+        "created_at": "2025-09-14T21:00:49.326Z",
+        "updated_at": "2025-09-14 21:00:49"
+      },
+      {
+        "id": "ea21b578-550d-4217-bf42-a888bcc18dc9",
+        "nome": "Cliente Teste API",
+        "cpf_cnpj": null,
+        "endereco": null,
+        "telefone": "11999999999",
+        "email": "teste@api.com",
+        "empresa_id": null,
+        "created_at": "2025-09-14T21:01:12.104Z",
+        "updated_at": "2025-09-14 21:01:12"
+      },
+      {
+        "id": "bba9f4e4-b4bd-41f0-a22b-622bdcb1dd7d",
+        "nome": "Cliente Teste Interface",
+        "cpf_cnpj": "11144477735",
+        "endereco": "Rua Teste, 123",
+        "telefone": "(11) 99999-9999",
+        "email": "teste@interface.com",
+        "empresa_id": null,
+        "created_at": "2025-09-15T15:38:42.308Z",
+        "updated_at": "2025-09-15 15:38:42"
+      },
+      {
+        "id": "3d47ffb0-978e-4f7f-bc96-bb4e88e28d7a",
+        "nome": "Cliente Teste Interface",
+        "cpf_cnpj": "11144477735",
+        "endereco": "Rua Teste, 123",
+        "telefone": "(11) 99999-9999",
+        "email": "teste@interface.com",
+        "empresa_id": null,
+        "created_at": "2025-09-15T15:39:37.061Z",
+        "updated_at": "2025-09-15 15:39:37"
+      },
+      {
+        "id": "3a3e6425-6296-48a5-9193-c3fb2144401c",
+        "nome": "Cliente Teste",
+        "cpf_cnpj": "11144477735",
+        "endereco": null,
+        "telefone": "(11) 99999-9999",
+        "email": "teste@teste.com",
+        "empresa_id": null,
+        "created_at": "2025-09-15T20:44:17.191Z",
+        "updated_at": "2025-09-15 20:44:17"
+      },
+      {
+        "id": "3dc8de3a-71d5-4415-849f-f6bba9a6916c",
+        "nome": "Cliente Teste",
+        "cpf_cnpj": "11144477735",
+        "endereco": null,
+        "telefone": "(11) 99999-9999",
+        "email": "teste@teste.com",
+        "empresa_id": null,
+        "created_at": "2025-09-15T20:44:40.373Z",
+        "updated_at": "2025-09-15 20:44:40"
+      },
+      {
+        "id": "test-debug-1757972562935",
+        "nome": "Cliente Teste Debug",
+        "cpf_cnpj": "12345678901",
+        "endereco": null,
+        "telefone": "11999999999",
+        "email": "debug@teste.com",
+        "empresa_id": null,
+        "created_at": "2025-09-15T21:42:42.935Z",
+        "updated_at": "2025-09-15T21:42:42.935Z"
+      }
+    ],
+    "vendas": [],
+    "acertos": [],
+    "orcamentos": [],
+    "orcamento_itens": [],
+    "vales": [],
+    "outros_negocios": [],
+    "empresas": [
+      {
+        "id": "default",
+        "nome": "Empresa Testedd",
+        "razao_social": "Empresa Padrão LTDA",
+        "cnpj": "43434343434343",
+        "endereco": "hghghg",
+        "telefone": "(11) 99999-9999",
+        "email": "teste@empresa.com",
+        "logo_url": "",
+        "nome_do_sistema": "gfgfdd",
+        "created_at": "2025-09-14 19:38:13",
+        "updated_at": "2025-09-15 21:23:35",
+        "imposto_padrao": 10,
+        "capital_padrao": 15,
+        "layout_orcamento": null,
+        "smtp_host": "smtp.gmail.com",
+        "smtp_port": 587,
+        "smtp_secure": 1,
+        "smtp_user": "emerson.lpsantos@gmail.com",
+        "smtp_password": "mkdxjwjstnqmluvl",
+        "smtp_from_name": "Sistema Testedd",
+        "smtp_from_email": "emerson.lpsantos@gmail.com",
+        "email_template_orcamento": "Prezado(a) cliente,\n\nSegue em anexo o orçamento solicitado.f\n\nAtenciosamente,\n{nomeEmpresa}",
+        "email_template_vale": "Prezado(a),\n\nSegue em anexo o vale solicitado.\nff\nAtenciosamente,\n{nomeEmpresa}",
+        "email_template_relatorio": "Prezado(a),f\n\nSegue em anexo o relatório solicitado.\n\nAtenciosamente,\n{nomeEmpresa}",
+        "cor_primaria": "#3b82f6",
+        "cor_secundaria": "#64748b",
+        "cor_texto": "#1f2937",
+        "fonte_titulo": "Inter",
+        "fonte_texto": "Inter",
+        "tamanho_titulo": 24,
+        "tamanho_texto": 15,
+        "logo_personalizada": "",
+        "validade_orcamento": 25,
+        "auto_backup_enabled": 1,
+        "backup_frequency": "daily",
+        "backup_time": "03:00",
+        "keep_local_backup": 1,
+        "max_backups": 10,
+        "last_backup": null
+      },
+      {
+        "id": "default-company",
+        "nome": "Empresa Teste",
+        "razao_social": "Empresa Teste LTDA",
+        "cnpj": null,
+        "endereco": null,
+        "telefone": null,
+        "email": null,
+        "logo_url": null,
+        "nome_do_sistema": "LP IND",
+        "created_at": "2025-09-14 20:05:02",
+        "updated_at": "2025-09-14 20:05:02",
+        "imposto_padrao": null,
+        "capital_padrao": null,
+        "layout_orcamento": null,
+        "smtp_host": null,
+        "smtp_port": 587,
+        "smtp_secure": 0,
+        "smtp_user": null,
+        "smtp_password": null,
+        "smtp_from_name": null,
+        "smtp_from_email": null,
+        "email_template_orcamento": null,
+        "email_template_vale": null,
+        "email_template_relatorio": null,
+        "cor_primaria": "#3b82f6",
+        "cor_secundaria": "#64748b",
+        "cor_texto": "#1f2937",
+        "fonte_titulo": "Inter",
+        "fonte_texto": "Inter",
+        "tamanho_titulo": 24,
+        "tamanho_texto": 14,
+        "logo_personalizada": null,
+        "validade_orcamento": 30,
+        "auto_backup_enabled": 0,
+        "backup_frequency": "daily",
+        "backup_time": "02:00",
+        "keep_local_backup": 1,
+        "max_backups": 7,
+        "last_backup": null
+      }
+    ],
+    "modalidades": [
+      {
+        "id": "8d393ca6-7437-4989-b6fc-d13c2309bc44",
+        "codigo": "JKKJ",
+        "nome": "kj",
+        "descricao": null,
+        "ativo": 1,
+        "requer_numero_processo": 0,
+        "created_at": "2025-09-15T15:53:25.093Z",
+        "updated_at": "2025-09-15T15:53:25.093Z"
+      }
+    ],
+    "taxas": [
+      {
+        "id": "f618d4ae-bff2-46f2-b385-1ff93eb6ff01",
+        "nome": "CAPITAL",
+        "percentual": 3,
+        "tipo": "capital",
+        "ativo": 0,
+        "created_at": "2025-09-15T10:08:27.967Z",
+        "updated_at": "2025-09-15T15:51:46.107Z"
+      },
+      {
+        "id": "17722fe6-6130-422c-a228-4319b8dd3572",
+        "nome": "DIFAL",
+        "percentual": 7,
+        "tipo": "imposto",
+        "ativo": 0,
+        "created_at": "2025-09-15T10:08:38.013Z",
+        "updated_at": "2025-09-15T15:51:46.823Z"
+      },
+      {
+        "id": "624f878a-7c35-4c4c-a341-0a94cf35e7d9",
+        "nome": "DIFAL + ICMS",
+        "percentual": 12,
+        "tipo": "imposto",
+        "ativo": 0,
+        "created_at": "2025-09-15T10:08:47.167Z",
+        "updated_at": "2025-09-15T15:51:47.485Z"
+      },
+      {
+        "id": "efb1207d-a06d-4e09-89aa-2fff75cab57f",
+        "nome": "SS",
+        "percentual": 0.36,
+        "tipo": "imposto",
+        "ativo": 0,
+        "created_at": "2025-09-15T10:08:54.847Z",
+        "updated_at": "2025-09-15T10:08:58.200Z"
+      },
+      {
+        "id": "1c426afe-0f01-4faa-836d-c74d59f3f4ee",
+        "nome": "SS",
+        "percentual": 0.55,
+        "tipo": "capital",
+        "ativo": 0,
+        "created_at": "2025-09-15T10:08:59.300Z",
+        "updated_at": "2025-09-15T10:09:01.467Z"
+      },
+      {
+        "id": "644218ed-75ce-47c4-aae2-398429577089",
+        "nome": "hj",
+        "percentual": 5.55,
+        "tipo": "capital",
+        "ativo": 0,
+        "created_at": "2025-09-15T15:44:21.612Z",
+        "updated_at": "2025-09-15T15:51:45.149Z"
+      },
+      {
+        "id": "43634add-1d2c-46af-83e5-5ac582670a37",
+        "nome": "ujjhg",
+        "percentual": 0.55,
+        "tipo": "imposto",
+        "ativo": 0,
+        "created_at": "2025-09-15T15:44:22.129Z",
+        "updated_at": "2025-09-15T15:51:48.185Z"
+      },
+      {
+        "id": "df310e04-acfa-41c6-a53f-82271499744f",
+        "nome": "ddd",
+        "percentual": 0.55,
+        "tipo": "capital",
+        "ativo": 0,
+        "created_at": "2025-09-15T15:51:42.918Z",
+        "updated_at": "2025-09-15T15:51:45.502Z"
+      },
+      {
+        "id": "51c97075-3194-4df8-b886-3443c20b9abb",
+        "nome": "fg",
+        "percentual": 0.55,
+        "tipo": "capital",
+        "ativo": 1,
+        "created_at": "2025-09-15T15:53:17.936Z",
+        "updated_at": "2025-09-15T15:53:17.936Z"
+      },
+      {
+        "id": "fc743fce-0560-4283-92e9-293a8080a285",
+        "nome": "jh",
+        "percentual": 0.55,
+        "tipo": "imposto",
+        "ativo": 1,
+        "created_at": "2025-09-15T15:53:21.014Z",
+        "updated_at": "2025-09-15T15:53:21.014Z"
+      }
+    ],
+    "participantes": [
+      {
+        "id": "c389f488-39aa-4010-9834-5d540865926d",
+        "nome": "123",
+        "ativo": 1,
+        "defaultPercent": 50,
+        "created_at": "2025-09-15T10:23:37.837Z",
+        "updated_at": "2025-09-15T10:23:37.837Z"
+      },
+      {
+        "id": "535d7571-c9d2-457b-bc86-5f1083b48834",
+        "nome": "1234",
+        "ativo": 1,
+        "defaultPercent": 50,
+        "created_at": "2025-09-15T10:23:44.165Z",
+        "updated_at": "2025-09-15T10:23:44.165Z"
+      }
+    ],
+    "despesas_pendentes": [],
+    "pagamentos_parciais": [],
+    "usuarios": [
+      {
+        "id": "admin-1757881439834",
+        "nome": "Administrador",
+        "email": "admin@sistema.com",
+        "senha": "$2b$10$wJ5ahdbTZSmZGNUqdgbyhuc02bD5/O3LdFMrFw2F154FwPPPyHfcK",
+        "role": "admin",
+        "ativo": 1,
+        "permissoes": "{\"vendas\":true,\"orcamentos\":true,\"clientes\":true,\"relatorios\":true,\"configuracoes\":true,\"usuarios\":true,\"backup\":true}",
+        "ultimo_login": "2025-09-15 15:14:01",
+        "created_at": "2025-09-14 20:23:59",
+        "updated_at": "2025-09-15 15:14:01"
+      },
+      {
+        "id": "user-1757972013516-drvnkpvcc",
+        "nome": "fdfdsfds",
+        "email": "123@gmail.com",
+        "senha": "$2b$10$AJGwxSknqvHsw4jRdSOLAOL.rsYFLcxyLpyrz1SNxlyx38whxsET2",
+        "role": "user",
+        "ativo": 1,
+        "permissoes": "{\"vendas\":true,\"acertos\":true,\"clientes\":true}",
+        "ultimo_login": "2025-09-15 21:33:47",
+        "created_at": "2025-09-15 21:33:33",
+        "updated_at": "2025-09-15 21:33:47"
+      }
+    ],
+    "configuracoes": [
+      {
+        "id": null,
+        "config_key": "smtp_test_host",
+        "config_value": "smtp.gmail.com",
+        "descricao": "Teste de configuração SMTP",
+        "created_at": "2025-09-14 20:53:31",
+        "updated_at": "2025-09-14 20:53:31"
+      },
+      {
+        "id": "c0204495-fde5-4b03-9479-4524d1b77a80",
+        "config_key": "validade_orcamento",
+        "config_value": "45",
+        "descricao": "Validade padrão dos orçamentos em dias (atualizada via teste)",
+        "created_at": "2025-09-15 20:37:51",
+        "updated_at": "2025-09-15 20:40:08"
+      },
+      {
+        "id": "auth-settings-1",
+        "config_key": "auth_settings",
+        "config_value": "{\"normalExpiryHours\":1,\"rememberMeExpiryDays\":6,\"sessionCheckInterval\":4,\"warningTime\":1}",
+        "descricao": "Configurações de autenticação do sistema",
+        "created_at": "2025-09-15 21:32:54",
+        "updated_at": "2025-09-15 21:32:54"
+      }
+    ]
+  }
+}

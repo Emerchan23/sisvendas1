@@ -1,9 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { verifyToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
-    const backup = await request.json()
+    // Verificar autenticação
+    const authResult = await verifyToken(request)
+    if (!authResult.success) {
+      return NextResponse.json(
+        { error: 'Token inválido ou expirado' },
+        { status: 401 }
+      )
+    }
+
+    let backup
+    try {
+      backup = await request.json()
+    } catch (jsonError) {
+      return NextResponse.json(
+        { error: 'Arquivo de backup inválido. Certifique-se de que é um arquivo JSON válido.' },
+        { status: 400 }
+      )
+    }
     
     if (!backup.data) {
       return NextResponse.json(
@@ -25,7 +43,7 @@ export async function POST(request: NextRequest) {
         'vendas',
         'acertos', 
         'orcamentos',
-        'vales',
+        'vale_movimentos',
         'outros_negocios',
         'linhas_venda',
         'despesas_pendentes',

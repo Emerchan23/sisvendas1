@@ -102,18 +102,7 @@ export async function GET() {
       })
     }
     
-    // 5. Alerta de poucos produtos
-    const produtosCount = db.prepare("SELECT COUNT(*) as count FROM produtos WHERE empresa_id = ?").get(companyId) as { count: number }
-    
-    if (produtosCount.count < 3) {
-      alerts.push({
-        id: '5',
-        type: 'info' as const,
-        title: 'Catálogo de Produtos',
-        message: `Apenas ${produtosCount.count} produtos cadastrados. Adicione mais produtos ao seu catálogo.`,
-        timestamp: new Date().toISOString(),
-      })
-    }
+    // Produtos removidos do sistema
     
     return NextResponse.json(alerts)
   } catch (error) {

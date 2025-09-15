@@ -2,7 +2,7 @@ const Database = require('better-sqlite3');
 
 console.log('🔧 Corrigindo configurações de autenticação...');
 
-const db = new Database('./data/erp.sqlite');
+const db = new Database('../Banco de dados Aqui/erp.sqlite');
 
 try {
   // Verificar configurações existentes

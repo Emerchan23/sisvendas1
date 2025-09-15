@@ -124,6 +124,7 @@ export default function DespesasEditor({
               onChange={setValor}
               placeholder="0,00"
               className="border-gray-200 focus:border-rose-300 focus:ring-rose-200"
+              allowNegative={false}
             />
           </div>
           <div>

@@ -2,7 +2,7 @@ const Database = require('better-sqlite3');
 
 console.log('🔍 Testando conectividade completa do banco...');
 
-const db = new Database('./data/erp.sqlite');
+const db = new Database('../Banco de dados Aqui/erp.sqlite');
 
 try {
   const tables = ['usuarios', 'clientes', 'produtos', 'vendas', 'configuracoes', 'fornecedores', 'orcamentos', 'vales'];

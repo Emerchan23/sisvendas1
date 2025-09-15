@@ -41,12 +41,18 @@ type DashboardData = {
 export default function HomePage() {
   const router = useRouter()
   const { usuario } = useAuth()
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  // Estados individuais para cada seção do dashboard
+  const [totals, setTotals] = useState<DashboardData['totals'] | null>(null)
+  const [series, setSeries] = useState<DashboardData['series']>([])
+  const [summary, setSummary] = useState<DashboardData['summary'] | null>(null)
+  const [alerts, setAlerts] = useState<DashboardData['alerts']>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [chartType, setChartType] = useState<"bar" | "line">("bar")
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [selectedSemester, setSelectedSemester] = useState<string | undefined>(undefined)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
 
   const loadUserAndData = async () => {
@@ -64,13 +70,10 @@ export default function HomePage() {
             getDashboardAlerts()
           ])
           
-          setDashboardData({
-            totals,
-            series,
-            summary,
-            alerts,
-            lastUpdate: new Date().toLocaleTimeString('pt-BR')
-          })
+          setTotals(totals)
+          setSeries(series)
+          setSummary(summary)
+          setAlerts(alerts)
           
           
         } catch (err: any) {
@@ -87,9 +90,37 @@ export default function HomePage() {
   const loadChartData = async () => {
     try {
       const series = await getDashboardSeries(selectedYear, selectedSemester)
-      setDashboardData(prev => prev ? { ...prev, series } : null)
+      setSeries(series)
     } catch (err: any) {
       // Erro silencioso para não interromper a experiência do usuário
+    }
+  }
+
+  // Função para atualização automática dos dados
+  const refreshDashboardData = async (silent = true) => {
+    try {
+      if (!silent) setLoading(true)
+      
+      const [totals, series, summary, alerts] = await Promise.all([
+        getDashboardTotals(),
+        getDashboardSeries(selectedYear, selectedSemester),
+        getDashboardSummary(),
+        getDashboardAlerts()
+      ])
+      
+      setTotals(totals)
+      setSeries(series)
+      setSummary(summary)
+      setAlerts(alerts)
+      setLastUpdate(new Date())
+      setError(null)
+    } catch (error) {
+      console.error("Erro ao atualizar dados do dashboard:", error)
+      if (!silent) {
+        setError("Erro ao carregar dados do dashboard")
+      }
+    } finally {
+      if (!silent) setLoading(false)
     }
   }
 
@@ -99,10 +130,21 @@ export default function HomePage() {
 
   // Recarregar dados do gráfico quando ano ou semestre mudarem
   useEffect(() => {
-    if (dashboardData) {
+    if (totals && totals.totalRecebido !== undefined) {
       loadChartData()
     }
-  }, [selectedYear, selectedSemester])
+  }, [totals, selectedYear, selectedSemester])
+
+  // Atualização automática em tempo real
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const interval = setInterval(() => {
+      refreshDashboardData(true) // silent refresh
+    }, 30000) // Atualiza a cada 30 segundos
+
+    return () => clearInterval(interval)
+  }, [autoRefresh, selectedYear, selectedSemester])
 
 
 
@@ -143,7 +185,7 @@ export default function HomePage() {
     )
   }
 
-  if (!dashboardData) {
+  if (!totals || !summary || !alerts) {
     return (
       <div className="min-h-screen bg-gray-50">
         <AppHeader />
@@ -157,43 +199,61 @@ export default function HomePage() {
     )
   }
 
-  const { totals, series, summary, alerts, lastUpdate } = dashboardData
-
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <AppHeader />
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="space-y-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-                Dashboard Executivo
-              </h1>
-              <p className="text-gray-600 font-medium">Visão geral do seu negócio • Atualizado: {lastUpdate}</p>
-            </div>
-            <div className="flex gap-3">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-2">
+                  Dashboard Executivo
+                </h1>
+                <p className="text-gray-600 font-medium">
+                  Visão geral do seu negócio
+                  {lastUpdate && (
+                    <span> • Atualizado: {lastUpdate.toLocaleTimeString('pt-BR')}</span>
+                  )}
+                </p>
+              </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 px-3 py-2 bg-white/60 rounded-lg border border-white/30">
+                <div className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                <span className="text-sm font-medium text-gray-700">
+                  {autoRefresh ? 'Atualização Automática' : 'Manual'}
+                </span>
+                {lastUpdate && (
+                  <span className="text-xs text-gray-500">
+                    {lastUpdate.toLocaleTimeString('pt-BR')}
+                  </span>
+                )}
+              </div>
               <Button 
-                onClick={loadUserAndData} 
-                variant="outline" 
+                onClick={() => setAutoRefresh(!autoRefresh)}
+                variant="outline"
                 size="sm"
-                className="border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors duration-200"
+                className={`border-2 font-semibold px-4 py-2 rounded-xl shadow-md transition-all duration-300 ${
+                  autoRefresh 
+                    ? 'border-green-500/30 text-green-600 hover:bg-green-50' 
+                    : 'border-gray-500/30 text-gray-600 hover:bg-gray-50'
+                }`}
               >
-                Atualizar
+                {autoRefresh ? '🔄 Ativo' : '⏸️ Pausado'}
               </Button>
               <Button 
-                onClick={() => window.location.reload()} 
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg"
-                size="sm"
+                onClick={() => refreshDashboardData(false)}
+                disabled={loading}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               >
-                Forçar Reload
+                {loading ? "Carregando..." : "Atualizar Agora"}
               </Button>
             </div>
           </div>
 
           {/* Métricas principais */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
             <MetricCard 
               title="Total Recebido" 
               value={fmtCurrency(totals.totalRecebido)}
@@ -297,8 +357,8 @@ export default function HomePage() {
               </div>
               
               {/* Enhanced Controls */}
-              <div className="mt-8 p-6 bg-gradient-to-r from-slate-50/80 via-blue-50/50 to-indigo-50/80 backdrop-blur-sm rounded-2xl border border-white/30 shadow-inner">
-                <div className="flex flex-wrap items-center gap-6">
+              <div className="mt-8 p-4 sm:p-6 bg-gradient-to-r from-slate-50/80 via-blue-50/50 to-indigo-50/80 backdrop-blur-sm rounded-2xl border border-white/30 shadow-inner">
+                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4 sm:gap-6">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse"></div>
@@ -315,7 +375,7 @@ export default function HomePage() {
                     </select>
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {[
                       { key: undefined, label: "Ano Todo", icon: "📅" },
                       { key: "1", label: "1º Semestre", icon: "🌱" },
@@ -392,8 +452,7 @@ export default function HomePage() {
                               router.push('/orcamentos')
                             } else if (alert.title.includes('Clientes')) {
                               router.push('/clientes')
-                            } else if (alert.title.includes('Produtos')) {
-                              router.push('/produtos')
+
                             } else {
                               router.push('/vendas')
                             }

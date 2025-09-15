@@ -1,12 +1,12 @@
 "use client"
 
-import { api, type Cliente, type Produto, type Pedido, type Recebimento } from "./api-client"
+import { api, type Cliente, type Pedido, type Recebimento } from "./api-client"
 import { sha256 } from "js-sha256"
 
-export type { Cliente, Produto, Pedido, Recebimento }
+export type { Cliente, Pedido, Recebimento }
 
 export type ItemPedido = {
-  produtoId: string
+
   quantidade: number
   valor_unitario: number
   custoUnitario: number
@@ -74,24 +74,7 @@ export function lucroPedido(p: Pedido) {
 /* ===== Clientes ===== */
 // saveCliente and deleteCliente functions are removed as they are not needed for API-only data store
 
-/* ===== Produtos ===== */
-export async function getProdutos() {
-  return api.produtos.list()
-}
 
-export async function saveProduto(produto: Partial<Produto> & { id?: string }) {
-  if (produto.id) {
-    await api.produtos.update(produto.id, produto)
-  } else {
-    await api.produtos.create(produto)
-  }
-  emitChange("produtos")
-}
-
-export async function deleteProduto(id: string) {
-  await api.produtos.delete(id)
-  emitChange("produtos")
-}
 
 /* ===== Pedidos ===== */
 // savePedido and deletePedido functions are removed as they are not needed for API-only data store
@@ -153,7 +136,7 @@ export type BackupPayload = {
   exportedAt: string
   data: {
     clientes: Cliente[]
-    produtos: Produto[]
+  
     pedidos: Pedido[]
     recebimentos: Recebimento[]
     config: EmpresaConfig

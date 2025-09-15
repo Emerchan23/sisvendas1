@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
           valor_total REAL NOT NULL DEFAULT 0,
           descricao TEXT,
           status TEXT DEFAULT 'pendente',
-          observacoes TEXT,
+
           condicoes_pagamento TEXT,
           prazo_entrega TEXT,
           vendedor_id TEXT,
@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
           modalidade TEXT,
           numero_pregao TEXT,
           numero_dispensa TEXT,
+          numero_processo TEXT,
           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
@@ -53,11 +54,10 @@ export async function GET(request: NextRequest) {
           produto_id TEXT,
           descricao TEXT NOT NULL,
           marca TEXT,
-          unidade_medida TEXT DEFAULT 'un',
           quantidade REAL NOT NULL,
           valor_unitario REAL NOT NULL,
           valor_total REAL NOT NULL,
-          observacoes TEXT,
+
           link_ref TEXT,
           custo_ref REAL,
           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -138,6 +138,7 @@ export async function GET(request: NextRequest) {
         id: orcamento.id,
         numero: orcamento.numero,
         data: orcamento.data_orcamento,
+        data_validade: orcamento.data_validade, // ✅ CORREÇÃO: Incluir data_validade na resposta
         cliente: {
           id: orcamento.cliente_id,
           nome: orcamento.cliente_nome || '',
@@ -156,6 +157,7 @@ export async function GET(request: NextRequest) {
         modalidade: orcamento.modalidade,
         numero_pregao: orcamento.numero_pregao,
         numero_dispensa: orcamento.numero_dispensa,
+        numero_processo: orcamento.numero_processo,
         createdAt: orcamento.created_at,
         updatedAt: orcamento.updated_at,
         itens: [] // Will be populated below if requested
@@ -175,16 +177,21 @@ export async function GET(request: NextRequest) {
           // Transform items to match expected format
           (orcamento as any).itens = itens.map((item: any) => ({
             id: item.id,
-            produto_id: item.produto_id,
+            item_id: item.produto_id,
             descricao: item.descricao,
             marca: item.marca || '',
-            unidade_medida: item.unidade_medida || 'un',
+            unidade_medida: 'un', // Default value since column doesn't exist in DB
             quantidade: item.quantidade,
             valor_unitario: item.valor_unitario,
+            valor_total: item.valor_total,
             link_ref: item.link_ref,
             custo_ref: item.custo_ref,
-            desconto: 0 // Default value, can be added to schema later
+            desconto: item.desconto || 0,
+            observacoes: item.observacoes || ''
           }));
+          
+          // Add items count
+          (orcamento as any).itens_count = itens.length;
         } catch (itemError) {
           console.error('Error fetching items for orcamento:', orcamento.id, itemError);
           (orcamento as any).itens = [];
@@ -204,10 +211,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Temporariamente desabilitar foreign keys para debug
+    if (db.pragma) {
+      db.pragma('foreign_keys = OFF');
+    }
+    
     const body = await request.json();
     
     console.log('🔍 [BACKEND DEBUG] POST - Dados recebidos:', body);
     console.log('🔍 [BACKEND DEBUG] POST - Itens recebidos:', body.itens);
+    console.log('🔍 [MODALIDADE BACKEND DEBUG] Modalidade recebida:', body.modalidade);
+    console.log('🔍 [MODALIDADE BACKEND DEBUG] Tipo da modalidade:', typeof body.modalidade);
     
     const {
       numero,
@@ -223,6 +237,7 @@ export async function POST(request: NextRequest) {
       modalidade,
       numero_pregao,
       numero_dispensa,
+      numero_processo,
       itens
     } = body;
     
@@ -237,9 +252,9 @@ export async function POST(request: NextRequest) {
     // Get system configuration for validade_orcamento
     let validadeDias = 30; // default
     try {
-      const config = db.prepare('SELECT validade_orcamento FROM system_config LIMIT 1').get();
-      if (config && config.validade_orcamento) {
-        validadeDias = config.validade_orcamento;
+      const config = db.prepare('SELECT config_value FROM configuracoes WHERE config_key = ? LIMIT 1').get('validade_orcamento');
+      if (config && config.config_value) {
+        validadeDias = parseInt(config.config_value) || 30;
       }
     } catch (configError) {
       console.log('Using default validade_orcamento:', validadeDias);
@@ -247,6 +262,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate data_validade based on configuration
     const dataOrcamento = data_orcamento ? new Date(data_orcamento) : new Date();
+    const finalDataOrcamento = dataOrcamento.toISOString().split('T')[0];
     const dataValidadeCalculated = new Date(dataOrcamento);
     dataValidadeCalculated.setDate(dataValidadeCalculated.getDate() + validadeDias);
     const finalDataValidade = data_validade || dataValidadeCalculated.toISOString().split('T')[0];
@@ -271,12 +287,11 @@ export async function POST(request: NextRequest) {
       valorTotal = valorTotal - (valorTotal * (desconto / 100));
     }
     
-    // Verificar se o número já existe e gerar um novo se necessário
+    // Gerar número do orçamento se não fornecido ou se já existe
     let finalNumero = numero;
-    const existingOrcamento = db.prepare('SELECT numero FROM orcamentos WHERE numero = ?').get(numero);
     
-    if (existingOrcamento) {
-      // Se o número já existe, gerar um novo baseado no ano atual
+    if (!finalNumero || db.prepare('SELECT numero FROM orcamentos WHERE numero = ?').get(finalNumero)) {
+      // Gerar um novo número baseado no ano atual
       const currentYear = new Date().getFullYear();
       const orcamentosDoAno = db.prepare(
         'SELECT numero FROM orcamentos WHERE numero LIKE ?'
@@ -298,21 +313,23 @@ export async function POST(request: NextRequest) {
       finalNumero = `${numeroFormatado}/${currentYear}`;
     }
     
+    console.log('🔍 [BACKEND DEBUG] POST - Número do orçamento gerado:', finalNumero);
+    
     // Insert the orcamento
     try {
       const insertOrcamento = db.prepare(`
         INSERT INTO orcamentos (
           id, numero, cliente_id, data_orcamento, data_validade, valor_total,
           descricao, status, observacoes, condicoes_pagamento, prazo_entrega,
-          vendedor_id, desconto, modalidade, numero_pregao, numero_dispensa
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          vendedor_id, desconto, modalidade, numero_pregao, numero_dispensa, numero_processo
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       insertOrcamento.run(
         id,
         finalNumero,
         cliente_id,
-        data_orcamento,
+        finalDataOrcamento,
         finalDataValidade,
         valorTotal,
         descricao,
@@ -324,7 +341,8 @@ export async function POST(request: NextRequest) {
         desconto,
         modalidade,
         numero_pregao,
-        numero_dispensa
+        numero_dispensa,
+        numero_processo
       );
     } catch (insertError) {
       console.error('Error inserting orcamento:', insertError);
@@ -341,8 +359,8 @@ export async function POST(request: NextRequest) {
         const insertItem = db.prepare(`
           INSERT INTO orcamento_itens (
             id, orcamento_id, produto_id, descricao, marca, quantidade,
-            valor_unitario, valor_total, observacoes, link_ref, custo_ref
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            valor_unitario, valor_total, link_ref, custo_ref
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         for (const item of itens) {
@@ -352,24 +370,34 @@ export async function POST(request: NextRequest) {
           console.log('🔍 [BACKEND DEBUG] POST - Inserindo item:', {
             itemId,
             orcamento_id: id,
-            produto_id: item.produto_id || null,
+            produto_id: item.item_id || null,
             descricao: item.descricao,
             marca: item.marca || '',
             quantidade: item.quantidade,
             valor_unitario: item.valor_unitario,
-            valorTotalItem
+            valorTotalItem,
+            link_ref: item.link_ref,
+            custo_ref: item.custo_ref
+          });
+          
+          console.log('🚨 [CRITICAL DEBUG] POST - Campos detalhes internos:', {
+            'item.link_ref': item.link_ref,
+            'item.custo_ref': item.custo_ref,
+            'typeof link_ref': typeof item.link_ref,
+            'typeof custo_ref': typeof item.custo_ref,
+            'link_ref || ""': item.link_ref || '',
+            'custo_ref || 0': item.custo_ref || 0
           });
           
           insertItem.run(
             itemId,
             id,
-            item.produto_id || null,
+            item.item_id || null,
             item.descricao,
             item.marca || '',
             item.quantidade,
             item.valor_unitario,
             valorTotalItem,
-            item.observacoes || '',
             item.link_ref || '',
             item.custo_ref || 0
           );
@@ -417,9 +445,9 @@ export async function PUT(request: NextRequest) {
     // Get system configuration for validade_orcamento
     let validadeDias = 30; // default
     try {
-      const config = db.prepare('SELECT validade_orcamento FROM system_config LIMIT 1').get();
-      if (config && config.validade_orcamento) {
-        validadeDias = config.validade_orcamento;
+      const config = db.prepare('SELECT config_value FROM configuracoes WHERE config_key = ? LIMIT 1').get('validade_orcamento');
+      if (config && config.config_value) {
+        validadeDias = parseInt(config.config_value) || 30;
       }
     } catch (configError) {
       console.log('Using default validade_orcamento:', validadeDias);
@@ -445,7 +473,8 @@ export async function PUT(request: NextRequest) {
         valor_total = ?,
         modalidade = ?,
         numero_pregao = ?,
-        numero_dispensa = ?
+        numero_dispensa = ?,
+        numero_processo = ?
       WHERE id = ?`
     ).run(
       updateData.cliente_id,
@@ -456,6 +485,7 @@ export async function PUT(request: NextRequest) {
       updateData.modalidade || 'normal',
       updateData.numero_pregao || null,
       updateData.numero_dispensa || null,
+      updateData.numero_processo || null,
       id
     )
     
@@ -474,10 +504,10 @@ export async function PUT(request: NextRequest) {
         db.prepare(
           `INSERT INTO orcamento_itens (
             id, orcamento_id, produto_id, descricao, marca, quantidade, 
-            valor_unitario, valor_total, observacoes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        ).run(itemId, id, item.produto_id, item.descricao, item.marca || '', 
-           item.quantidade, item.valor_unitario, valorTotalItem, item.observacoes);
+            valor_unitario, valor_total, link_ref, custo_ref
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).run(itemId, id, item.item_id || null, item.descricao, item.marca || '', 
+           item.quantidade, item.valor_unitario, valorTotalItem, item.link_ref || '', item.custo_ref || 0);
       }
       
       // Update total value

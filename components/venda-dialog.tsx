@@ -42,12 +42,13 @@ export function VendaDialog({
   modalidades,
   clientes
 }: VendaDialogProps) {
+
   const [formData, setFormData] = useState<Partial<LinhaVenda>>({
     dataPedido: new Date().toISOString().split('T')[0],
     numeroOF: '',
     numeroDispensa: '',
     cliente: '',
-    produto: '',
+    item: '',
     modalidade: '',
     valorVenda: 0,
     taxaCapitalPerc: 0,
@@ -66,6 +67,8 @@ export function VendaDialog({
   const [dataPedido, setDataPedido] = useState<Date | undefined>(new Date())
   const [dataRecebimento, setDataRecebimento] = useState<Date | undefined>()
 
+
+
   useEffect(() => {
     if (linha) {
       setFormData(linha)
@@ -77,7 +80,7 @@ export function VendaDialog({
         numeroOF: '',
         numeroDispensa: '',
         cliente: '',
-        produto: '',
+        item: '',
         modalidade: '',
         valorVenda: 0,
         taxaCapitalPerc: 0,
@@ -279,14 +282,13 @@ export function VendaDialog({
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-slate-700 font-medium">
                     <Package className="h-4 w-4 text-green-600" />
-                    Produto Orçado / Vendido
-                  </Label>
-                  <Textarea
-                    value={formData.produto || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, produto: e.target.value }))}
-                    placeholder="Descreva detalhadamente o produto orçado ou vendido"
-                    rows={4}
-                    className="bg-white border-slate-300 focus:border-green-500 resize-none"
+                    Item/Serviço
+            </Label>
+            <Input
+              value={formData.item || ''}
+              onChange={(e) => setFormData(prev => ({ ...prev, item: e.target.value }))}
+              placeholder="Digite o nome do item ou serviço"
+                    className="bg-white border-slate-300 text-slate-800 placeholder:text-slate-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
                   />
                 </div>
               </TabsContent>
@@ -303,6 +305,7 @@ export function VendaDialog({
                       onChange={(value) => setFormData(prev => ({ ...prev, valorVenda: value }))}
                       placeholder="0,00"
                       className="bg-white border-slate-300 focus:border-green-500 h-10"
+                      allowNegative={false}
                     />
                   </div>
 
@@ -316,6 +319,7 @@ export function VendaDialog({
                       onChange={(value) => setFormData(prev => ({ ...prev, custoMercadoria: value }))}
                       placeholder="0,00"
                       className="bg-white border-slate-300 focus:border-green-500 h-10"
+                      allowNegative={false}
                     />
                   </div>
                 </div>

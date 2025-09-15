@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 async function testDetailedEdit() {
   console.log('🔍 Teste detalhado de edição de orçamento...');
   
-  const db = new Database('./data/erp.sqlite');
+  const db = new Database('../Banco de dados Aqui/erp.sqlite');
   
   try {
     // 1. Verificar estado inicial

@@ -5,13 +5,9 @@ const path = require('path');
 
 console.log('🚀 Iniciando servidor de desenvolvimento...');
 
-const isWindows = process.platform === 'win32';
-const npmCmd = isWindows ? 'npm.cmd' : 'npm';
-
-const child = spawn(npmCmd, ['run', 'dev'], {
+const child = spawn('npm', ['run', 'dev'], {
   stdio: 'inherit',
-  cwd: __dirname,
-  shell: isWindows
+  cwd: __dirname
 });
 
 child.on('close', (code) => {

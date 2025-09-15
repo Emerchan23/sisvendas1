@@ -15,7 +15,7 @@ class AutoStart {
         this.projectDir = process.cwd();
         this.packageJsonPath = path.join(this.projectDir, 'package.json');
         this.nodeModulesPath = path.join(this.projectDir, 'node_modules');
-        this.dbPath = path.join(this.projectDir, 'data', 'erp.sqlite');
+        this.dbPath = path.join(this.projectDir, '..', 'Banco de dados Aqui', 'erp.sqlite');
     }
 
     // Verificar se o sistema está instalado

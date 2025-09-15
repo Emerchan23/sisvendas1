@@ -27,6 +27,67 @@ import { UsuariosManagement } from "@/components/UsuariosManagement"
 
 function ConfiguracoesContent() {
   const [formData, setFormData] = useState<Partial<Config>>({})
+  const [logoUrlError, setLogoUrlError] = useState<string>('')
+  const [logoPersonalizadaError, setLogoPersonalizadaError] = useState<string>('')
+
+  // Função para validar URL
+  const isValidUrl = (url: string): boolean => {
+    if (!url.trim()) return true // URL vazia é válida
+    try {
+      const urlObj = new URL(url)
+      
+      // Verificar protocolo
+      if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+        return false
+      }
+      
+      // Verificar se o hostname é válido
+      const hostname = urlObj.hostname
+      if (!hostname || hostname.length === 0) {
+        return false
+      }
+      
+      // Verificar se não é um hostname obviamente inválido
+      const invalidHostnames = [
+        'localhost', '127.0.0.1', '0.0.0.0',
+        'invalid-hostname-test.com', 'usera.com', 'userb.com', 'userc.com'
+      ]
+      
+      if (invalidHostnames.includes(hostname)) {
+        return false
+      }
+      
+      // Verificar formato básico do hostname
+      const hostnameRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*$/
+      if (!hostnameRegex.test(hostname)) {
+        return false
+      }
+      
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // Função para validar e definir URL do logo
+  const handleLogoUrlChange = (value: string) => {
+    setFormData((s: Partial<Config>) => ({ ...s, logoUrl: value }))
+    if (value && !isValidUrl(value)) {
+      setLogoUrlError('URL inválida. Verifique se o endereço está correto e acessível (deve começar com http:// ou https://)')
+    } else {
+      setLogoUrlError('')
+    }
+  }
+
+  // Função para validar e definir logo personalizada
+  const handleLogoPersonalizadaChange = (value: string) => {
+    setPersonalizacaoConfig(s => ({ ...s, logoPersonalizada: value }))
+    if (value && !isValidUrl(value)) {
+      setLogoPersonalizadaError('URL inválida. Verifique se o endereço está correto e acessível (deve começar com http:// ou https://)')
+    } else {
+      setLogoPersonalizadaError('')
+    }
+  }
   const [smtpConfig, setSmtpConfig] = useState({
     host: "",
     port: 587,
@@ -566,6 +627,16 @@ function ConfiguracoesContent() {
   }, [])
 
   const handleSalvarGeral = async () => {
+    // Verificar se há erros de validação
+    if (logoUrlError) {
+      toast({
+        title: "Erro de Validação",
+        description: "Corrija os erros de validação antes de salvar",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       // Salvar configurações gerais
       const configData = {
@@ -640,6 +711,16 @@ function ConfiguracoesContent() {
   }
 
   const handleSalvarPersonalizacao = async () => {
+    // Verificar se há erros de validação
+    if (logoPersonalizadaError) {
+      toast({
+        title: "Erro de Validação",
+        description: "Corrija os erros de validação antes de salvar",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       const configData = {
         corPrimaria: personalizacaoConfig.corPrimaria,
@@ -653,8 +734,26 @@ function ConfiguracoesContent() {
         validadeOrcamento: personalizacaoConfig.validadeOrcamento || 30
       }
       
+      // Salvar no localStorage
       const currentConfig = getConfig()
       saveConfig({ ...currentConfig, ...configData })
+      
+      // Salvar a configuração de validade na tabela configuracoes
+      const response = await fetch('/api/configuracoes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          config_key: 'validade_orcamento',
+          config_value: (personalizacaoConfig.validadeOrcamento || 30).toString(),
+          descricao: 'Validade padrão dos orçamentos em dias'
+        })
+      })
+      
+      if (!response.ok) {
+        console.error('Erro ao salvar configuração de validade na tabela configuracoes')
+      }
       
       // Disparar evento para atualizar outros componentes
       window.dispatchEvent(new CustomEvent(ERP_CHANGED_EVENT, { detail: { key: "config" } }))
@@ -775,7 +874,32 @@ function ConfiguracoesContent() {
         }),
       })
 
-      const result = await response.json()
+      // Verificar se a resposta tem conteúdo antes de fazer parse
+      const responseText = await response.text()
+      
+      if (!responseText || responseText.trim() === '') {
+        console.error('❌ Resposta vazia da API de teste SMTP')
+        toast({
+          title: "❌ Erro de Comunicação",
+          description: "Resposta vazia do servidor. Verifique se o servidor está funcionando corretamente.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      let result
+      try {
+        result = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('❌ Erro ao fazer parse do JSON:', parseError)
+        console.error('📄 Resposta recebida:', responseText)
+        toast({
+          title: "❌ Erro de Formato",
+          description: "Resposta inválida do servidor. Verifique os logs do console para mais detalhes.",
+          variant: "destructive",
+        })
+        return
+      }
 
       if (response.ok && result.success) {
         // Sucesso - mostrar informações detalhadas
@@ -821,9 +945,24 @@ function ConfiguracoesContent() {
       }
     } catch (error) {
       console.error('❌ Erro crítico ao testar SMTP:', error)
+      
+      // Tratamento de erro mais específico
+      let errorTitle = "❌ Erro Crítico"
+      let errorDescription = "Erro desconhecido ao testar SMTP"
+      
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        errorTitle = "❌ Erro de Conexão"
+        errorDescription = "Não foi possível conectar ao servidor. Verifique se o servidor está rodando."
+      } else if (error instanceof SyntaxError) {
+        errorTitle = "❌ Erro de Formato"
+        errorDescription = "Resposta inválida do servidor. Verifique os logs do console."
+      } else if (error instanceof Error) {
+        errorDescription = `Erro ao testar conexão SMTP: ${error.message}`
+      }
+      
       toast({
-        title: "❌ Erro Crítico",
-        description: "Falha na comunicação com o servidor. Verifique sua conexão.",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       })
     } finally {
@@ -884,10 +1023,21 @@ function ConfiguracoesContent() {
         return
       }
       
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        toast({
+          title: "Erro",
+          description: "Token de autenticação não encontrado. Faça login novamente.",
+          variant: "destructive",
+        })
+        return
+      }
+      
       const response = await fetch('/api/backup/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(backupData),
       })
@@ -1034,9 +1184,15 @@ function ConfiguracoesContent() {
                     <Input
                       id="logoUrl"
                       value={formData.logoUrl || ""}
-                      onChange={(e) => setFormData((s: Partial<Config>) => ({ ...s, logoUrl: e.target.value }))}
+                      onChange={(e) => handleLogoUrlChange(e.target.value)}
                       placeholder="https://exemplo.com/logo.png"
+                      className={logoUrlError ? 'border-red-500' : ''}
                     />
+                    {logoUrlError && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {logoUrlError}
+                      </p>
+                    )}
                     <p className="text-xs text-slate-500 mt-1">
                       Resolução ideal: 48x48px ou 96x96px para melhor qualidade no cabeçalho
                     </p>
@@ -1096,7 +1252,7 @@ function ConfiguracoesContent() {
               </CardHeader>
               <CardContent className="space-y-6 p-6 bg-gradient-to-br from-white to-green-50/30">
                 <p className="text-slate-600 mb-6">
-                  Gerencie as unidades de medida disponíveis para os produtos nos orçamentos.
+                  Gerencie as unidades de medida disponíveis para os itens nos orçamentos.
                 </p>
                 
                 {/* Formulário para adicionar nova unidade */}
@@ -1570,9 +1726,15 @@ function ConfiguracoesContent() {
                     <Input
                       id="logoPersonalizada"
                       value={personalizacaoConfig.logoPersonalizada || ''}
-                      onChange={(e) => setPersonalizacaoConfig(s => ({ ...s, logoPersonalizada: e.target.value }))}
+                      onChange={(e) => handleLogoPersonalizadaChange(e.target.value)}
                       placeholder="https://exemplo.com/logo-personalizada.png"
+                      className={logoPersonalizadaError ? 'border-red-500' : ''}
                     />
+                    {logoPersonalizadaError && (
+                      <p className="text-xs text-red-500 mt-1">
+                        {logoPersonalizadaError}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="validadeOrcamento">Validade do Orçamento (dias)</Label>

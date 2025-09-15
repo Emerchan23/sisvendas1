@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '../../../lib/db'
 import { uid } from '../../../lib/util'
+import { isValidCPFOrCNPJ } from '../../../lib/masks'
 
 export async function GET() {
   try {
@@ -43,6 +44,19 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
+    
+    // Validar campos obrigatórios
+    if (!body.nome || !body.nome.trim()) {
+      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
+    }
+    
+    const documento = body.documento || body.cpf_cnpj
+    
+    // Validar CPF/CNPJ se fornecido
+    if (documento && !isValidCPFOrCNPJ(documento)) {
+      return NextResponse.json({ error: 'CPF/CNPJ inválido' }, { status: 400 })
+    }
+    
     const id = uid()
     
     db.prepare(`
@@ -50,11 +64,11 @@ export async function POST(request: NextRequest) {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
-      body.nome,
-      body.documento || body.cpf_cnpj || null,
-      body.endereco || null,
-      body.telefone || null,
-      body.email || null,
+      body.nome.trim(),
+      documento || null,
+      body.endereco?.trim() || null,
+      body.telefone?.trim() || null,
+      body.email?.trim() || null,
       new Date().toISOString()
     )
     

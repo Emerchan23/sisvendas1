@@ -71,6 +71,37 @@ graph TD
 | /outros-negocios | Receitas e despesas extras |
 | /fornecedores | Cadastro de fornecedores |
 
+### 3.1 Validações de Interface
+
+**Sistema de Acertos**
+- Campo "Título do Acerto" é obrigatório
+- Validação implementada na função `salvarAcerto()` em `/app/acertos/page.tsx`
+- Notificação via toast quando campo não preenchido: "O título do acerto é obrigatório."
+- Salvamento bloqueado até preenchimento do campo
+
+**Sistema de Outros Negócios**
+- Campo "Cliente" é obrigatório e deve ser selecionado da lista de clientes válidos
+- Validação implementada na função `handleSaveItem()` em `/app/outros-negocios/page.tsx`
+- Substituição do campo de texto livre por seletor de clientes para evitar cliente_id inválido
+- Validações implementadas:
+  - Verificação se cliente foi selecionado: "Por favor, selecione um cliente"
+  - Verificação se cliente existe na lista: "Cliente selecionado não é válido"
+- Carregamento automático da lista de clientes via `getClientes()` no `useEffect`
+- Tratamento de erro específico para "Cliente não encontrado" com mensagem amigável
+
+**Correção de Bug - Ativação de Juros (Janeiro 2025)**
+- **Problema identificado**: A ativação de juros não funcionava na aba "outros negócios", embora a multa funcionasse
+- **Causa raiz**: Os campos `juros_ativo` e `juros_mes_percent` estavam sendo removidos do payload da API no frontend
+- **Correções implementadas**:
+  - Backend: Adicionados campos `juros_ativo` e `juros_mes_percent` nas rotas POST e PUT da API `/api/outros-negocios`
+  - Frontend: Removido comentário incorreto e incluídos os campos de juros no `apiPayload` da função `handleSaveItem()`
+  - Validação: Campos de juros agora são enviados corretamente para o banco de dados
+- **Arquivos modificados**:
+  - `/app/api/outros-negocios/route.ts` - Adicionados campos de juros no INSERT
+  - `/app/api/outros-negocios/[id]/route.ts` - Adicionados campos de juros na lista de campos válidos
+  - `/app/outros-negocios/page.tsx` - Incluídos campos de juros no payload da API
+- **Resultado**: Tanto multa quanto juros agora funcionam corretamente na aba outros negócios
+
 ## 4. Definições de API
 
 ### 4.1 APIs Principais

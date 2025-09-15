@@ -1,0 +1,28 @@
+{
+  "clientes": [
+    {
+      "id": "test-client-1",
+      "nome": "Cliente Teste Backup",
+      "cpf_cnpj": "123.456.789-00",
+      "endereco": "Rua Teste Backup, 123",
+      "telefone": "(11) 98765-4321",
+      "email": "teste.backup@email.com",
+      "empresa_id": null,
+      "created_at": "2025-01-14T10:00:00.000Z",
+      "updated_at": "2025-01-14T10:00:00.000Z"
+    }
+  ],
+  "produtos": [
+    {
+      "id": "test-product-1",
+      "nome": "Produto Teste Backup",
+      "preco": 100.50,
+      "descricao": "Produto para teste de backup",
+      "marca": "Teste",
+      "custo": 50.25,
+      "empresa_id": null,
+      "created_at": "2025-01-14T10:00:00.000Z",
+      "updated_at": "2025-01-14T10:00:00.000Z"
+    }
+  ]
+}

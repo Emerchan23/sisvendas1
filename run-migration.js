@@ -5,7 +5,7 @@ const path = require('path');
 console.log('=== Executando migração modalidades_compra ===');
 
 // Configurar caminho do banco
-const dbPath = path.join(process.cwd(), 'database.db');
+const dbPath = path.join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite');
 console.log('Caminho do banco:', dbPath);
 
 // Criar conexão com o banco

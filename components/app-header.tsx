@@ -20,7 +20,7 @@ const routes = [
   { href: "/acertos", label: "Acertos", icon: Calculator, permission: "acertos" },
   { href: "/clientes", label: "Clientes", icon: Users, permission: "clientes" },
   { href: "/fornecedores", label: "Fornecedores", icon: Building2, permission: "fornecedores" },
-  { href: "/produtos", label: "Produtos", icon: Package, permission: "produtos" },
+
   { href: "/vales", label: "Vale", icon: CreditCard, permission: "vales" },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3, permission: "relatorios" },
   { href: "/outros-negocios", label: "Outros negócios", icon: Briefcase, permission: "outros-negocios" },
@@ -34,6 +34,7 @@ export function AppHeader({ className = "" }: { className?: string }) {
   const { usuario, logout, hasPermission, isAdmin } = useAuth()
   const [brand, setBrand] = useState<string>("LP IND")
   const [logoUrl, setLogoUrl] = useState<string | undefined>(undefined)
+  const [imageError, setImageError] = useState<boolean>(false)
 
   // Filtrar rotas baseado nas permissões do usuário
   const filteredRoutes = useMemo(() => {
@@ -76,6 +77,7 @@ export function AppHeader({ className = "" }: { className?: string }) {
         // Usar dados da configuração geral
         setBrand(cfg?.nomeDoSistema || "LP IND")
         setLogoUrl(cfg?.logoUrl || undefined)
+        setImageError(false) // Reset error state when URL changes
       } catch (error) {
         console.error("Erro ao carregar dados:", error)
       }
@@ -87,6 +89,7 @@ export function AppHeader({ className = "" }: { className?: string }) {
       const cfg = getConfig()
       setBrand(cfg?.nomeDoSistema || "LP IND")
       setLogoUrl(cfg?.logoUrl || undefined)
+      setImageError(false) // Reset error state when URL changes
     }
 
     window.addEventListener(CONFIG_CHANGED_EVENT, onConfigChanged as EventListener)
@@ -106,13 +109,17 @@ export function AppHeader({ className = "" }: { className?: string }) {
       <div className="mx-auto flex h-16 min-h-16 items-center gap-2 px-4">
         {/* Marca */}
         <Link href="/" className="flex shrink-0 items-center gap-2" title={brand}>
-          {logoUrl ? (
+          {logoUrl && !imageError ? (
             <Image
               src={sanitizeLogoUrl(logoUrl)}
               alt="Logo da empresa"
               width={48}
               height={48}
               className="rounded object-cover"
+              onError={() => {
+                console.warn('Erro ao carregar imagem do logo:', logoUrl)
+                setImageError(true)
+              }}
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex flex-col items-center justify-center text-white">

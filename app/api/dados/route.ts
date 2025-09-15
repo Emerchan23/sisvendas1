@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
         // Dados consolidados para o dashboard
         const totalVendas = db.prepare('SELECT COUNT(*) as count, COALESCE(SUM(total), 0) as total FROM vendas').get() as { count: number; total: number }
         const totalClientes = db.prepare('SELECT COUNT(*) as count FROM clientes').get() as { count: number }
-        const totalProdutos = db.prepare('SELECT COUNT(*) as count FROM produtos').get() as { count: number }
+        // Produtos removidos do sistema
+        const totalProdutos = { count: 0 }
         
         // Vendas por mês (últimos 6 meses)
         const vendasMensais = db.prepare(`
@@ -30,25 +31,15 @@ export async function GET(request: NextRequest) {
             vendas: totalVendas.count,
             valorVendas: totalVendas.total,
             clientes: totalClientes.count,
-            produtos: totalProdutos.count
+            // produtos: totalProdutos.count // Removido
           },
           vendasMensais
         })
         
       case 'relatorios':
         // Dados para relatórios
-        const produtosMaisVendidos = db.prepare(`
-          SELECT 
-            p.nome,
-            COUNT(v.id) as quantidade_vendas,
-            COALESCE(SUM(v.quantidade), 0) as quantidade_total,
-            COALESCE(SUM(v.total), 0) as valor_total
-          FROM produtos p
-          LEFT JOIN vendas v ON p.id = v.produto_id
-          GROUP BY p.id, p.nome
-          ORDER BY quantidade_vendas DESC
-          LIMIT 10
-        `).all()
+        // Produtos removidos do sistema
+        const produtosMaisVendidos = []
         
         const clientesAtivos = db.prepare(`
           SELECT 
@@ -64,7 +55,7 @@ export async function GET(request: NextRequest) {
         `).all()
         
         return NextResponse.json({
-          produtosMaisVendidos,
+          // produtosMaisVendidos, // Removido
           clientesAtivos
         })
         
@@ -72,12 +63,11 @@ export async function GET(request: NextRequest) {
         // Dados gerais
         const empresas = db.prepare('SELECT * FROM empresas ORDER BY nome').all()
         const clientes = db.prepare('SELECT * FROM clientes ORDER BY nome').all()
-        const produtos = db.prepare('SELECT * FROM produtos ORDER BY nome').all()
+
         
         return NextResponse.json({
           empresas,
-          clientes,
-          produtos
+          clientes
         })
     }
   } catch (error) {

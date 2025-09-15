@@ -31,6 +31,45 @@ export function EmailModal({ orcamento, onEmailSent }: EmailModalProps) {
   const [searchCliente, setSearchCliente] = useState("")
   const [selectedClientes, setSelectedClientes] = useState<string[]>([])
   const [loadingClientes, setLoadingClientes] = useState(false)
+  // Função para obter o nome da modalidade
+  const getModalidadeNome = async (codigo: string) => {
+    try {
+      const response = await fetch('/api/modalidades-compra')
+      if (response.ok) {
+        const modalidades = await response.json()
+        const modalidade = modalidades.find((m: any) => m.codigo === codigo)
+        return modalidade?.nome || codigo
+      }
+    } catch (error) {
+      console.error('Erro ao buscar modalidade:', error)
+    }
+    return codigo
+  }
+
+  // Função para construir o assunto do e-mail
+  const buildEmailSubject = async () => {
+    let subject = `Orçamento #${orcamento.numero}`
+    
+    // Adicionar modalidade se disponível
+    if (orcamento.modalidade) {
+      const modalidadeNome = await getModalidadeNome(orcamento.modalidade)
+      subject += ` - ${modalidadeNome}`
+    }
+    
+    // Adicionar número do processo se disponível
+    const numeroProcesso = orcamento.numero_processo || orcamento.numero_pregao || orcamento.numero_dispensa
+    if (numeroProcesso) {
+      subject += ` - Processo ${numeroProcesso}`
+    }
+    
+    // Adicionar nome do cliente
+    if (orcamento.cliente?.nome) {
+      subject += ` - ${orcamento.cliente.nome}`
+    }
+    
+    return subject
+  }
+
   const [formData, setFormData] = useState(() => {
     const config = getConfig()
     const defaultTemplate = config.emailTemplateOrcamento || `Prezado(a) {cliente},\n\nSegue em anexo o orçamento #{numero} solicitado.\n\nAtenciosamente,\nEquipe de Vendas`
@@ -58,6 +97,15 @@ export function EmailModal({ orcamento, onEmailSent }: EmailModalProps) {
       loadClientes()
     }
   }, [clientesModalOpen])
+
+  // Atualizar assunto do e-mail quando o modal for aberto
+  useEffect(() => {
+    if (open) {
+      buildEmailSubject().then(subject => {
+        setFormData(prev => ({ ...prev, subject }))
+      })
+    }
+  }, [open, orcamento.modalidade, orcamento.numero_processo, orcamento.numero_pregao, orcamento.numero_dispensa])
 
   // Filtrar clientes com email
   useEffect(() => {

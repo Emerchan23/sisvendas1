@@ -171,6 +171,25 @@ function toast({ ...props }: Toast) {
   }
 }
 
+// Wrapper functions for different toast types
+toast.success = (message: string) => {
+  if (typeof window !== 'undefined' && window.sonner) {
+    window.sonner.success(message)
+  }
+}
+
+toast.error = (message: string) => {
+  if (typeof window !== 'undefined' && window.sonner) {
+    window.sonner.error(message)
+  }
+}
+
+toast.info = (message: string) => {
+  if (typeof window !== 'undefined' && window.sonner) {
+    window.sonner.info(message)
+  }
+}
+
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 

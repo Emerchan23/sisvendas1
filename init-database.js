@@ -5,7 +5,7 @@ const fs = require('fs');
 console.log('=== Inicializando banco de dados ===');
 
 // Configurar caminho do banco
-const dbPath = path.join(process.cwd(), 'data', 'erp.sqlite');
+const dbPath = path.join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite');
 console.log('Caminho do banco:', dbPath);
 
 // Criar diretório se não existir

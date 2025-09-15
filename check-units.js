@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 
 try {
-  const db = new Database('./data/erp.sqlite');
+  const db = new Database('../Banco de dados Aqui/erp.sqlite');
   
   console.log('=== UNIDADES DE MEDIDA EXISTENTES ===');
   const units = db.prepare('SELECT * FROM unidades_medida ORDER BY codigo').all();

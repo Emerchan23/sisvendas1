@@ -34,7 +34,9 @@ type SaveInput = Partial<Orcamento> & {
 
 export async function saveOrcamento(input: SaveInput): Promise<Orcamento | null> {
   try {
-    console.log('📤 [LIB] Enviando dados para API:', input);
+    console.log('📤 [LIB MODALIDADE] Dados recebidos na função saveOrcamento:', JSON.stringify(input, null, 2));
+    console.log('📤 [LIB MODALIDADE] Modalidade no input:', input.modalidade);
+    console.log('📤 [LIB MODALIDADE] Tipo da modalidade:', typeof input.modalidade);
     console.log('🔍 [LIB] Verificando se tem ID:', !!input.id, 'ID:', input.id);
     
     // Convert input to match API expectations
@@ -43,6 +45,9 @@ export async function saveOrcamento(input: SaveInput): Promise<Orcamento | null>
       // Keep numero as string to preserve format (e.g., "01/2025")
       numero: input.numero
     }
+    
+    console.log('📤 [LIB MODALIDADE] Dados convertidos para API:', JSON.stringify(apiInput, null, 2));
+    console.log('📤 [LIB MODALIDADE] Modalidade no apiInput:', apiInput.modalidade);
     
     if (input.id) {
       console.log('📝 [LIB] Atualizando orçamento existente:', input.id);
@@ -67,14 +72,18 @@ export async function saveOrcamento(input: SaveInput): Promise<Orcamento | null>
       }
       
       console.log('🔍 [LIB] Fazendo PATCH para /api/orcamentos/' + input.id);
-      await api.orcamentos.update(input.id, apiInput)
+      console.log('📤 [LIB MODALIDADE] Dados de atualização sendo enviados:', JSON.stringify(apiInput, null, 2));
+      const updateResult = await api.orcamentos.update(input.id, apiInput)
+      console.log('📥 [LIB MODALIDADE] Resultado da atualização:', updateResult);
       // Return a mock successful result for update
       return { ...input, id: input.id } as Orcamento
     } else {
       console.log('🆕 [LIB] Criando novo orçamento');
       console.log('🔍 [LIB] Fazendo POST para /api/orcamentos');
+      console.log('📤 [LIB MODALIDADE] Dados finais sendo enviados para API:', JSON.stringify(apiInput, null, 2));
       const result = await api.orcamentos.create(apiInput)
       console.log('✅ [LIB] Resultado da criação:', result);
+      console.log('📥 [LIB MODALIDADE] Modalidade no resultado:', result?.modalidade);
       // Return a mock successful result for creation
       return { ...input, id: result.id || 'new-id' } as Orcamento
     }
@@ -86,10 +95,18 @@ export async function saveOrcamento(input: SaveInput): Promise<Orcamento | null>
 
 export async function deleteOrcamento(id: string): Promise<boolean> {
   try {
+    // Validar se o ID é válido antes de fazer a requisição
+    if (!id || id === 'null' || id === 'undefined') {
+      console.error('❌ [DELETE] ID inválido fornecido:', id)
+      throw new Error('ID do orçamento é inválido')
+    }
+    
+    console.log('🗑️ [DELETE] Deletando orçamento com ID:', id)
     await api.orcamentos.delete(id)
+    console.log('✅ [DELETE] Orçamento deletado com sucesso')
     return true
   } catch (error) {
-    console.error("Erro ao deletar orçamento:", error)
+    console.error("❌ [DELETE] Erro ao deletar orçamento:", error)
     return false
   }
 }
@@ -120,7 +137,7 @@ export function sanitizeOrcamentoForCustomer(o: Orcamento) {
     data: o.data,
     cliente: o.cliente,
     itens: o.itens.map((item) => ({
-      descricao: item.descricao || "Produto",
+      descricao: item.descricao || "Item",
       marca: item.marca || "",
       quantidade: item.quantidade,
       precoUnitario: item.valor_unitario,

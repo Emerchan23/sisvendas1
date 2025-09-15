@@ -3,7 +3,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 // Conectar ao banco
-const dbPath = path.join(process.cwd(), 'data', 'erp.sqlite');
+const dbPath = path.join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite');
 const db = new Database(dbPath);
 
 console.log('=== TESTE DO FILTRO POR ANO ===\n');

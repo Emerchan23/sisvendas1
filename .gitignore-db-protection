@@ -1,0 +1,19 @@
+# PROTEÇÃO CONTRA BANCOS DE DADOS NA PASTA GESTAO VENDAS
+# Este arquivo serve como lembrete permanente:
+# É PROIBIDO criar arquivos de banco de dados nesta pasta!
+
+# Bloquear qualquer arquivo de banco de dados
+*.sqlite
+*.db
+*.sqlite3
+*.database
+
+# Pasta data não deve conter bancos
+data/*.sqlite
+data/*.db
+data/*.sqlite3
+
+# LEMBRETE: Todos os bancos devem ficar em:
+# ../Banco de dados Aqui/
+
+# Violação do PRD se encontrar bancos aqui!

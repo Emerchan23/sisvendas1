@@ -176,7 +176,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ data, type, layoutCon
                   )) || (
                     <tr className="bg-white">
                       <td className="border-r border-gray-200 px-4 py-3 text-center font-medium" style={{ color: primaryColor, fontFamily: bodyFont, fontSize: `${bodySize}px` }}>1</td>
-                      <td className="border-r border-gray-200 px-4 py-3" style={textStyle}>Produto de exemplo com descrição mais detalhada para demonstrar o espaço maior</td>
+                      <td className="border-r border-gray-200 px-4 py-3" style={textStyle}>Item de exemplo com descrição mais detalhada para demonstrar o espaço maior</td>
                       <td className="border-r border-gray-200 px-4 py-3 text-center" style={textStyle}>7</td>
                       <td className="border-r border-gray-200 px-4 py-3 text-center" style={textStyle}>pct</td>
                       <td className="border-r border-gray-200 px-4 py-3 text-right" style={textStyle}>R$ 50,00</td>

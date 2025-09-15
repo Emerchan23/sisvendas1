@@ -107,7 +107,7 @@ O `.gitignore` já está configurado para proteger:
 - **Tecnologias**: Next.js 15, TypeScript, SQLite, Tailwind CSS
 - **Funcionalidades**: Dashboard, Vendas, Clientes, Produtos, Relatórios, Autenticação
 - **Porta**: 3145
-- **Banco**: SQLite (../banco-de-dados/erp.sqlite)
+- **Banco**: SQLite (../Banco de dados Aqui/erp.sqlite)
 
 ## 🎯 Próximos Passos
 

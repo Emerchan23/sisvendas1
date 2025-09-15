@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'data', 'erp.sqlite');
+const dbPath = path.join(__dirname, '..', 'Banco de dados Aqui', 'erp.sqlite');
 const db = new Database(dbPath);
 
 console.log('=== ESTRUTURA DA TABELA linhas_venda ===');

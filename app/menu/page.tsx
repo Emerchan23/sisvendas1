@@ -26,7 +26,7 @@ const menuItems = [
   { href: "/acertos", label: "Acertos", description: "Controle de acertos", icon: CheckCircle, gradient: "from-purple-500 to-pink-500" },
   { href: "/clientes", label: "Clientes", description: "Cadastro de clientes", icon: Users, gradient: "from-orange-500 to-red-500" },
   { href: "/fornecedores", label: "Fornecedores", description: "Cadastro de fornecedores", icon: Truck, gradient: "from-indigo-500 to-purple-500" },
-  { href: "/produtos", label: "Produtos", description: "Cadastro de produtos", icon: Package, gradient: "from-teal-500 to-cyan-500" },
+  
   { href: "/vales", label: "Vale", description: "Controle de vales", icon: CreditCard, gradient: "from-yellow-500 to-orange-500" },
   { href: "/relatorios", label: "Relatórios", description: "Relatórios do sistema", icon: FileText, gradient: "from-slate-500 to-gray-500" },
   { href: "/outros-negocios", label: "Outros negócios", description: "Outros tipos de negócio", icon: Briefcase, gradient: "from-rose-500 to-pink-500" },

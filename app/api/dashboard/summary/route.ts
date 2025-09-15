@@ -7,7 +7,8 @@ export async function GET() {
     
     // Contadores básicos
     const clientesCount = db.prepare("SELECT COUNT(*) as count FROM clientes").get() as { count: number }
-    const produtosCount = db.prepare("SELECT COUNT(*) as count FROM produtos").get() as { count: number }
+    // Produtos removidos do sistema
+    const totalProdutos = 0
     
     // Contadores de linhas de venda pagas (pedidos concluídos)
     const linhasPagas = db.prepare(`
@@ -38,7 +39,7 @@ export async function GET() {
     
     const summary = {
       totalClientes: clientesCount.count,
-      totalProdutos: produtosCount.count,
+      totalProdutos: totalProdutos,
       totalPedidos,
       pedidosPendentes,
       orcamentosAprovados: orcamentosData.totalOrcamentos - orcamentosData.orcamentosPendentes,

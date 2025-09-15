@@ -4,7 +4,7 @@ const path = require('path');
 
 console.log('=== TESTE DE ATUALIZAÇÃO DA INTERFACE ===\n');
 
-const dbPath = path.join(__dirname, 'data', 'erp.sqlite');
+const dbPath = path.join(__dirname, '..', 'Banco de dados Aqui', 'erp.sqlite');
 const db = new Database(dbPath);
 
 try {

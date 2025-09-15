@@ -70,7 +70,7 @@ import { Plus, Trash2, ExternalLink, LockKeyhole, ChevronDown, ChevronRight, Sav
 import { fmtCurrency } from "@/lib/format"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { ERP_CHANGED_EVENT, getClientes, getProdutos, saveProduto } from "@/lib/data-store"
+import { ERP_CHANGED_EVENT, getClientes } from "@/lib/data-store"
 import { saveOrcamento, getOrcamentos, type Orcamento, type OrcamentoCliente } from "@/lib/orcamentos"
 import { api } from "@/lib/api-client"
 
@@ -120,9 +120,10 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
   const [cliente, setCliente] = useState<ClienteState>({ nome: "" })
   const [observacoes, setObservacoes] = useState("")
   const [dataValidade, setDataValidade] = useState("")
-  const [modalidade, setModalidade] = useState<"COMPRA_DIRETA" | "LICITADO" | "DISPENSA">("COMPRA_DIRETA")
+  const [modalidade, setModalidade] = useState<string>("COMPRA_DIRETA")
   const [numeroPregao, setNumeroPregao] = useState("")
   const [numeroDispensa, setNumeroDispensa] = useState("")
+  const [numeroProcesso, setNumeroProcesso] = useState("")
   const [itens, setItens] = useState<FormOrcamentoItem[]>([
     { descricao: "", marca: "", unidadeMedida: "un", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined },
   ])
@@ -139,6 +140,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         modalidade,
         numeroPregao,
         numeroDispensa,
+        numeroProcesso,
         itens
       }
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
@@ -161,6 +163,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         setModalidade(draft.modalidade || "COMPRA_DIRETA")
         setNumeroPregao(draft.numeroPregao || "")
         setNumeroDispensa(draft.numeroDispensa || "")
+        setNumeroProcesso(draft.numeroProcesso || "")
         setItens(draft.itens || [{ descricao: "", marca: "", unidadeMedida: "un", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }])
         setHasDraft(true)
         toast({ title: "Rascunho carregado!", description: "Seus dados foram restaurados." })
@@ -298,7 +301,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
     }, 2000) // Salva após 2 segundos de inatividade
 
     return () => clearTimeout(timer)
-  }, [cliente, observacoes, dataValidade, itens, clienteIdSel])
+  }, [cliente, observacoes, dataValidade, itens, clienteIdSel, numeroProcesso])
 
   // Seleção do cliente cadastrado preenche o formulário
   useEffect(() => {
@@ -351,6 +354,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
           unidadeMedida: unidadeEncontrada?.codigo || (item as any).unidade_medida || "un",
           quantidade: item.quantidade,
           valorUnitario: item.valor_unitario,
+          observacoes: (item as any).observacoes || "",
           linkRef: item.link_ref || "",
           custoRef: item.custo_ref || undefined
         }
@@ -389,19 +393,23 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
   const onSalvar = async () => {
     if (!canSave) return
     try {
-      console.log('🔍 [DEBUG] Iniciando salvamento do orçamento');
-      console.log('🔍 [DEBUG] Dados dos itens originais:', itens);
+      console.log('🚀 [MODALIDADE DEBUG] Iniciando salvamento...');
+      console.log('🚀 [MODALIDADE DEBUG] Estado atual da modalidade:', modalidade);
+      console.log('🚀 [MODALIDADE DEBUG] Tipo da modalidade:', typeof modalidade);
+      console.log('🚀 [MODALIDADE DEBUG] Número pregão:', numeroPregao);
+      console.log('🚀 [MODALIDADE DEBUG] Número processo:', numeroProcesso);
       
       // Convert FormOrcamentoItem format to match backend API expectations
       const backendItens = itens.map(item => ({
         id: generateId(),
-        produto_id: "", // Will need to be mapped if products are used
+        item_id: "", // Generic item identifier
         descricao: item.descricao,
         marca: item.marca || "",
         unidade_medida: item.unidadeMedida || "un",
         quantidade: item.quantidade,
         valor_unitario: item.valorUnitario, // API expects valor_unitario
         desconto: 0,
+        observacoes: item.observacoes || "",
         link_ref: item.linkRef || null,
         custo_ref: item.custoRef || null
       }))
@@ -418,68 +426,51 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         cliente_id = generateId()
       }
       
+      // Garantir que data_validade sempre tenha um valor válido (30 dias a partir de hoje se não informado)
+      const getValidDataValidade = () => {
+        if (dataValidade && dataValidade.trim() !== '') {
+          return dataValidade
+        }
+        // Se não informado, usar 30 dias a partir de hoje
+        const dataDefault = new Date()
+        dataDefault.setDate(dataDefault.getDate() + 30)
+        return dataDefault.toISOString().split('T')[0]
+      }
+      
       const dadosParaSalvar = orcamentoParaEdicao ? {
         id: orcamentoParaEdicao.id,
         numero: orcamentoParaEdicao.numero,
         cliente_id: cliente_id,
         data_orcamento: orcamentoParaEdicao.data,
-        data_validade: dataValidade || null,
+        data_validade: getValidDataValidade(),
         observacoes,
         modalidade,
         numero_pregao: modalidade === "LICITADO" && numeroPregao ? `${numeroPregao}/${new Date().getFullYear()}` : null,
         numero_dispensa: modalidade === "DISPENSA" && numeroDispensa ? `${numeroDispensa}/${new Date().getFullYear()}` : null,
+        numero_processo: numeroProcesso || null,
         itens: backendItens
       } : { 
         numero: numero, // Enviar o número completo no formato "número/ano"
         cliente_id: cliente_id,
         data_orcamento: new Date().toISOString(),
-        data_validade: dataValidade || null,
+        data_validade: getValidDataValidade(),
         observacoes,
         modalidade,
         numero_pregao: modalidade === "LICITADO" && numeroPregao ? `${numeroPregao}/${new Date().getFullYear()}` : null,
         numero_dispensa: modalidade === "DISPENSA" && numeroDispensa ? `${numeroDispensa}/${new Date().getFullYear()}` : null,
+        numero_processo: numeroProcesso || null,
         itens: backendItens
       }
       
-      console.log('🔍 [DEBUG] Dados completos para salvar:', dadosParaSalvar);
-      console.log('🔍 [DEBUG] Tipo de operação:', orcamentoParaEdicao ? 'EDIÇÃO' : 'CRIAÇÃO');
-      console.log('🔍 [DEBUG] Quantidade de itens:', backendItens.length);
-      console.log('🔍 [DEBUG] ID do orçamento para edição:', orcamentoParaEdicao?.id);
-      console.log('🔍 [DEBUG] Orçamento para edição completo:', orcamentoParaEdicao);
-      console.log('🔍 [DEBUG] Tem ID nos dados?', !!dadosParaSalvar.id);
-      console.log('🔍 [DEBUG] Dados para salvar completos:', dadosParaSalvar);
+      console.log('📤 [MODALIDADE DEBUG] Dados completos sendo enviados:', JSON.stringify(dadosParaSalvar, null, 2));
+      console.log('📤 [MODALIDADE DEBUG] Modalidade no payload:', dadosParaSalvar.modalidade);
       
       const result = await saveOrcamento(dadosParaSalvar)
       
-      console.log('🔍 [DEBUG] Resultado da API:', result);
+      console.log('📥 [MODALIDADE DEBUG] Resposta completa da API:', JSON.stringify(result, null, 2));
+      console.log('📥 [MODALIDADE DEBUG] Modalidade na resposta:', result?.modalidade);
       
-      // Salvar produtos únicos no catálogo automaticamente
-      if (result && !orcamentoParaEdicao) {
-        try {
-          const produtosExistentes = await getProdutos()
-          const nomesExistentes = new Set(produtosExistentes.map(p => p.nome.toLowerCase().trim()))
-          
-          for (const item of itens) {
-            const nomeItem = item.descricao.toLowerCase().trim()
-            if (nomeItem && !nomesExistentes.has(nomeItem)) {
-              // Criar produto no catálogo
-              await saveProduto({
-                nome: item.descricao,
-                marca: item.marca || undefined,
-                precoVenda: item.valorUnitario,
-                custo: item.custoRef || 0,
-                taxaImposto: 0,
-                linkRef: item.linkRef || undefined,
-                custoRef: item.custoRef || undefined
-              })
-              nomesExistentes.add(nomeItem) // Evitar duplicatas no mesmo orçamento
-            }
-          }
-        } catch (error) {
-          console.error('Erro ao salvar produtos no catálogo:', error)
-          // Não falha o orçamento se houver erro ao salvar produtos
-        }
-      }
+
       
       if (result) {
         if (!orcamentoParaEdicao) {
@@ -649,7 +640,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead className="w-[50px] text-center">#</TableHead>
-                <TableHead className="min-w-[450px]">Produto/Serviço</TableHead>
+                <TableHead className="min-w-[450px]">Item/Serviço</TableHead>
                 <TableHead className="w-[90px]">Marca</TableHead>
                 <TableHead className="w-[100px] text-center">Unidade</TableHead>
                 <TableHead className="w-[100px] text-center">Qtd.</TableHead>
@@ -743,7 +734,12 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
         <CardContent className="grid gap-6 md:grid-cols-2 p-6">
           <div className="space-y-3">
             <Label className="text-sm font-medium text-slate-700">Modalidade</Label>
-            <Select value={modalidade} onValueChange={(value: string) => setModalidade(value)}>
+            <Select value={modalidade} onValueChange={(value: string) => {
+              console.log('🔄 [MODALIDADE DEBUG] Mudança de modalidade:', value);
+              console.log('🔄 [MODALIDADE DEBUG] Modalidade anterior:', modalidade);
+              setModalidade(value);
+              console.log('🔄 [MODALIDADE DEBUG] Nova modalidade definida:', value);
+            }}>
               <SelectTrigger className="h-11 bg-white border-slate-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200">
                 <SelectValue />
               </SelectTrigger>
@@ -758,7 +754,7 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
           </div>
           {(() => {
             const modalidadeSelecionada = modalidades.find(mod => mod.codigo === modalidade)
-            return modalidadeSelecionada?.requer_numero_processo && (
+            return modalidadeSelecionada && Boolean(modalidadeSelecionada.requer_numero_processo) && (
               <div className="space-y-3">
                 <Label htmlFor="numero-processo" className="text-sm font-medium text-slate-700">
                   {modalidade === "LICITADO" ? "Número do Pregão (opcional)" : "Número do Processo (opcional)"}
@@ -766,12 +762,14 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
                 <Input
                   id="numero-processo"
                   placeholder={modalidade === "LICITADO" ? "Ex.: 87" : "Ex.: 82947"}
-                  value={modalidade === "LICITADO" ? numeroPregao : numeroDispensa}
+                  value={modalidade === "LICITADO" ? numeroPregao : modalidade === "DISPENSA" ? numeroDispensa : numeroProcesso}
                   onChange={(e) => {
                     if (modalidade === "LICITADO") {
                       setNumeroPregao(e.target.value)
-                    } else {
+                    } else if (modalidade === "DISPENSA") {
                       setNumeroDispensa(e.target.value)
+                    } else {
+                      setNumeroProcesso(e.target.value)
                     }
                   }}
                   className="h-11 bg-white border-slate-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200"
@@ -825,7 +823,8 @@ export function OrcamentoForm({ orcamentoParaEdicao, onSalvoComSucesso }: Orcame
             setModalidade("COMPRA_DIRETA")
             setNumeroPregao("")
             setNumeroDispensa("")
-            setItens([{ descricao: "", marca: "", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }])
+            setNumeroProcesso("")
+            setItens([{ descricao: "", marca: "", unidadeMedida: "un", quantidade: 1, valorUnitario: 0, linkRef: "", custoRef: undefined }])
             clearDraft()
           }}
           className="bg-white hover:bg-red-50 border-red-300 hover:border-red-400 text-red-700 shadow-md hover:shadow-lg transition-all duration-200 px-6 py-3 h-auto"
@@ -886,38 +885,41 @@ function ItemRow({
 
             {open && (
               <div id={`privado-${index}`} className="mt-3 space-y-3">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Link ref. (privado)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="https://loja.com/produto"
-                        value={item.linkRef || ""}
-                        onChange={(e) => onChange(index, { linkRef: e.target.value })}
-                      />
-                      {item.linkRef ? (
-                        <a
-                          href={item.linkRef.startsWith('http://') || item.linkRef.startsWith('https://') ? item.linkRef : `https://${item.linkRef}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex h-10 w-10 items-center justify-center rounded-md border text-muted-foreground hover:bg-accent"
-                          title="Abrir link de referência"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      ) : null}
+                <div className="space-y-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Link ref. (privado)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="https://loja.com/item"
+                          value={item.linkRef || ""}
+                          onChange={(e) => onChange(index, { linkRef: e.target.value })}
+                        />
+                        {item.linkRef ? (
+                          <a
+                            href={item.linkRef.startsWith('http://') || item.linkRef.startsWith('https://') ? item.linkRef : `https://${item.linkRef}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-md border text-muted-foreground hover:bg-accent"
+                            title="Abrir link de referência"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Custo ref. (privado)</Label>
-                    <CurrencyInput
-                      placeholder="0,00"
-                      value={item.custoRef ?? ""}
-                      onChange={(value) =>
-                        onChange(index, { custoRef: value === "" ? undefined : Number(value.replace(',', '.')) })
-                      }
-                    />
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Custo ref. (privado)</Label>
+                      <CurrencyInput
+                        placeholder="0,00"
+                        value={item.custoRef ?? ""}
+                        onChange={(value) =>
+                          onChange(index, { custoRef: value === "" ? undefined : Number(value.replace(',', '.')) })
+                        }
+                        allowNegative={false}
+                      />
+                    </div>
                   </div>
                 </div>
                 
@@ -999,6 +1001,7 @@ function ItemRow({
           onChange={(value) => onChange(index, { valorUnitario: Number(value.replace(',', '.')) })}
           placeholder="0,00"
           className="h-10 bg-white border-slate-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 transition-all duration-200 text-right"
+          allowNegative={false}
         />
       </TableCell>
 

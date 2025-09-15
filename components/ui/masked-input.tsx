@@ -3,6 +3,7 @@
 import React, { forwardRef, useState } from "react"
 import { Input } from "./input"
 import { cn } from "@/lib/utils"
+import { isValidCPFOrCNPJ } from "@/lib/masks"
 
 interface MaskedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   mask: string
@@ -69,14 +70,17 @@ MaskedInput.displayName = "MaskedInput"
 interface CnpjCpfInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   value?: string
   onChange?: (value: string) => void
+  onValidationChange?: (isValid: boolean) => void
 }
 
 const CnpjCpfInput = forwardRef<HTMLInputElement, CnpjCpfInputProps>(
-  ({ value = "", onChange, defaultValue, ...props }, ref) => {
+  ({ value = "", onChange, onValidationChange, defaultValue, className, ...props }, ref) => {
     const [displayValue, setDisplayValue] = useState(() => {
       const initialValue = String(value || defaultValue || "")
       return formatCnpjCpf(initialValue)
     })
+    const [isValid, setIsValid] = useState(false)
+    const [hasBlurred, setHasBlurred] = useState(false)
 
     function formatCnpjCpf(inputValue: string) {
       const cleanValue = inputValue.replace(/\D/g, '')
@@ -97,14 +101,36 @@ const CnpjCpfInput = forwardRef<HTMLInputElement, CnpjCpfInputProps>(
       }
     }
 
+    const validateDocument = (document: string) => {
+      const cleanDocument = document.replace(/\D/g, '')
+      if (cleanDocument.length === 0) {
+        setIsValid(false)
+        onValidationChange?.(false)
+        return
+      }
+      
+      const valid = isValidCPFOrCNPJ(document)
+      setIsValid(valid)
+      onValidationChange?.(valid)
+    }
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value
       const formattedValue = formatCnpjCpf(inputValue)
       setDisplayValue(formattedValue)
       
+      // Valida em tempo real para garantir que o estado seja sempre atualizado
+      validateDocument(formattedValue)
+      
       if (onChange) {
         onChange(formattedValue)
       }
+    }
+
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      setHasBlurred(true)
+      validateDocument(displayValue)
+      props.onBlur?.(e)
     }
 
     React.useEffect(() => {
@@ -122,14 +148,32 @@ const CnpjCpfInput = forwardRef<HTMLInputElement, CnpjCpfInputProps>(
     }, [defaultValue])
 
     return (
-      <Input
-        {...props}
-        ref={ref}
-        value={displayValue}
-        onChange={handleChange}
-        placeholder="00.000.000/0000-00 ou 000.000.000-00"
-        maxLength={18}
-      />
+      <div className="relative">
+        <Input
+          {...props}
+          ref={ref}
+          value={displayValue}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder="00.000.000/0000-00 ou 000.000.000-00"
+          maxLength={18}
+          className={cn(
+            className,
+            hasBlurred && !isValid && displayValue.replace(/\D/g, '').length > 0 && "border-red-500 focus:border-red-500 focus:ring-red-500/20",
+            hasBlurred && isValid && displayValue.replace(/\D/g, '').length > 0 && "border-green-500 focus:border-green-500 focus:ring-green-500/20"
+          )}
+        />
+        {hasBlurred && !isValid && displayValue.replace(/\D/g, '').length > 0 && (
+          <div className="absolute -bottom-5 left-0 text-xs text-red-500">
+            CPF/CNPJ inválido
+          </div>
+        )}
+        {hasBlurred && isValid && displayValue.replace(/\D/g, '').length > 0 && (
+          <div className="absolute -bottom-5 left-0 text-xs text-green-500">
+            ✓ Válido
+          </div>
+        )}
+      </div>
     )
   }
 )

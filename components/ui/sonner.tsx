@@ -1,10 +1,24 @@
 "use client"
 
 import { useTheme } from "next-themes"
-import { Toaster as Sonner, ToasterProps } from "sonner"
+import { Toaster as Sonner, ToasterProps, toast } from "sonner"
+import { useEffect } from "react"
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme()
+
+  useEffect(() => {
+    // Expose sonner toast functions globally for integration
+    if (typeof window !== 'undefined') {
+      window.sonner = {
+        success: toast.success,
+        error: toast.error,
+        info: toast.info,
+        warning: toast.warning,
+        message: toast.message
+      }
+    }
+  }, [])
 
   return (
     <Sonner

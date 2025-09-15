@@ -5,20 +5,13 @@ const path = require('path');
 
 console.log('🐳 Iniciando servidor em produção com Docker...');
 
-const isWindows = process.platform === 'win32';
-const dockerCmd = isWindows ? 'docker-compose.exe' : 'docker-compose';
-
-const child = spawn(dockerCmd, ['up', '--build'], {
+const child = spawn('docker-compose', ['up', '--build'], {
   stdio: 'inherit',
-  cwd: __dirname,
-  shell: isWindows
+  cwd: __dirname
 });
 
 child.on('close', (code) => {
   console.log(`Docker finalizado com código ${code}`);
 });
 
-process.on('SIGINT', () => {
-  spawn(dockerCmd, ['down'], { stdio: 'inherit', cwd: __dirname, shell: isWindows });
-  child.kill('SIGINT');
-});
+// Removido process.on('SIGINT') duplicado para evitar MaxListenersExceededWarning

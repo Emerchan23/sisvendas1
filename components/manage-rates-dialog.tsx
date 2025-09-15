@@ -150,6 +150,7 @@ export function ManageRatesDialog({
                   placeholder="Ex.: 3,5"
                   value={percCap}
                   onChange={setPercCap}
+                  allowNegative={false}
                 />
               </div>
               <div className="col-span-5">
@@ -225,6 +226,7 @@ export function ManageRatesDialog({
                   placeholder="Ex.: 11,5"
                   value={percImp}
                   onChange={setPercImp}
+                  allowNegative={false}
                 />
               </div>
               <div className="col-span-5">

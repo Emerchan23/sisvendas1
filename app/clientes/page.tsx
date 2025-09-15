@@ -28,6 +28,7 @@ function ClientesContent() {
   const [list, setList] = useState<Cliente[]>([])
   const [filtro, setFiltro] = useState("")
   const [editing, setEditing] = useState<Cliente | null>(null)
+  const [documentValid, setDocumentValid] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -62,7 +63,15 @@ function ClientesContent() {
       email: String(formData.get("email") || ""),
     }
     if (!payload.nome || !payload.documento) {
-      toast({ title: "Preencha Nome e CNPJ/CPF." })
+      toast.error("Preencha Nome e CNPJ/CPF.")
+      return
+    }
+
+    if (!documentValid) {
+      toast({
+        title: "Erro de Validação: Documento Inválido",
+        description: "CPF/CNPJ inválido. Verifique o documento informado.",
+      })
       return
     }
 
@@ -71,7 +80,7 @@ function ClientesContent() {
       const trimmedName = payload.nome.trim()
       const existingClient = list.find(c => c.nome.toLowerCase() === trimmedName.toLowerCase())
       if (existingClient) {
-        toast({ title: "Já existe um cliente com este nome!", variant: "destructive" })
+        toast.error("Erro de Validação: Nome Duplicado - Já existe um cliente com este nome!")
         return
       }
     }
@@ -79,17 +88,26 @@ function ClientesContent() {
     try {
       if (editing?.id) {
         await api.clientes.update(editing.id, payload)
+        toast({
+          title: "Cliente atualizado com sucesso!",
+          description: `${payload.nome} foi atualizado com sucesso.`,
+        })
       } else {
         await api.clientes.create(payload)
+        toast({
+          title: "Cliente cadastrado com sucesso!",
+          description: `${payload.nome} foi cadastrado com sucesso.`,
+        })
       }
       setEditing(null)
+      setDocumentValid(false) // Reset validation state
       refresh()
     } catch (error) {
       console.error('Erro ao salvar cliente:', error)
       if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
-        toast({ title: "Já existe um cliente com este nome!", variant: "destructive" })
+        toast.error("Erro de Validação: Nome Duplicado - Já existe um cliente com este nome!")
       } else {
-        toast({ title: "Erro ao salvar cliente. Tente novamente.", variant: "destructive" })
+        toast.error("Erro de Sistema: Falha ao Salvar - Erro ao salvar cliente. Tente novamente.")
       }
     }
   }
@@ -97,7 +115,10 @@ function ClientesContent() {
   const filtrados = useMemo(() => {
     const term = filtro.toLowerCase().trim()
     if (!term) return list
-    return list.filter((c) => c.nome.toLowerCase().includes(term) || c.documento.toLowerCase().includes(term))
+    return list.filter((c) => 
+      (c.nome?.toLowerCase() || '').includes(term) || 
+      (c.documento?.toLowerCase() || '').includes(term)
+    )
   }, [list, filtro])
 
   return (
@@ -143,7 +164,7 @@ function ClientesContent() {
                   className="bg-white/90 backdrop-blur-sm border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 rounded-xl shadow-lg hover:shadow-xl focus:shadow-blue-500/25 transition-all duration-300 hover:bg-white focus:bg-white group-hover:border-blue-300"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-6">
                 <Label htmlFor="documento" className="flex items-center gap-2 text-sm font-medium text-slate-700">
                   <FileText className="h-4 w-4 text-indigo-400" />
                   CNPJ/CPF
@@ -152,7 +173,8 @@ function ClientesContent() {
                   id="documento" 
                   name="documento" 
                   defaultValue={editing?.documento || ""} 
-                  className="bg-white/90 backdrop-blur-sm border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 rounded-xl shadow-lg hover:shadow-xl focus:shadow-indigo-500/25 transition-all duration-300 hover:bg-white focus:bg-white group-hover:border-indigo-300"
+                  onValidationChange={setDocumentValid}
+                  className="bg-white/90 backdrop-blur-sm border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/20 rounded-xl shadow-lg hover:shadow-xl focus:shadow-orange-500/25 transition-all duration-300 hover:bg-white focus:bg-white group-hover:border-orange-300"
                 />
               </div>
               <div className="space-y-2">
@@ -195,7 +217,8 @@ function ClientesContent() {
               <div className="flex gap-3 md:col-span-2 pt-4">
                 <Button 
                   type="submit" 
-                  className="flex-1 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white font-semibold py-3 px-6 rounded-xl shadow-2xl relative overflow-hidden"
+                  disabled={!documentValid}
+                  className="flex-1 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white font-semibold py-3 px-6 rounded-xl shadow-2xl relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
                 >
 
                   <span className="relative z-10 flex items-center gap-2">
@@ -205,7 +228,10 @@ function ClientesContent() {
                 {editing && (
                   <Button 
                     type="button" 
-                    onClick={() => setEditing(null)} 
+                    onClick={() => {
+                      setEditing(null)
+                      setDocumentValid(false)
+                    }} 
                     variant="outline" 
                     className="px-6 py-3 bg-white/90 border-2 border-slate-300 text-slate-700 rounded-xl shadow-lg relative overflow-hidden"
                   >
@@ -302,7 +328,10 @@ function ClientesContent() {
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          onClick={() => setEditing(c)}
+                          onClick={() => {
+                            setEditing(c)
+                            setDocumentValid(true) // Existing client has valid document
+                          }}
                           className="text-blue-600 border-2 border-blue-200 shadow-lg rounded-xl relative overflow-hidden"
                         >
                           <Edit className="h-4 w-4 mr-2 relative z-10" />
@@ -338,17 +367,15 @@ function ClientesContent() {
                                   alert(detailsMessage)
                                 } catch {
                                   toast({
-                                    title: "Não é possível excluir",
+                                    title: "Erro de Validação: Cliente com Dependências",
                                     description: "Este cliente possui registros associados. Exclua primeiro os registros relacionados.",
-                                    variant: "destructive",
                                   })
                                 }
                               } else {
                                 console.error('Erro ao excluir cliente:', error)
                                 toast({
-                                  title: "Erro",
+                                  title: "Erro de Sistema: Falha na Exclusão",
                                   description: "Erro inesperado ao excluir cliente.",
-                                  variant: "destructive",
                                 })
                               }
                             }

@@ -56,10 +56,11 @@ export async function POST(request: NextRequest) {
 
     // Configurar transporter do Nodemailer
     console.log('🔧 Configurando transporter SMTP...')
+    const port = empresa.smtp_port || 587
     const transporterConfig = {
       host: empresa.smtp_host,
-      port: empresa.smtp_port || 587,
-      secure: empresa.smtp_secure || false,
+      port: port,
+      secure: port === 465, // true para porta 465 (SSL), false para outras portas (STARTTLS)
       auth: {
         user: empresa.smtp_user,
         pass: empresa.smtp_password,
@@ -85,14 +86,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Enviar e-mail
-    console.log('📤 Enviando email...')
-    const info = await transporter.sendMail(mailOptions)
+    console.log('📧 Tentando enviar e-mail...')
+    console.log('📋 Detalhes do e-mail:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+      messageLength: mailOptions.text?.length || 0
+    })
     
-    console.log('✅ Email enviado com sucesso!', { messageId: info.messageId })
-    return NextResponse.json({
-      success: true,
+    const info = await transporter.sendMail(mailOptions)
+    console.log('✅ E-mail enviado com sucesso:', {
       messageId: info.messageId,
-      message: 'E-mail enviado com sucesso!'
+      accepted: info.accepted,
+      rejected: info.rejected,
+      response: info.response
+    })
+
+    return NextResponse.json({ 
+      success: true, 
+      messageId: info.messageId,
+      message: 'E-mail enviado com sucesso!' 
     })
 
   } catch (error) {

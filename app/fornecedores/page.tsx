@@ -81,7 +81,10 @@ function FornecedoresContent() {
       setFornecedores(data)
     } catch (error) {
       console.error('Erro ao carregar fornecedores:', error)
-      toast.error('Erro ao carregar fornecedores')
+      toast({
+        title: "Erro de Sistema: Falha no Carregamento",
+        description: "Erro ao carregar fornecedores"
+      })
     } finally {
       setLoading(false)
     }
@@ -91,7 +94,10 @@ function FornecedoresContent() {
     e.preventDefault()
     
     if (!formData.nome.trim()) {
-      toast.error('Nome é obrigatório')
+      toast({
+        title: "Erro de Validação: Campo Obrigatório",
+        description: "Nome é obrigatório"
+      })
       return
     }
 
@@ -110,7 +116,7 @@ function FornecedoresContent() {
       loadFornecedores()
     } catch (error) {
       console.error('Erro ao salvar fornecedor:', error)
-      toast.error('Erro ao salvar fornecedor')
+      toast.error("Erro ao salvar fornecedor")
     }
   }
 
@@ -138,7 +144,7 @@ function FornecedoresContent() {
       loadFornecedores()
     } catch (error) {
       console.error('Erro ao excluir fornecedor:', error)
-      toast.error('Erro ao excluir fornecedor')
+      toast.error("Erro ao excluir fornecedor")
     }
   }
 
@@ -159,7 +165,7 @@ function FornecedoresContent() {
 
   const openWhatsApp = (telefone: string) => {
     if (!telefone) {
-      toast.error('Telefone não cadastrado')
+      toast.error("Telefone não cadastrado")
       return
     }
     const cleanPhone = telefone.replace(/\D/g, '')
@@ -169,7 +175,7 @@ function FornecedoresContent() {
 
   const openSite = (siteUrl: string) => {
     if (!siteUrl) {
-      toast.error('Site não cadastrado')
+      toast.error("Site não cadastrado")
       return
     }
     let url = siteUrl
@@ -202,7 +208,7 @@ function FornecedoresContent() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent tracking-tight">Fornecedores</h1>
-          <p className="text-slate-600 mt-2 text-lg">Gerencie seus fornecedores e suas informações de acesso</p>
+          <p className="text-slate-600 mt-2 text-lg">Gerencie seus fornecedores</p>
         </div>
         
         <div className="flex gap-3">

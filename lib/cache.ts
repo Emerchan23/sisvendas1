@@ -7,7 +7,7 @@ export const CACHE_TTL = {
   EMPRESA_CONFIG: 1800,     // 30 minutes
   USER_PREFS: 1800,         // 30 minutes
   LIST_CLIENTES: 600,       // 10 minutes
-  LIST_PRODUTOS: 600,       // 10 minutes
+
   LIST_PEDIDOS: 300,        // 5 minutes
   LIST_RECEBIMENTOS: 300,   // 5 minutes
   LIST_LINHAS_VENDA: 300,   // 5 minutes
@@ -22,7 +22,7 @@ export const CACHE_KEYS = {
   // Removed empresaConfig - system simplified
   userPrefs: (userId: string) => `prefs:user:${userId}`,
   listClientes: (companyId: string) => `list:clientes:${companyId}`,
-  listProdutos: (companyId: string) => `list:produtos:${companyId}`,
+
   listPedidos: (companyId: string) => `list:pedidos:${companyId}`,
   listRecebimentos: (companyId: string) => `list:recebimentos:${companyId}`,
   listLinhasVenda: (companyId: string) => `list:linhas_venda:${companyId}`,

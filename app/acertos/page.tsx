@@ -239,7 +239,10 @@ function AcertosContent() {
       toast({ title: "Despesa salva para acerto futuro." })
     } catch (error) {
       console.error('Erro ao salvar despesa pendente:', error)
-      toast({ title: "Erro ao salvar despesa", variant: "destructive" })
+      toast({ 
+        title: "Erro", 
+        description: "Erro ao salvar despesa" 
+      })
     }
   }
 
@@ -265,7 +268,10 @@ function AcertosContent() {
       toast({ title: "Despesas pendentes excluídas." })
     } catch (error) {
       console.error('Erro ao deletar despesas pendentes:', error)
-      toast({ title: "Erro ao deletar despesas", variant: "destructive" })
+      toast({ 
+        title: "Erro", 
+        description: "Erro ao deletar despesas" 
+      })
     }
   }
 
@@ -279,7 +285,10 @@ function AcertosContent() {
       return;
     }
     if (!titulo.trim()) {
-      toast({ title: "O título do acerto é obrigatório.", variant: "destructive" })
+      toast({ 
+        title: "Erro de Validação", 
+        description: "O título do acerto é obrigatório."
+      })
       return;
     }
     const soma = participantes.reduce((a, p) => a + (dist[p.id] ?? p.defaultPercent ?? 0), 0)
@@ -371,8 +380,7 @@ function AcertosContent() {
       
       toast({ 
         title: "Erro ao criar acerto", 
-        description: errorMessage,
-        variant: "destructive" 
+        description: errorMessage
       })
     }
   }
@@ -677,7 +685,7 @@ function AcertosContent() {
             yPos += 5
             doc.text(`Data: ${venda.dataPedido ? new Date(venda.dataPedido).toLocaleDateString('pt-BR') : 'N/A'}`, 25, yPos)
             yPos += 5
-            doc.text(`Produto: ${venda.produto || 'N/A'}`, 25, yPos)
+            doc.text(`Item: ${venda.item || 'N/A'}`, 25, yPos)
             yPos += 5
             doc.text(`Valor: ${fmtCurrency(venda.valorVenda || 0)}`, 25, yPos)
             yPos += 5
@@ -918,6 +926,7 @@ function AcertosContent() {
                     placeholder="R$ 0,00"
                     disabled={bancoLocked}
                     className="shadow-sm border-green-200 focus:border-green-400 mt-1"
+                    allowNegative={false}
                   />
                 </div>
                 <div>
@@ -1043,7 +1052,7 @@ function AcertosContent() {
                     <TableHead className="font-semibold text-gray-700">Nº Dispensa</TableHead>
                     <TableHead className="font-semibold text-gray-700">Nº OF</TableHead>
                     <TableHead className="font-semibold text-gray-700">Cliente</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Produto</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Item</TableHead>
                     <TableHead className="font-semibold text-gray-700">Lucro</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1071,7 +1080,7 @@ function AcertosContent() {
                         <TableCell className="font-medium text-blue-600">{linha.numeroDispensa || '-'}</TableCell>
                         <TableCell className="font-medium text-purple-600">{linha.numeroOF || '-'}</TableCell>
                         <TableCell className="font-medium">{linha.cliente}</TableCell>
-                        <TableCell className="max-w-xs truncate">{linha.produto}</TableCell>
+                        <TableCell className="max-w-xs truncate">{linha.item}</TableCell>
                         <TableCell className={`font-bold ${isSelected ? 'text-green-700' : 'text-green-600'}`}>
                           {fmtCurrency(linha.lucroValor || 0)}
                         </TableCell>
@@ -1337,6 +1346,7 @@ function AcertosContent() {
                 onValueChange={(val) => setEditBancoValor(String(val))}
                 placeholder="R$ 0,00"
                 className="shadow-sm border-green-200 focus:border-green-400 mt-1"
+                allowNegative={false}
               />
             </div>
             <div>
@@ -1469,7 +1479,7 @@ function AcertosContent() {
                           <p className="font-semibold text-gray-800">{linha.cliente}</p>
                           <div className="text-sm text-blue-600 space-y-1">
                             <p>OF: {linha.numeroOF} | Data: {new Date(linha.dataPedido).toLocaleDateString('pt-BR')}</p>
-                            <p>Produto: {linha.produto}</p>
+                            <p>Item: {linha.item}</p>
                           </div>
                         </div>
                         <div className="text-right">

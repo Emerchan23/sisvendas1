@@ -43,8 +43,8 @@ export async function GET(request: Request) {
         const result = db.prepare(`
           SELECT COALESCE(SUM(total), 0) as valorVendas
           FROM vendas 
-          WHERE strftime('%Y', data_venda) = ?
-            AND strftime('%m', data_venda) = ?
+          WHERE strftime('%Y', data) = ?
+            AND strftime('%m', data) = ?
        `).get(year.toString(), month.toString().padStart(2, '0')) as { valorVendas: number }
         valorVendasMes = result?.valorVendas || 0
       } catch (e) {

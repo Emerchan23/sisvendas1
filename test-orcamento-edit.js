@@ -34,7 +34,6 @@ async function testOrcamentoEdit() {
         unidade_medida: 'un',
         quantidade: 3,
         valor_unitario: 75.00,
-        observacoes: 'Item adicionado durante teste de edição',
         link_ref: '',
         custo_ref: 0
       }

@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
     // Exportar todas as tabelas principais
     const tables = [
       'clientes',
-      'produtos', 
       'vendas',
       'acertos',
       'orcamentos',

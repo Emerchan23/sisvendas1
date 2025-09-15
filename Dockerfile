@@ -25,13 +25,15 @@ RUN chmod -R 777 /data
 RUN node install.js || echo "Install script completed"
 
 # Expor porta
-EXPOSE 3000
+EXPOSE 3145
 
-# Definir variáveis de ambiente
+# Definir variável de ambiente para o banco de dados
+ENV DB_PATH=../Banco de dados Aqui/erp.sqlite
+
+# Definir outras variáveis de ambiente
 ENV NODE_ENV=development
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV DB_PATH="/data/erp.sqlite"
-ENV PORT=3000
+ENV PORT=3145
 
 # Comando para iniciar aplicação
 CMD ["node", "server.js"]

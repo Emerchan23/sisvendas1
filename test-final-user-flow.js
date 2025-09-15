@@ -40,7 +40,6 @@ async function testUserFlow() {
         marca: 'Marca Premium',
         quantidade: 5,
         valor_unitario: 150.00,
-        observacoes: 'Item editado via interface',
         link_ref: '',
         custo_ref: 120.00
       },
@@ -50,7 +49,6 @@ async function testUserFlow() {
         marca: 'Marca Standard',
         quantidade: 2,
         valor_unitario: 80.00,
-        observacoes: 'Novo item adicionado',
         link_ref: '',
         custo_ref: 60.00
       }

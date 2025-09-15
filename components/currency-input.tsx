@@ -6,11 +6,15 @@ interface CurrencyInputProps {
   onChange: (value: number) => void
   placeholder?: string
   className?: string
+  allowNegative?: boolean
+  onError?: (error: string | null) => void
+  id?: string
 }
 
-export function CurrencyInput({ value, onChange, placeholder = "0,00", className }: CurrencyInputProps) {
+export function CurrencyInput({ value, onChange, placeholder = "0,00", className, allowNegative = false, onError, id }: CurrencyInputProps) {
   const [displayValue, setDisplayValue] = useState('')
   const [isFocused, setIsFocused] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Converter string para número (formato brasileiro)
   const parseCurrency = (str: string): number => {
@@ -32,9 +36,12 @@ export function CurrencyInput({ value, onChange, placeholder = "0,00", className
 
   // Validar entrada permitindo apenas números, pontos e vírgula
   const isValidInput = (str: string): boolean => {
-    // Permite números, pontos e uma vírgula
-    const regex = /^[0-9.,]*$/
+    // Permite números, pontos, vírgula e opcionalmente sinal de menos
+    const regex = allowNegative ? /^-?[0-9.,]*$/ : /^[0-9.,]*$/
     if (!regex.test(str)) return false
+    
+    // Se não permite negativo, não pode começar com -
+    if (!allowNegative && str.startsWith('-')) return false
     
     // Máximo uma vírgula
     const commaCount = (str.match(/,/g) || []).length
@@ -63,8 +70,20 @@ export function CurrencyInput({ value, onChange, placeholder = "0,00", className
     if (isValidInput(inputValue)) {
       setDisplayValue(inputValue)
       
-      // Converter para número e chamar onChange
+      // Converter para número e validar
       const numericValue = parseCurrency(inputValue)
+      
+      // Validar valores negativos
+      if (!allowNegative && numericValue < 0) {
+        const errorMsg = "Valores negativos não são permitidos"
+        setError(errorMsg)
+        if (onError) onError(errorMsg)
+        return
+      } else {
+        setError(null)
+        if (onError) onError(null)
+      }
+      
       onChange(numericValue)
     }
   }
@@ -81,14 +100,20 @@ export function CurrencyInput({ value, onChange, placeholder = "0,00", className
   }
 
   return (
-    <Input
-      type="text"
-      value={displayValue}
-      onChange={handleChange}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      placeholder={placeholder}
-      className={className}
-    />
+    <div className="space-y-1">
+      <Input
+        id={id}
+        type="text"
+        value={displayValue}
+        onChange={handleChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        className={`${className} ${error ? 'border-red-500 focus:border-red-500' : ''}`}
+      />
+      {error && (
+        <p className="text-sm text-red-600">{error}</p>
+      )}
+    </div>
   )
 }

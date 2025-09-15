@@ -39,7 +39,7 @@ const PERMISSOES_DISPONIVEIS = [
   { id: 'acertos', label: 'Acertos' },
   { id: 'clientes', label: 'Clientes' },
   { id: 'fornecedores', label: 'Fornecedores' },
-  { id: 'produtos', label: 'Produtos' },
+  
   { id: 'vales', label: 'Vale' },
   { id: 'relatorios', label: 'Relatórios' },
   { id: 'outros-negocios', label: 'Outros Negócios' },

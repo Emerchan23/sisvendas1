@@ -30,7 +30,7 @@
 ### 3. ✅ CONECTIVIDADE COM BANCO DE DADOS
 - **Status:** CONECTADO E FUNCIONAL
 - **Tipo:** SQLite (better-sqlite3)
-- **Localização:** ./data/erp.sqlite
+- **Localização:** ../Banco de dados Aqui/erp.sqlite
 - **Tabelas verificadas:**
   - ✅ usuarios (2 registros)
   - ✅ clientes (funcional)
@@ -103,7 +103,7 @@
    ```bash
    NODE_ENV=production
    JWT_SECRET=sua-chave-super-secreta-aqui-com-32-caracteres
-   DATABASE_URL=./data/erp.sqlite
+   DATABASE_URL=../Banco de dados Aqui/erp.sqlite
    NEXTAUTH_SECRET=outra-chave-secreta-para-nextauth
    NEXTAUTH_URL=https://seu-dominio.com
    ```

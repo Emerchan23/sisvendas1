@@ -20,7 +20,7 @@ function diagnoseSystem() {
   console.log(`PORT: ${process.env.PORT || '3145 (padrão)'}`)
   
   // 3. Verificar caminho do banco
-  const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data', 'erp.sqlite')
+  const dbPath = process.env.DB_PATH || path.join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite')
   console.log('\n💾 BANCO DE DADOS:')
   console.log(`📁 Caminho do banco: ${dbPath}`)
   

@@ -2,8 +2,10 @@ import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Toaster } from '@/components/ui/toaster'
+import { Toaster as SonnerToaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { SessionExpirationWarning } from '@/components/SessionExpirationWarning'
+import '@/lib/scheduler-init' // Inicializar scheduler de backup automático
 import './globals.css'
 export const metadata: Metadata = {
   title: 'v0 App',
@@ -32,6 +34,7 @@ html {
           {children}
           <SessionExpirationWarning />
           <Toaster />
+          <SonnerToaster />
         </AuthProvider>
       </body>
     </html>

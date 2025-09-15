@@ -165,7 +165,7 @@ function setupEnvironment() {
   if (!fs.existsSync(envFile)) {
     const envContent = `# Configurações do Sistema ERP
 NEXT_PUBLIC_API_URL=http://localhost:3145
-DB_PATH=../banco-de-dados/erp.sqlite
+DB_PATH=../Banco de dados Aqui/erp.sqlite
 NODE_ENV=development
 NEXT_TELEMETRY_DISABLED=1
 `;

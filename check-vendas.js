@@ -1,5 +1,5 @@
 const Database = require('better-sqlite3');
-const db = new Database('./data/erp.sqlite');
+const db = new Database('../Banco de dados Aqui/erp.sqlite');
 
 console.log('=== VENDAS NO BANCO ===');
 const vendas = db.prepare('SELECT id, numeroOF, settlementStatus, acertoId FROM linhas_venda LIMIT 10').all();

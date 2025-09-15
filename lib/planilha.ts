@@ -51,7 +51,7 @@ export async function importRowsFromObjects(rows: Record<string, any>[]) {
     const numeroDispensa =
       norm["nº dispensa"] || norm["numero dispensa"] || norm["dispensa"] || norm["n dispensa"] || ""
     const cliente = norm["cliente"] || norm["nome do cliente"] || ""
-    const produto = norm["produto orçado / vendido"] || norm["produto"] || norm["item"] || ""
+    const item = norm["item orçado / vendido"] || norm["item"] || ""
     const modalidade = norm["modalidade"] || ""
     const valorVenda = toNumber(norm["valor venda"] ?? norm["valor"] ?? norm["preço"] ?? 0)
     const taxaCapitalPerc = toNumber(norm["taxa capital %"] ?? norm["taxa capital"] ?? 0)
@@ -64,7 +64,7 @@ export async function importRowsFromObjects(rows: Record<string, any>[]) {
       numeroOF: String(numeroOF || ""),
       numeroDispensa: String(numeroDispensa || ""),
       cliente: String(cliente || ""),
-      produto: String(produto || ""),
+      item: String(item || ""),
       modalidade: String(modalidade || ""),
       valorVenda,
       taxaCapitalPerc,
@@ -83,7 +83,7 @@ export function templateCSV() {
     "Nº OF",
     "Nº Dispensa",
     "Cliente",
-    "Produto Orçado / Vendido",
+    "Item Orçado / Vendido",
     "Modalidade",
     "Valor Venda",
     "Taxa Capital %",

@@ -89,8 +89,7 @@ export type Pedido = {
 export type PedidoItem = {
   id: string
   pedidoId: string
-  produtoId: string
-  produto?: Produto
+
   quantidade: number
   valor_unitario: number
   custoUnitario: number
@@ -125,7 +124,7 @@ export type LinhaVenda = {
   numeroOF?: string | null
   numeroDispensa?: string | null
   cliente?: string | null
-  produto?: string | null
+
   modalidade?: string | null
   valorVenda: number
   taxaCapitalPerc: number
@@ -158,7 +157,7 @@ export type Fornecedor = {
   id: string
   nome: string
   categoria?: string | null
-  produtosServicos?: string | null
+
   telefone?: string | null
   siteUrl?: string | null
   usuarioLogin?: string | null
@@ -224,22 +223,7 @@ export type DespesaPendente = Despesa & {
   usedInAcertoId?: string
 }
 
-export type Produto = {
-  id: string
-  nome: string
-  descricao?: string | null
-  marca?: string | null
-  precoVenda: number
-  custo: number
-  taxaImposto: number
-  modalidadeVenda?: string | null
-  estoque?: number | null
-  linkRef?: string | null
-  custoRef?: number | null
-  categoria?: string | null
-  createdAt: string
-  updatedAt: string
-}
+
 
 export type Rate = {
   id: string
@@ -280,8 +264,7 @@ export type Modalidade = {
 
 export type OrcamentoItem = {
   id: string
-  produto_id: string
-  produto?: Produto
+
   descricao: string
   marca?: string
   quantidade: number
@@ -342,12 +325,12 @@ export async function getDashboardSeries(year?: number, semester?: string): Prom
   }
 }
 
-export async function getDashboardSummary(): Promise<{ totalClientes: number; totalProdutos: number; totalPedidos: number; pedidosPendentes: number; orcamentosAprovados: number; orcamentosPendentes: number }> {
+export async function getDashboardSummary(): Promise<{ totalClientes: number; totalPedidos: number; pedidosPendentes: number; orcamentosAprovados: number; orcamentosPendentes: number }> {
   try {
     return await api.dashboard.summary()
   } catch (error) {
     console.error("Erro ao obter resumo do dashboard:", error)
-    return { totalClientes: 0, totalProdutos: 0, totalPedidos: 0, pedidosPendentes: 0, orcamentosAprovados: 0, orcamentosPendentes: 0 }
+    return { totalClientes: 0, totalPedidos: 0, pedidosPendentes: 0, orcamentosAprovados: 0, orcamentosPendentes: 0 }
   }
 }
 
@@ -416,15 +399,7 @@ export const api = {
       http<{ ok: true }>(`/recebimentos/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) => http<{ ok: true }>(`/recebimentos/${id}`, { method: "DELETE" }),
   },
-  produtos: {
-    list: () => http<Produto[]>("/api/produtos"),
-    get: (id: string) => http<Produto>(`/api/produtos/${id}`),
-    create: (data: Partial<Produto>) =>
-      http<{ id: string }>("/api/produtos", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: string, data: Partial<Produto>) =>
-      http<{ ok: true }>(`/api/produtos/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-    delete: (id: string) => http<{ ok: true }>(`/api/produtos/${id}`, { method: "DELETE" }),
-  },
+
   fornecedores: {
     list: () => http<Fornecedor[]>("/api/fornecedores"),
     get: (id: string) => http<Fornecedor>(`/api/fornecedores/${id}`),
@@ -443,7 +418,7 @@ export const api = {
       const queryString = params.toString()
       return http<{ name: string; vendas: number; lucros: number; impostos: number; despesas: number; lucroLiquido: number }[]>(`/api/dashboard/series${queryString ? '?' + queryString : ''}`)
     },
-    summary: () => http<{ totalClientes: number; totalProdutos: number; totalPedidos: number; pedidosPendentes: number; orcamentosAprovados: number; orcamentosPendentes: number }>("/api/dashboard/summary"),
+    summary: () => http<{ totalClientes: number; totalPedidos: number; pedidosPendentes: number; orcamentosAprovados: number; orcamentosPendentes: number }>("/api/dashboard/summary"),
     alerts: () => http<{ id: string; type: string; title: string; message: string; timestamp: string }[]>("/api/dashboard/alerts"),
   },
 
@@ -458,13 +433,13 @@ export const api = {
       http<{ ok: true }>(`/api/linhas/${id}/cor`, { method: "PATCH", body: JSON.stringify({ cor }) }),
   },
   modalidades: {
-    list: () => http<Modalidade[]>("/api/modalidades-compra"),
-    get: (id: string) => http<Modalidade>(`/api/modalidades-compra/${id}`),
+    list: () => http<Modalidade[]>("/api/modalidades"),
+    get: (id: string) => http<Modalidade>(`/api/modalidades/${id}`),
     create: (data: Partial<Modalidade>) =>
-      http<{ id: string }>("/api/modalidades-compra", { method: "POST", body: JSON.stringify(data) }),
+      http<{ id: string }>("/api/modalidades", { method: "POST", body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Modalidade>) =>
-      http<{ ok: true }>(`/api/modalidades-compra/${id}`, { method: "PUT", body: JSON.stringify(data) }),
-    delete: (id: string) => http<{ ok: true }>(`/api/modalidades-compra/${id}`, { method: "DELETE" }),
+      http<{ ok: true }>(`/api/modalidades/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: string) => http<{ ok: true }>(`/api/modalidades/${id}`, { method: "DELETE" }),
   },
   rates: {
     capital: {

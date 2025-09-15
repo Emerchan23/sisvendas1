@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Edit, Trash2, DollarSign, TrendingUp, Calendar, Users, History, CreditCard, Download, Percent, CheckCircle, Shield, Target, BarChart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AppHeader } from "@/components/app-header"
-import { api } from "@/lib/api-client"
+import { api, type Cliente, getClientes } from "@/lib/api-client"
 import { loadOutrosNegocios, addPagamento, removePagamento, calcularJurosCompostosComPagamentos } from "@/lib/outros-negocios"
 import { downloadPDF, makeOutroNegocioDocumentHTML } from "@/lib/print"
 import ProtectedRoute from "@/components/ProtectedRoute"
@@ -146,6 +146,7 @@ function OutrosNegociosContent() {
   const [items, setItems] = useState<OutroNegocio[]>([])
   const [pessoaFilter, setPessoaFilter] = useState<string>("all")
   const [somentePendentes, setSomentePendentes] = useState(false)
+  const [clientes, setClientes] = useState<Cliente[]>([])
 
   const [openItem, setOpenItem] = useState(false)
   const [form, setForm] = useState<FormState>({
@@ -173,7 +174,18 @@ function OutrosNegociosContent() {
       }
     }
     loadData()
+    loadClientes()
   }, [])
+
+  const loadClientes = async () => {
+    try {
+      const clientesData = await getClientes()
+      setClientes(clientesData)
+    } catch (error) {
+      console.error('Erro ao carregar clientes:', error)
+      toast.error('Erro ao carregar lista de clientes')
+    }
+  }
 
   const pessoas = useMemo(() => getUniquePessoas(items), [items])
 
@@ -247,6 +259,19 @@ function OutrosNegociosContent() {
       return
     }
 
+    // Validar se um cliente foi selecionado
+    if (!payload.pessoa || payload.pessoa.trim() === '') {
+      alert('Por favor, selecione um cliente válido')
+      return
+    }
+
+    // Verificar se o cliente existe na lista
+    const clienteExiste = clientes.find(cliente => cliente.id === payload.pessoa)
+    if (!clienteExiste) {
+      alert('Cliente selecionado não é válido. Por favor, selecione um cliente da lista.')
+      return
+    }
+
     try {
       let next: OutroNegocio[]
       const apiPayload = {
@@ -270,9 +295,15 @@ function OutrosNegociosContent() {
       }
       setItems(next)
       setOpenItem(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar:", error)
-      alert("Erro ao salvar. Tente novamente.")
+      
+      // Tratamento de erro mais amigável
+      if (error.message?.includes('Cliente não encontrado')) {
+        alert('Cliente selecionado não foi encontrado. Por favor, selecione um cliente válido da lista.')
+      } else {
+        alert("Erro ao salvar. Tente novamente.")
+      }
     }
   }
 
@@ -851,15 +882,23 @@ function OutrosNegociosContent() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="pessoa" className="text-right">
-                  Pessoa
+                  Cliente
                 </Label>
-                <Input
-                  id="pessoa"
+                <Select
                   value={form.pessoa}
-                  onChange={(e) => setForm({ ...form, pessoa: e.target.value })}
-                  className="col-span-3"
-                  placeholder="Nome da pessoa"
-                />
+                  onValueChange={(value) => setForm({ ...form, pessoa: value })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome} - {cliente.cpf_cnpj}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="tipo" className="text-right">
@@ -897,6 +936,7 @@ function OutrosNegociosContent() {
                   onChange={(value) => setForm({ ...form, valor: value })}
                   className="col-span-3"
                   placeholder="R$ 0,00"
+                  allowNegative={false}
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -1010,6 +1050,7 @@ function OutrosNegociosContent() {
                   onChange={(value) => setPayForm({ ...payForm, valor: value })}
                   className="col-span-3"
                   placeholder="R$ 0,00"
+                  allowNegative={false}
                 />
               </div>
             </div>

@@ -5,7 +5,7 @@ import fs from 'fs'
 console.log('=== Inicializando banco de dados ===')
 
 // Configurar caminho do banco
-const dbPath = join(process.cwd(), 'data', 'erp.sqlite')
+const dbPath = join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite')
 console.log('Caminho do banco:', dbPath)
 
 // Criar diretório se não existir

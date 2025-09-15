@@ -4,7 +4,7 @@ const Database = require('better-sqlite3');
 
 console.log('=== TESTE: STATUS DE VENDAS APÓS FINALIZAR ACERTO ===\n');
 
-const dbPath = path.join(process.cwd(), 'data', 'erp.sqlite');
+const dbPath = path.join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite');
 const db = new Database(dbPath);
 
 try {

@@ -3,7 +3,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 // Conectar ao banco de dados
-const dbPath = path.join(__dirname, 'data', 'erp.sqlite');
+const dbPath = path.join(__dirname, '..', 'Banco de dados Aqui', 'erp.sqlite');
 const db = new Database(dbPath);
 
 console.log('🔧 Iniciando correção do settlementStatus das vendas...');

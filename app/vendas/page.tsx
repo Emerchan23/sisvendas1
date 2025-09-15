@@ -59,7 +59,7 @@ const allColumns: Array<{ key: keyof LinhaVenda; label: string; essential?: bool
   { key: "numeroOF", label: "Nº OF", essential: true },
   { key: "numeroDispensa", label: "Nº Dispensa", essential: false },
   { key: "cliente", label: "Cliente", essential: true },
-  { key: "produto", label: "Produto Orçado / Vendido", essential: true },
+  { key: "item", label: "Item Orçado / Vendido", essential: true },
   { key: "modalidade", label: "Modalidade", essential: true },
   { key: "valorVenda", label: "Valor Venda", essential: true },
   { key: "taxaCapitalPerc", label: "Taxa Capital %" },
@@ -222,7 +222,7 @@ function VendasContent() {
       const termo = filtro.toLowerCase()
       filtered = filtered.filter(linha => 
         linha.cliente?.toLowerCase().includes(termo) ||
-        linha.produto?.toLowerCase().includes(termo) ||
+        linha.item?.toLowerCase().includes(termo) ||
         linha.numeroOF?.toLowerCase().includes(termo) ||
         linha.numeroDispensa?.toLowerCase().includes(termo)
       )
@@ -292,22 +292,19 @@ function VendasContent() {
             detailsMessage += "\nExclua primeiro esses registros para poder deletar a linha de venda."
             
             toast({
-              title: "Erro ao excluir",
+              title: "Erro de Validação: Exclusão Bloqueada",
               description: detailsMessage,
-              variant: "destructive",
             })
           } catch {
             toast({
-              title: "Erro ao excluir",
+              title: "Erro de Validação: Exclusão Bloqueada",
               description: "Não é possível excluir esta linha de venda pois ela possui registros associados. Exclua primeiro os registros relacionados.",
-              variant: "destructive",
             })
           }
         } else {
           toast({
-            title: "Erro ao excluir",
+            title: "Erro de Sistema: Falha na Exclusão",
             description: "Ocorreu um erro ao excluir a linha de venda.",
-            variant: "destructive",
           })
         }
       }
@@ -344,9 +341,8 @@ function VendasContent() {
       }
       
       toast({
-        title: "Erro ao salvar linha",
+        title: "Erro de Validação: Falha ao Salvar",
         description: errorMessage,
-        variant: "destructive"
       })
     }
   }
@@ -397,9 +393,8 @@ function VendasContent() {
       }
       
       toast({
-        title: "Erro ao importar arquivo",
+        title: "Erro de Validação: Falha na Importação",
         description: errorMessage,
-        variant: "destructive"
       })
     }
   }
@@ -427,9 +422,8 @@ function VendasContent() {
       }
       
       toast({
-        title: "Erro ao exportar template",
+        title: "Erro de Sistema: Falha na Exportação",
         description: errorMessage,
-        variant: "destructive"
       })
     }
   }
@@ -469,9 +463,8 @@ function VendasContent() {
     } catch (error) {
       console.error('Erro ao desassociar e excluir:', error)
       toast({
-        title: "Erro",
+        title: "Erro de Sistema: Falha na Operação",
         description: "Ocorreu um erro ao desassociar e excluir a venda.",
-        variant: "destructive",
       })
     }
   }
@@ -486,10 +479,10 @@ function VendasContent() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-green-50/20">
       <AppHeader />
       
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
         {/* Header com métricas */}
         <div className="mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div className="space-y-2">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
                 Vendas
@@ -497,7 +490,7 @@ function VendasContent() {
               <p className="text-slate-600 text-lg">Gerencie suas vendas e acompanhe o desempenho</p>
             </div>
             
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
               <Button 
                 onClick={handleNovaLinha} 
                 className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl px-6 py-2.5"
@@ -545,7 +538,7 @@ function VendasContent() {
           </div>
           
           {/* Métricas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <MetricCard
               title="Total Vendas"
               value={fmtCurrency(metrics.totalVendas)}
@@ -585,16 +578,16 @@ function VendasContent() {
         </div>
         
         {/* Filtros e controles */}
-        <Card className="mb-8 bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-2xl overflow-hidden">
+        <Card className="mb-6 sm:mb-8 bg-white/80 backdrop-blur-sm shadow-lg border-0 rounded-2xl overflow-hidden">
           <div className="bg-gradient-to-r from-blue-500/10 via-green-500/10 to-purple-500/10 p-1">
-            <CardContent className="bg-white rounded-2xl p-6">
-              <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center">
+            <CardContent className="bg-white rounded-2xl p-4 sm:p-6">
+              <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 items-start lg:items-center">
                 <div className="flex-1">
                   <Input
-                    placeholder="🔍 Filtrar por cliente, produto, nº OF ou nº dispensa..."
+                    placeholder="🔍 Filtrar por cliente, item, nº OF..."
                     value={filtro}
                     onChange={(e) => setFiltro(e.target.value)}
-                    className="max-w-md h-12 rounded-xl border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-300 text-slate-700 placeholder:text-slate-400"
+                    className="w-full sm:max-w-md h-10 sm:h-12 rounded-xl border-slate-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-300 text-slate-700 placeholder:text-slate-400"
                   />
                 </div>
                 

@@ -4,8 +4,8 @@ console.log('=== Migrando modalidades do banco antigo ===');
 
 try {
   // Conectar aos dois bancos
-  const oldDb = new Database('data/erp.sqlite');
-  const newDb = new Database('database.db');
+  const db = new Database('../Banco de dados Aqui/erp.sqlite');
+  const newDb = new Database('../Banco de dados Aqui/erp.sqlite');
   
   // Buscar modalidades do banco antigo
   const modalidades = oldDb.prepare('SELECT * FROM modalidades').all();

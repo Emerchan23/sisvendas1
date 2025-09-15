@@ -92,11 +92,11 @@ export default function AmigosPage() {
     }
 
     if (!payload.pessoa || payload.valor <= 0) {
-      toast({ title: "Preencha os campos obrigatórios", description: "Pessoa e Valor são obrigatórios." })
+      toast.error("Preencha os campos obrigatórios - Pessoa e Valor são obrigatórios.")
       return
     }
     if (payload.interestEnabled && (!payload.interestMonthlyPercent || payload.interestMonthlyPercent <= 0)) {
-      toast({ title: "Informe a taxa de juros", description: "Defina a % a.m. para habilitar juros." })
+      toast.error("Informe a taxa de juros - Defina a % a.m. para habilitar juros.")
       return
     }
 
@@ -108,19 +108,19 @@ export default function AmigosPage() {
     setRows(getAmigoLancamentos())
     setOpen(false)
     setEditing(null)
-    toast({ title: editing ? "Lançamento atualizado" : "Lançamento adicionado" })
+    toast.success(editing ? "Lançamento atualizado" : "Lançamento adicionado")
   }
 
   function onMarcarPago(id: string) {
     marcarPago(id)
     setRows(getAmigoLancamentos())
-    toast({ title: "Pagamento registrado" })
+    toast.success("Pagamento registrado")
   }
 
   function onExcluir(id: string) {
     deleteAmigoLancamento(id)
     setRows(getAmigoLancamentos())
-    toast({ title: "Lançamento excluído" })
+    toast.success("Lançamento excluído")
   }
 
   const defaultDate = new Date().toISOString().slice(0, 10)
@@ -198,6 +198,7 @@ export default function AmigosPage() {
                         name="valor"
                         defaultValue={editing ? String(editing.valor) : ""}
                         placeholder="0,00"
+                        allowNegative={false}
                       />
                     </div>
                   </div>
@@ -264,6 +265,7 @@ export default function AmigosPage() {
                           editing?.interestMonthlyPercent !== undefined ? String(editing.interestMonthlyPercent) : ""
                         }
                         disabled={!jurosEnabled}
+                        allowNegative={false}
                       />
                     </div>
                   </div>

@@ -4,7 +4,7 @@ const path = require('path');
 
 // Função para garantir que o diretório de dados existe
 function ensureDataDirectory() {
-  const dataDir = process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : './data';
+  const dataDir = process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : '../Banco de dados Aqui';
   
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
@@ -56,7 +56,7 @@ function startNextServer() {
     cwd: process.cwd(),
     env: {
       ...process.env,
-      PORT: process.env.PORT || '3000'
+      PORT: process.env.PORT || '3145'
     }
   });
   

@@ -4,7 +4,7 @@ const path = require('path');
 
 console.log('=== DEBUG DOS STATUS NO BANCO ===\n');
 
-const dbPath = path.join(process.cwd(), 'data', 'erp.sqlite');
+const dbPath = path.join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite');
 const db = new Database(dbPath);
 
 // Buscar todas as linhas e mostrar os status exatos

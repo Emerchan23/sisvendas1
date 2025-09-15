@@ -14,6 +14,7 @@ export interface CurrencyInputProps
   placeholder?: string
   allowDecimals?: boolean
   decimalScale?: number
+  allowNegative?: boolean
 }
 
 // Formata valor para exibição brasileira com vírgula e pontos de milhares
@@ -42,19 +43,27 @@ const parseBrazilianCurrency = (value: string): number => {
 }
 
 const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
-  ({ className, value = '', onChange, onValueChange, onBlur, showCurrency = false, suffix = '', placeholder, defaultValue, allowDecimals = true, decimalScale = 2, ...props }, ref) => {
+  ({ className, value = '', onChange, onValueChange, onBlur, showCurrency = false, suffix = '', placeholder, defaultValue, allowDecimals = true, decimalScale = 2, allowNegative = true, ...props }, ref) => {
     const [displayValue, setDisplayValue] = React.useState('')
     const [isFocused, setIsFocused] = React.useState(false)
 
     // Formatar valor para entrada do usuário (máscara durante digitação)
     const formatInputValue = (inputValue: string): string => {
+      // Verificar se há sinal de menos
+      const isNegative = inputValue.includes('-')
+      
       // Remove tudo exceto números
       const numbers = inputValue.replace(/\D/g, '')
       
       if (!numbers) return ''
       
       // Converte para centavos (divide por 100)
-      const value = parseInt(numbers) / 100
+      let value = parseInt(numbers) / 100
+      
+      // Aplicar sinal negativo se necessário
+      if (isNegative) {
+        value = -value
+      }
       
       // Formata com padrão brasileiro
       return new Intl.NumberFormat('pt-BR', {
@@ -71,12 +80,23 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         inputValue = inputValue.substring(3)
       }
       
+      // Verificar se contém sinal de menos e allowNegative é false
+      if (!allowNegative && inputValue.includes('-')) {
+        return // Não permitir valores negativos
+      }
+      
       // Aplicar máscara de formatação
       const formatted = formatInputValue(inputValue)
-      setDisplayValue(formatted)
       
-      // Converter para valor numérico e enviar para onChange/onValueChange
+      // Converter para valor numérico e verificar novamente
       const numericValue = parseBrazilianCurrency(formatted)
+      
+      // Verificar novamente se o valor é negativo e allowNegative é false
+      if (!allowNegative && numericValue < 0) {
+        return // Não permitir valores negativos
+      }
+      
+      setDisplayValue(formatted)
       onChange?.(numericValue.toString())
       onValueChange?.(numericValue)
     }

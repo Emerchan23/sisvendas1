@@ -3,7 +3,7 @@ import { join, dirname } from 'path'
 import fs from 'fs'
 
 // Configurar caminho do banco para fora do container
-const dbPath = process.env.DB_PATH || join(process.cwd(), 'data', 'erp.sqlite')
+const dbPath = process.env.DB_PATH || join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite')
 
 // Função para validar acesso ao banco de dados
 function validateDatabaseAccess(path: string): boolean {
@@ -96,29 +96,12 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
     FOREIGN KEY (empresa_id) REFERENCES empresas(id)
   );
 
-  CREATE TABLE IF NOT EXISTS produtos (
-    id TEXT PRIMARY KEY,
-    nome TEXT NOT NULL,
-    descricao TEXT,
-    marca TEXT,
-    preco REAL NOT NULL,
-    custo REAL DEFAULT 0,
-    taxa_imposto REAL DEFAULT 0,
-    modalidade_venda TEXT,
-    estoque INTEGER DEFAULT 0,
-    link_ref TEXT,
-    custo_ref REAL,
-    categoria TEXT,
-    empresa_id TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (empresa_id) REFERENCES empresas(id)
-  );
+
 
   CREATE TABLE IF NOT EXISTS vendas (
     id TEXT PRIMARY KEY,
     cliente_id TEXT,
-    produto_id TEXT,
+
     quantidade INTEGER NOT NULL,
     preco_unitario REAL NOT NULL,
     total REAL NOT NULL,
@@ -127,7 +110,7 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (cliente_id) REFERENCES clientes(id),
-    FOREIGN KEY (produto_id) REFERENCES produtos(id),
+
     FOREIGN KEY (empresa_id) REFERENCES empresas(id)
   );
 
@@ -185,7 +168,7 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
     numeroOF TEXT,
     numeroDispensa TEXT,
     cliente TEXT,
-    produto TEXT,
+
     modalidade TEXT,
     valorVenda REAL NOT NULL DEFAULT 0,
     taxaCapitalPerc REAL NOT NULL DEFAULT 0,
@@ -358,6 +341,7 @@ try {
     ALTER TABLE orcamentos ADD COLUMN modalidade TEXT DEFAULT 'compra_direta';
     ALTER TABLE orcamentos ADD COLUMN numero_pregao TEXT;
     ALTER TABLE orcamentos ADD COLUMN numero_dispensa TEXT;
+    ALTER TABLE orcamentos ADD COLUMN numero_processo TEXT;
   `)
 } catch (error) {
   // Coluna já existe
@@ -455,54 +439,30 @@ try {
   // Coluna já existe
 }
 
-// Adicionar colunas da tabela produtos para compatibilidade com bancos existentes
+// Adicionar coluna produtos_servicos à tabela fornecedores se não existir
 try {
-  db.exec(`ALTER TABLE produtos ADD COLUMN descricao TEXT`)
+  db.exec(`ALTER TABLE fornecedores ADD COLUMN produtos_servicos TEXT`)
 } catch (error) {
   // Coluna já existe
 }
 
+// Verificar se a coluna total existe na tabela vendas
 try {
-  db.exec(`ALTER TABLE produtos ADD COLUMN marca TEXT`)
+  db.exec(`
+    ALTER TABLE vendas ADD COLUMN total REAL NOT NULL DEFAULT 0;
+  `);
+} catch (error) {
+  // Coluna já existe, ignorar erro
+}
+
+// Adicionar coluna data_transacao à tabela outros_negocios se não existir
+try {
+  db.exec(`ALTER TABLE outros_negocios ADD COLUMN data_transacao TEXT NOT NULL DEFAULT ''`)
 } catch (error) {
   // Coluna já existe
 }
 
-try {
-  db.exec(`ALTER TABLE produtos ADD COLUMN custo REAL DEFAULT 0`)
-} catch (error) {
-  // Coluna já existe
-}
 
-try {
-  db.exec(`ALTER TABLE produtos ADD COLUMN taxa_imposto REAL DEFAULT 0`)
-} catch (error) {
-  // Coluna já existe
-}
-
-try {
-  db.exec(`ALTER TABLE produtos ADD COLUMN modalidade_venda TEXT`)
-} catch (error) {
-  // Coluna já existe
-}
-
-try {
-  db.exec(`ALTER TABLE produtos ADD COLUMN estoque INTEGER DEFAULT 0`)
-} catch (error) {
-  // Coluna já existe
-}
-
-try {
-  db.exec(`ALTER TABLE produtos ADD COLUMN link_ref TEXT`)
-} catch (error) {
-  // Coluna já existe
-}
-
-try {
-  db.exec(`ALTER TABLE produtos ADD COLUMN custo_ref REAL`)
-} catch (error) {
-  // Coluna já existe
-}
 
 // Criar usuário administrador padrão se não existir
 try {
@@ -527,7 +487,7 @@ try {
         vendas: true,
         orcamentos: true,
         clientes: true,
-        produtos: true,
+
         relatorios: true,
         configuracoes: true,
         usuarios: true,

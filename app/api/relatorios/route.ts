@@ -89,36 +89,7 @@ export async function GET(request: NextRequest) {
         query += ' ORDER BY data DESC'
         break
 
-      case 'produtos':
-        query = `
-          SELECT 
-            p.id,
-            p.nome,
-            p.categoria,
-            p.preco_venda,
-            p.custo,
-            (p.preco_venda - p.custo) as margem,
-            COUNT(li.id) as vendas_count,
-            SUM(li.quantidade) as quantidade_vendida,
-            SUM(li.valor_total) as faturamento_total
-          FROM produtos p
-          LEFT JOIN linha_itens li ON p.id = li.produto_id
-          LEFT JOIN linhas l ON li.linha_id = l.id
-          WHERE 1=1
-        `
-        if (inicio) {
-          query += ' AND (l.data_venda >= ? OR l.data_venda IS NULL)'
-          params.push(inicio)
-        }
-        if (fim) {
-          query += ' AND (l.data_venda <= ? OR l.data_venda IS NULL)'
-          params.push(fim)
-        }
-        query += `
-          GROUP BY p.id, p.nome, p.categoria, p.preco_venda, p.custo
-          ORDER BY faturamento_total DESC NULLS LAST
-        `
-        break
+
 
       default:
         return NextResponse.json(

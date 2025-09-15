@@ -39,10 +39,7 @@ function OrcamentosContent() {
 
   const reload = async () => {
     try {
-      console.log('🔄 [PAGE DEBUG] Recarregando orçamentos...')
       const data = await getOrcamentos()
-      console.log('📋 [PAGE DEBUG] Orçamentos carregados:', data)
-      console.log('📋 [PAGE DEBUG] IDs dos orçamentos:', data.map(o => o.id))
       setOrcamentos(data)
     } catch (error) {
       console.error("Erro ao carregar orçamentos:", error)
@@ -248,21 +245,66 @@ function OrcamentosContent() {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              {o.modalidade === 'LICITADO' ? (
-                                <div>
-                                  <span className="font-medium text-blue-700">PREGÃO ELETRÔNICO</span>
+                              {o.modalidade === 'PREGAO_ELETRONICO' ? (
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-blue-700">PREGÃO ELETRÔNICO</div>
                                   {o.numero_pregao && (
                                     <div className="text-xs text-muted-foreground">
-                                      Pregão Eletrônico: {o.numero_pregao}
+                                      Pregão: {o.numero_pregao}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : o.modalidade === 'LICITADO' ? (
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-blue-700">LICITADO</div>
+                                  {o.numero_processo && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Processo: {o.numero_processo}
                                     </div>
                                   )}
                                 </div>
                               ) : o.modalidade === 'DISPENSA' ? (
-                                <div>
-                                  <span className="font-medium text-green-700">DISPENSA</span>
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-green-700">DISPENSA</div>
                                   {o.numero_dispensa && (
                                     <div className="text-xs text-muted-foreground">
                                       Dispensa: {o.numero_dispensa}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : o.modalidade === 'DIRETA' ? (
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-purple-700">COMPRA DIRETA</div>
+                                  {o.numero_processo && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Processo: {o.numero_processo}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : o.modalidade === 'COMPRA_DIRETA' ? (
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-purple-700">COMPRA DIRETA</div>
+                                  {o.numero_processo && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Processo: {o.numero_processo}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : o.modalidade === 'DR' ? (
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-orange-700">DISPENSA DE REGISTRO</div>
+                                  {o.numero_processo && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Processo: {o.numero_processo}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : o.modalidade ? (
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-gray-700">{o.modalidade.replace('_', ' ')}</div>
+                                  {o.numero_processo && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Processo: {o.numero_processo}
                                     </div>
                                   )}
                                 </div>
@@ -344,15 +386,14 @@ function OrcamentosContent() {
                                 <span className="sr-only">Baixar PDF</span>
                               </Button>
                               <Button
-                                variant="destructive"
-                                size="icon"
-                                title="Excluir orçamento"
-                                onClick={() => setOrcamentoParaDeletar(o)}
-                                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-red-500 shadow-lg hover:shadow-xl transition-all duration-200"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Excluir</span>
-                              </Button>
+                size="icon"
+                title="Excluir orçamento"
+                onClick={() => setOrcamentoParaDeletar(o)}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-red-500 shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Excluir</span>
+              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -388,9 +429,8 @@ function OrcamentosContent() {
                 Cancelar
               </Button>
               <Button 
-                variant="destructive" 
                 onClick={async () => {
-                  if (orcamentoParaDeletar) {
+                  if (orcamentoParaDeletar && orcamentoParaDeletar.id) {
                     try {
                       const success = await deleteOrcamento(orcamentoParaDeletar.id)
                       if (success) {

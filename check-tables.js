@@ -1,36 +1,30 @@
 const Database = require('better-sqlite3');
-const db = new Database('./vendas.db');
+const path = require('path');
 
-console.log('=== TABELAS NO BANCO DE DADOS ===');
+const dbPath = path.join(__dirname, '..', 'Banco de dados Aqui', 'erp.sqlite');
 
 try {
-  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-  console.log('Tabelas encontradas:', tables.length);
-  
-  tables.forEach((table, index) => {
-    console.log(`${index + 1}. ${table.name}`);
-  });
-  
-  // Se houver tabelas, vamos ver a estrutura da primeira que parece ser de vendas
-  if (tables.length > 0) {
-    const vendaTable = tables.find(t => t.name.toLowerCase().includes('venda') || t.name.toLowerCase().includes('linha'));
-    if (vendaTable) {
-      console.log(`\n=== ESTRUTURA DA TABELA ${vendaTable.name} ===`);
-      const columns = db.prepare(`PRAGMA table_info(${vendaTable.name})`).all();
-      columns.forEach(col => {
-        console.log(`- ${col.name} (${col.type})`);
-      });
-      
-      console.log(`\n=== PRIMEIROS 3 REGISTROS DA TABELA ${vendaTable.name} ===`);
-      const rows = db.prepare(`SELECT * FROM ${vendaTable.name} LIMIT 3`).all();
-      rows.forEach((row, index) => {
-        console.log(`${index + 1}.`, row);
-      });
-    }
-  }
-  
+    const db = new Database(dbPath);
+    console.log('✅ Conectado ao banco de dados');
+    
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+    
+    console.log('\n📊 Tabelas encontradas no banco:');
+    tables.forEach(table => {
+        console.log(`- ${table.name}`);
+        
+        // Contar registros em cada tabela
+        try {
+            const count = db.prepare(`SELECT COUNT(*) as count FROM ${table.name}`).get();
+            console.log(`  └─ Registros: ${count.count}`);
+        } catch (e) {
+            console.log(`  └─ Erro ao contar: ${e.message}`);
+        }
+    });
+    
+    db.close();
+    console.log('\n✅ Verificação concluída');
+    
 } catch (error) {
-  console.error('Erro:', error.message);
+    console.error('❌ Erro:', error.message);
 }
-
-db.close();

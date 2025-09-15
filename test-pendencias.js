@@ -3,7 +3,7 @@ const path = require('path');
 const Database = require('better-sqlite3');
 
 // Conectar ao banco
-const dbPath = path.join(__dirname, 'data', 'erp.sqlite');
+const dbPath = path.join(__dirname, '..', 'Banco de dados Aqui', 'erp.sqlite');
 const db = new Database(dbPath);
 
 console.log('=== TESTE: VENDAS PAGAS PENDENTES DE ACERTO ===\n');

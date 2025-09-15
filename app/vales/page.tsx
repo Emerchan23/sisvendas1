@@ -122,37 +122,37 @@ function ValesContent() {
 
   async function onAddCredito() {
     try {
-      if (!clienteCredito) return toast({ title: "Selecione um cliente." })
-      if (!valorCredito || valorCredito <= 0) return toast({ title: "Informe um valor válido." })
+      if (!clienteCredito) return toast.error("Selecione um cliente.")
+    if (!valorCredito || valorCredito <= 0) return toast.error("Informe um valor válido.")
       await addCredito(clienteCredito, valorCredito, descCredito)
       setValorCredito(0)
       setDescCredito("")
-      toast({ title: "Crédito adicionado com sucesso." })
+      toast.success("Crédito adicionado com sucesso.")
       setRefreshTick((t) => t + 1)
     } catch (e: any) {
-      toast({ title: e?.message || "Erro ao adicionar crédito." })
+      toast.error(e?.message || "Erro ao adicionar crédito.")
     }
   }
 
   async function onAbaterCredito() {
     try {
-      if (!clienteDebito) return toast({ title: "Selecione um cliente." })
+      if (!clienteDebito) return toast.error("Selecione um cliente.")
       const v = Number(String(valorDebito).replace(",", "."))
-      if (!v || v <= 0) return toast({ title: "Informe um valor válido." })
+      if (!v || v <= 0) return toast.error("Informe um valor válido.")
       
       // Verificar se há saldo suficiente
       const saldoAtual = await getSaldoCliente(clienteDebito)
       if (v > saldoAtual) {
-        return toast({ title: "Valor maior que o saldo disponível." })
+        return toast.error("Valor maior que o saldo disponível.")
       }
       
       await abaterCredito(clienteDebito, v, descDebito)
       setValorDebito("")
       setDescDebito("")
-      toast({ title: "Valor abatido do crédito." })
+      toast.success("Valor abatido do crédito.")
       setRefreshTick((t) => t + 1)
     } catch (e: any) {
-      toast({ title: e?.message || "Erro ao abater crédito." })
+      toast.error(e?.message || "Erro ao abater crédito.")
     }
   }
 
@@ -163,10 +163,10 @@ function ValesContent() {
       }
       
       await deleteMovimentosDoCliente(clienteId)
-      toast({ title: "Todos os movimentos do cliente foram deletados com sucesso." })
+      toast.success("Todos os movimentos do cliente foram deletados com sucesso.")
       setRefreshTick((t) => t + 1)
     } catch (e: any) {
-      toast({ title: e?.message || "Erro ao deletar movimentos do cliente." })
+      toast.error(e?.message || "Erro ao deletar movimentos do cliente.")
     }
   }
 
@@ -189,7 +189,7 @@ function ValesContent() {
       for (const [clienteId, novoSaldo] of Object.entries(saldosEditaveis)) {
         const valor = Number(novoSaldo.replace(',', '.'))
         if (isNaN(valor)) {
-          toast({ title: `Valor inválido para o cliente. Use apenas números.` })
+          toast.error(`Valor inválido para o cliente. Use apenas números.`)
           return
         }
         
@@ -204,12 +204,12 @@ function ValesContent() {
         }
       }
       
-      toast({ title: "Saldos atualizados com sucesso!" })
+      toast.success("Saldos atualizados com sucesso!")
       setModoEdicao(false)
       setSaldosEditaveis({})
       setRefreshTick((t) => t + 1)
     } catch (e: any) {
-      toast({ title: e?.message || "Erro ao salvar saldos." })
+      toast.error(e?.message || "Erro ao salvar saldos.")
     }
   }
 
@@ -333,7 +333,7 @@ function ValesContent() {
       }
     } catch (error) {
       console.error('Erro ao baixar documento de vale:', error)
-      toast({ title: "Erro ao baixar documento de vale" })
+      toast.error("Erro ao baixar documento de vale")
     }
   }
 
@@ -637,6 +637,7 @@ function ValesContent() {
                       onChange={setValorCredito}
                       placeholder="0,00"
                       className="bg-white border-2 border-green-200 focus:border-green-500 transition-colors"
+                      allowNegative={false}
                     />
                   </div>
                   <div className="space-y-2">

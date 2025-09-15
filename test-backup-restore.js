@@ -6,7 +6,7 @@ async function testBackupRestore() {
   
   try {
     // 1. Primeiro, vamos adicionar alguns itens ao orçamento existente
-    const db = new Database('./data/erp.sqlite');
+    const db = new Database('../Banco de dados Aqui/erp.sqlite');
     
     console.log('\n📝 Adicionando itens de teste ao orçamento 01/2025...');
     const orcamentoId = 'a55694c9-6232-4045-9a4e-e917a85c485f';
@@ -93,7 +93,7 @@ async function testBackupRestore() {
     
     // 5. Verificar se os itens foram restaurados
     console.log('\n🔍 Verificando itens após restore...');
-    const dbAfter = new Database('./data/erp.sqlite');
+    const dbAfter = new Database('../Banco de dados Aqui/erp.sqlite');
     const itensDepois = dbAfter.prepare('SELECT * FROM orcamento_itens WHERE orcamento_id = ?').all(orcamentoId);
     
     console.log('📊 Itens após restore:', itensDepois.length);

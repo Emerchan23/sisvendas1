@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '../../../../lib/db'
+import { isValidCPFOrCNPJ } from '../../../../lib/masks'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -42,16 +43,28 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const body = await request.json()
     const { id } = await params
     
+    // Validar campos obrigatórios
+    if (!body.nome || !body.nome.trim()) {
+      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
+    }
+    
+    const documento = body.documento || body.cpf_cnpj
+    
+    // Validar CPF/CNPJ se fornecido
+    if (documento && !isValidCPFOrCNPJ(documento)) {
+      return NextResponse.json({ error: 'CPF/CNPJ inválido' }, { status: 400 })
+    }
+    
     db.prepare(`
       UPDATE clientes 
       SET nome=?, cpf_cnpj=?, endereco=?, telefone=?, email=?, updated_at=?
       WHERE id=?
     `).run(
-      body.nome,
-      body.documento || body.cpf_cnpj || null,
-      body.endereco || null,
-      body.telefone || null,
-      body.email || null,
+      body.nome.trim(),
+      documento || null,
+      body.endereco?.trim() || null,
+      body.telefone?.trim() || null,
+      body.email?.trim() || null,
       new Date().toISOString(),
       id
     )

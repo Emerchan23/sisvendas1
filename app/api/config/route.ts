@@ -30,11 +30,25 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json()
+    console.log('📥 Dados recebidos para salvar:', data)
+    
+    // Validação básica dos dados
+    if (!data || typeof data !== 'object') {
+      console.error('❌ Dados inválidos recebidos:', data)
+      return NextResponse.json(
+        { error: 'Dados de configuração inválidos' },
+        { status: 400 }
+      )
+    }
+    
+    // Log dos campos que serão processados
+    const receivedFields = Object.keys(data)
+    console.log('📋 Campos recebidos:', receivedFields)
     
     console.log('📝 Salvando configurações:', data)
     
     // Verificar se já existe empresa
-    const existingEmpresa = db.prepare('SELECT rowid FROM empresas LIMIT 1').get() as any
+    const existingEmpresa = db.prepare('SELECT id FROM empresas LIMIT 1').get() as any
     
     if (existingEmpresa) {
       // Atualizar empresa existente - apenas campos fornecidos
@@ -192,11 +206,11 @@ export async function POST(request: NextRequest) {
       
       if (updateFields.length > 0) {
         updateFields.push('updated_at = CURRENT_TIMESTAMP')
-        updateValues.push(existingEmpresa.rowid)
+        updateValues.push(existingEmpresa.id)
         
-        const updateQuery = `UPDATE empresas SET ${updateFields.join(', ')} WHERE rowid = ?`
+        const updateQuery = `UPDATE empresas SET ${updateFields.join(', ')} WHERE id = ?`
         
-        console.log('🔄 Atualizando empresa existente rowid:', existingEmpresa.rowid)
+        console.log('🔄 Atualizando empresa existente id:', existingEmpresa.id)
         console.log('📝 Campos a atualizar:', updateFields)
         
         db.prepare(updateQuery).run(...updateValues)
@@ -256,8 +270,31 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('❌ Erro ao salvar configurações:', error)
+    console.error('📊 Stack trace:', error.stack)
+    
+    // Log detalhado do erro para debugging
+    if (error.code === 'SQLITE_ERROR') {
+      console.error('🗄️ Erro de SQLite:', {
+        message: error.message,
+        code: error.code,
+        sql: error.sql || 'N/A'
+      })
+    }
+    
+    // Retornar erro mais específico em desenvolvimento
+    const isDevelopment = process.env.NODE_ENV === 'development'
+    const errorMessage = isDevelopment 
+      ? `Erro detalhado: ${error.message}` 
+      : 'Erro interno do servidor'
+    
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { 
+        error: errorMessage,
+        ...(isDevelopment && { 
+          details: error.message,
+          code: error.code 
+        })
+      },
       { status: 500 }
     )
   }

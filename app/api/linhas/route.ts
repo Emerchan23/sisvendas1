@@ -7,11 +7,12 @@ if (process.env.NEXT_PHASE !== 'phase-production-build' && db.exec) {
   db.exec(`
   CREATE TABLE IF NOT EXISTS linhas_venda (
     id TEXT PRIMARY KEY,
+    companyId TEXT,
     dataPedido TEXT NOT NULL,
     numeroOF TEXT,
     numeroDispensa TEXT,
     cliente TEXT,
-    produto TEXT,
+    item TEXT,
     modalidade TEXT,
     valorVenda REAL NOT NULL DEFAULT 0,
     taxaCapitalPerc REAL NOT NULL DEFAULT 0,
@@ -52,11 +53,12 @@ export async function POST(request: NextRequest) {
     const id = uuidv4()
     
     const {
+      companyId,
       dataPedido,
       numeroOF,
       numeroDispensa,
       cliente,
-      produto,
+      item,
       modalidade,
       valorVenda,
       taxaCapitalPerc,
@@ -76,13 +78,13 @@ export async function POST(request: NextRequest) {
     
     db.prepare(`
       INSERT INTO linhas_venda (
-        id, dataPedido, numeroOF, numeroDispensa, cliente, produto, modalidade,
+        id, companyId, dataPedido, numeroOF, numeroDispensa, cliente, item, modalidade,
         valorVenda, taxaCapitalPerc, taxaCapitalVl, taxaImpostoPerc, taxaImpostoVl,
         custoMercadoria, somaCustoFinal, lucroValor, lucroPerc, dataRecebimento,
         paymentStatus, settlementStatus, acertoId, cor, createdAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      id, dataPedido, numeroOF, numeroDispensa, cliente, produto, modalidade,
+      id, companyId, dataPedido, numeroOF, numeroDispensa, cliente, item, modalidade,
       valorVenda || 0, taxaCapitalPerc || 0, taxaCapitalVl || 0, taxaImpostoPerc || 0, taxaImpostoVl || 0,
       custoMercadoria || 0, somaCustoFinal || 0, lucroValor || 0, lucroPerc || 0, dataRecebimento,
       paymentStatus || 'pendente', settlementStatus, acertoId, cor, new Date().toISOString()

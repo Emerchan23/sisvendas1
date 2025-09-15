@@ -6,32 +6,50 @@ export async function GET() {
     // Calcular totais reais baseado nas tabelas de dados
     
     // Dados das vendas tradicionais
-    const vendasData = db.prepare(`
-      SELECT 
-        COUNT(*) as totalVendas,
-        COALESCE(SUM(total), 0) as valorTotalVendas
-      FROM vendas
-    `).get() as { totalVendas: number; valorTotalVendas: number }
+    let vendasData = { totalVendas: 0, valorTotalVendas: 0 }
+    try {
+      vendasData = db.prepare(`
+        SELECT 
+          COUNT(*) as totalVendas,
+          COALESCE(SUM(total), 0) as valorTotalVendas
+        FROM vendas
+      `).get() as { totalVendas: number; valorTotalVendas: number }
+    } catch (e) {
+      console.warn('Tabela vendas não existe:', e)
+    }
     
     // Dados das linhas de venda (planilha)
-    const linhasVendaData = db.prepare(`
-      SELECT 
-        COUNT(*) as totalLinhas,
-        COALESCE(SUM(valorVenda), 0) as valorTotalLinhas,
-        COALESCE(SUM(lucroValor), 0) as lucroTotalLinhas,
-        COALESCE(SUM(taxaImpostoVl), 0) as impostosTotalLinhas,
-        COUNT(CASE WHEN paymentStatus = 'Pago' THEN 1 END) as recebidas,
-        COUNT(CASE WHEN paymentStatus = 'PENDENTE' THEN 1 END) as pendentes,
-        COALESCE(SUM(CASE WHEN paymentStatus = 'Pago' THEN valorVenda ELSE 0 END), 0) as valorRecebido
-      FROM linhas_venda
-    `).get() as { 
-      totalLinhas: number; 
-      valorTotalLinhas: number; 
-      lucroTotalLinhas: number; 
-      impostosTotalLinhas: number;
-      recebidas: number;
-      pendentes: number;
-      valorRecebido: number;
+    let linhasVendaData = { 
+      totalLinhas: 0, 
+      valorTotalLinhas: 0, 
+      lucroTotalLinhas: 0, 
+      impostosTotalLinhas: 0,
+      recebidas: 0,
+      pendentes: 0,
+      valorRecebido: 0
+    }
+    try {
+      linhasVendaData = db.prepare(`
+        SELECT 
+          COUNT(*) as totalLinhas,
+          COALESCE(SUM(valorVenda), 0) as valorTotalLinhas,
+          COALESCE(SUM(lucroValor), 0) as lucroTotalLinhas,
+          COALESCE(SUM(taxaImpostoVl), 0) as impostosTotalLinhas,
+          COUNT(CASE WHEN paymentStatus = 'Pago' THEN 1 END) as recebidas,
+          COUNT(CASE WHEN paymentStatus = 'PENDENTE' THEN 1 END) as pendentes,
+          COALESCE(SUM(CASE WHEN paymentStatus = 'Pago' THEN valorVenda ELSE 0 END), 0) as valorRecebido
+        FROM linhas_venda
+      `).get() as { 
+        totalLinhas: number; 
+        valorTotalLinhas: number; 
+        lucroTotalLinhas: number; 
+        impostosTotalLinhas: number;
+        recebidas: number;
+        pendentes: number;
+        valorRecebido: number;
+      }
+    } catch (e) {
+      console.warn('Tabela linhas_venda não existe:', e)
     }
     
     // Dados de outros negócios e cálculo de juros pendentes
@@ -106,6 +124,19 @@ export async function GET() {
       FROM orcamentos
     `).get() as { totalOrcamentos: number; orcamentosPendentes: number }
     
+    // Dados dos acertos
+    let acertosData = { totalAcertos: 0, valorTotalAcertos: 0 }
+    try {
+      acertosData = db.prepare(`
+        SELECT 
+          COUNT(*) as totalAcertos,
+          COALESCE(SUM(totalLiquidoDistribuivel), 0) as valorTotalAcertos
+        FROM acertos
+      `).get() as { totalAcertos: number; valorTotalAcertos: number }
+    } catch (e) {
+      console.warn('Tabela acertos não existe:', e)
+    }
+    
     // Dados de despesas dos acertos para calcular lucro líquido
     let totalDespesasAcertos = 0
     try {
@@ -116,7 +147,7 @@ export async function GET() {
       `).get() as { totalDespesas: number }
       totalDespesasAcertos = despesasAcertosData.totalDespesas
     } catch (e) {
-      console.warn('Tabela acertos não existe:', e)
+      console.warn('Erro ao calcular despesas dos acertos:', e)
     }
     
     // Calcular totais consolidados

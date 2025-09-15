@@ -17,7 +17,7 @@
 
 **Correção Aplicada:**
 - Criado arquivo `.env.local` com configurações padrão:
-  - DB_PATH=./data/erp.sqlite
+  - DB_PATH=../Banco de dados Aqui/erp.sqlite
   - PORT=3145
   - NODE_ENV=development
   - JWT_SECRET (placeholder)

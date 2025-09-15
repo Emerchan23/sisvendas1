@@ -20,6 +20,7 @@ export async function GET() {
       observacoes: string | null;
       status: string;
       created_at: string;
+      updated_at: string;
     }[]
     
     // Map database fields to match the Fornecedor type
@@ -35,7 +36,8 @@ export async function GET() {
       tagsBusca: fornecedor.tags_busca,
       observacoes: fornecedor.observacoes,
       status: fornecedor.status,
-      createdAt: fornecedor.created_at
+      createdAt: fornecedor.created_at,
+      updatedAt: fornecedor.updated_at
     }))
     
     return NextResponse.json(mappedFornecedores)
@@ -53,8 +55,9 @@ export async function POST(request: NextRequest) {
     db.prepare(`
       INSERT INTO fornecedores (
         id, nome, categoria, produtos_servicos, telefone, site_url, 
-        usuario_login, senha_login, tags_busca, observacoes, status, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        usuario_login, senha_login, tags_busca, observacoes, status, 
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       body.nome,
@@ -67,6 +70,7 @@ export async function POST(request: NextRequest) {
       body.tagsBusca || null,
       body.observacoes || null,
       body.status || 'ativo',
+      new Date().toISOString(),
       new Date().toISOString()
     )
     

@@ -113,11 +113,22 @@ export async function PATCH(
       );
     }
     
+    // Validar campos obrigatórios
+    if (body.data_validade !== undefined && (!body.data_validade || body.data_validade.trim() === '')) {
+      console.log('❌ [API] data_validade está vazio ou null');
+      return NextResponse.json(
+        { error: 'Data de validade é obrigatória' },
+        { status: 400 }
+      );
+    }
+
     // Build update query dynamically, filtering valid columns
-    const validColumns = ['numero', 'cliente_id', 'data_orcamento', 'data_validade', 'valor_total', 'descricao', 'observacoes', 'condicoes_pagamento', 'prazo_entrega', 'vendedor_id', 'desconto', 'status'];
+    const validColumns = ['numero', 'cliente_id', 'data_orcamento', 'data_validade', 'valor_total', 'descricao', 'observacoes', 'condicoes_pagamento', 'prazo_entrega', 'vendedor_id', 'desconto', 'status', 'modalidade', 'numero_pregao', 'numero_dispensa', 'numero_processo'];
     const filteredBody = Object.fromEntries(
       Object.entries(body).filter(([key]) => validColumns.includes(key))
     );
+    
+    console.log('🔍 [API] Dados filtrados para atualização:', JSON.stringify(filteredBody, null, 2));
     
     const fields = Object.keys(filteredBody).map(key => `${key} = ?`).join(', ');
     const values = Object.values(filteredBody);
@@ -144,6 +155,15 @@ export async function PATCH(
         const item = body.itens[i];
         console.log(`🔍 [API] Processando item ${i + 1}:`, JSON.stringify(item, null, 2));
         
+        console.log(`🚨 [CRITICAL DEBUG] PATCH - Item ${i + 1} detalhes internos:`, {
+          'item.link_ref': item.link_ref,
+          'item.custo_ref': item.custo_ref,
+          'typeof link_ref': typeof item.link_ref,
+          'typeof custo_ref': typeof item.custo_ref,
+          'link_ref || ""': item.link_ref || '',
+          'custo_ref || 0': item.custo_ref || 0
+        });
+        
         try {
           const itemId = require('uuid').v4();
           const valorTotalItem = (item.quantidade || 0) * (item.valor_unitario || 0);
@@ -151,32 +171,31 @@ export async function PATCH(
           console.log('🔍 [API] Dados para inserção:', {
             itemId,
             orcamento_id: id,
-            produto_id: item.produto_id || null,
+            item_id: item.item_id || null,
             descricao: item.descricao || '',
             marca: item.marca || '',
             quantidade: item.quantidade || 0,
             valor_unitario: item.valor_unitario || 0,
             valor_total: valorTotalItem,
-            observacoes: item.observacoes || '',
+
             link_ref: item.link_ref || '',
             custo_ref: item.custo_ref || 0
           });
           
           const insertResult = db.prepare(
             `INSERT INTO orcamento_itens (
-              id, orcamento_id, produto_id, descricao, marca, quantidade,
-              valor_unitario, valor_total, observacoes, link_ref, custo_ref
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+              id, orcamento_id, item_id, descricao, marca, quantidade,
+              valor_unitario, valor_total, link_ref, custo_ref
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           ).run(
             itemId, 
             id, 
-            item.produto_id || null, 
+            item.item_id || null, 
             item.descricao || '', 
             item.marca || '', 
             item.quantidade || 0,
             item.valor_unitario || 0, 
             valorTotalItem, 
-            item.observacoes || '', 
             item.link_ref || '', 
             item.custo_ref || 0
           );

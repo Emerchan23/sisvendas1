@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Database from 'better-sqlite3'
-import path from 'path'
-
-const dbPath = path.join(process.cwd(), 'data', 'erp.sqlite')
+import { db } from '../../../lib/db'
 
 export async function GET() {
   try {
-    const db = new Database(dbPath)
-    
     const modalidades = db.prepare(`
       SELECT id, codigo, nome, descricao, ativo, requer_numero_processo, created_at, updated_at
       FROM modalidades_compra
       ORDER BY nome ASC
     `).all()
-    
-    db.close()
     
     return NextResponse.json(modalidades)
   } catch (error) {
@@ -37,12 +30,9 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    const db = new Database(dbPath)
-    
     // Verificar se já existe uma modalidade com o mesmo código
     const existente = db.prepare('SELECT id FROM modalidades_compra WHERE codigo = ?').get(codigo)
     if (existente) {
-      db.close()
       return NextResponse.json(
         { error: 'Já existe uma modalidade com este código' },
         { status: 400 }
@@ -61,8 +51,6 @@ export async function POST(request: NextRequest) {
       FROM modalidades_compra
       WHERE id = ?
     `).get(result.lastInsertRowid)
-    
-    db.close()
     
     return NextResponse.json(novaModalidade, { status: 201 })
   } catch (error) {
@@ -85,12 +73,9 @@ export async function PUT(request: NextRequest) {
       )
     }
     
-    const db = new Database(dbPath)
-    
     // Verificar se existe outra modalidade com o mesmo código
     const existente = db.prepare('SELECT id FROM modalidades_compra WHERE codigo = ? AND id != ?').get(codigo, id)
     if (existente) {
-      db.close()
       return NextResponse.json(
         { error: 'Já existe uma modalidade com este código' },
         { status: 400 }
@@ -113,7 +98,6 @@ export async function PUT(request: NextRequest) {
     )
     
     if (result.changes === 0) {
-      db.close()
       return NextResponse.json(
         { error: 'Modalidade não encontrada' },
         { status: 404 }
@@ -125,8 +109,6 @@ export async function PUT(request: NextRequest) {
       FROM modalidades_compra
       WHERE id = ?
     `).get(id)
-    
-    db.close()
     
     return NextResponse.json(modalidadeAtualizada)
   } catch (error) {
@@ -160,12 +142,8 @@ export async function DELETE(request: NextRequest) {
       )
     }
     
-    const db = new Database(dbPath)
-    
     const stmt = db.prepare('DELETE FROM modalidades_compra WHERE id = ?')
     const result = stmt.run(id)
-    
-    db.close()
     
     if (result.changes === 0) {
       return NextResponse.json(

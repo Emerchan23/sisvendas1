@@ -13,7 +13,7 @@ try {
     const Database = require('better-sqlite3');
     const path = require('path');
     
-    const dbPath = path.join(__dirname, 'data', 'erp.sqlite');
+    const dbPath = path.join(__dirname, '..', 'Banco de dados Aqui', 'erp.sqlite');
     console.log('Caminho do banco:', dbPath);
     
     const db = new Database(dbPath);
@@ -66,13 +66,7 @@ try {
   const path = require('path');
   const fs = require('fs');
   
-  const dataDir = path.join(__dirname, 'data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-    console.log('📁 Diretório data criado');
-  }
-  
-  const dbPath = path.join(dataDir, 'erp.sqlite');
+  const dbPath = path.join(__dirname, '..', 'Banco de dados Aqui', 'erp.sqlite');
   const db = new Database(dbPath);
   
   console.log('✅ Banco criado em:', dbPath);

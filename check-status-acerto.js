@@ -3,7 +3,7 @@ const Database = require('better-sqlite3');
 const { join } = require('path');
 
 // Conectar ao banco
-const dbPath = join(process.cwd(), 'data', 'erp.sqlite');
+const dbPath = join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite');
 const db = new Database(dbPath);
 
 try {

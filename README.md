@@ -27,7 +27,7 @@ node install.js
 
 1. ✅ Verifica e instala Node.js (se necessário)
 2. ✅ Verifica e instala Docker (se necessário)
-3. ✅ Cria diretório de dados externo (`../banco-de-dados/`)
+3. ✅ Cria diretório de dados externo (`../Banco de dados Aqui/`)
 4. ✅ Configura arquivo de ambiente (`.env.local`)
 5. ✅ Instala todas as dependências npm
 6. ✅ Constrói o projeto
@@ -96,7 +96,7 @@ npm run diagnose
 
 2. **Verifique permissões:**
    - Execute como administrador (Windows)
-   - Verifique permissões da pasta `../banco-de-dados/`
+   - Verifique permissões da pasta `../Banco de dados Aqui/`
 
 3. **Configure caminho personalizado:**
    ```bash
@@ -113,7 +113,7 @@ npm run diagnose
    ```yaml
    # docker-compose.yml já configurado
    volumes:
-     - ../banco-de-dados:/data  # Dados ficam em ../banco-de-dados/ no host
+     - "../Banco de dados Aqui:/data"  # Dados ficam em ../Banco de dados Aqui/ no host
    ```
 Acesse: http://localhost:3145
 
@@ -127,7 +127,7 @@ npm run docker:logs     # Ver logs
 
 ## 📁 Estrutura do Banco de Dados
 
-- **Localização**: `../banco-de-dados/erp.sqlite`
+- **Localização**: `../Banco de dados Aqui/erp.sqlite`
 - **Tipo**: SQLite
 - **Status**: **Externo ao Docker** (dados persistem mesmo removendo containers)
 
@@ -137,7 +137,7 @@ Todas as configurações estão no arquivo `.env.local` (criado automaticamente)
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3145
-DB_PATH=../banco-de-dados/erp.sqlite
+DB_PATH=../Banco de dados Aqui/erp.sqlite
 NODE_ENV=development
 ```
 
@@ -146,7 +146,7 @@ NODE_ENV=development
 Para testar uma instalação completamente limpa:
 
 1. Delete a pasta `node_modules`
-2. Delete a pasta `../banco-de-dados`
+2. Delete a pasta `../Banco de dados Aqui`
 3. Delete o arquivo `.env.local`
 4. Execute: `npm run setup`
 
@@ -201,8 +201,7 @@ npm run dev
 
 ## 🌐 Acesso
 
-- **Frontend**: http://localhost:4522
-- **Backend API**: http://localhost:3145
+- **Sistema**: http://localhost:3145
 
 ## 📊 Estrutura do Projeto
 
@@ -244,6 +243,34 @@ Contribuições são bem-vindas! Por favor:
 ## 📄 Licença
 
 Este projeto está sob a licença MIT.
+
+## 🔧 Correções e Melhorias
+
+### Correção da Coluna item_id (Janeiro 2025)
+
+**Problema Identificado:**
+- Erro HTTP 500 ao salvar orçamentos: "table orcamento_itens has no column named item_id"
+- Inconsistência entre o código da API que esperava a coluna `item_id` e o schema do banco que só possuía `produto_id`
+
+**Solução Aplicada:**
+- ✅ Adicionada coluna `item_id` (TEXT) na tabela `orcamento_itens`
+- ✅ Mantida compatibilidade com dados existentes (coluna `produto_id` preservada)
+- ✅ Migração automática de dados existentes
+- ✅ Testes de integridade validados
+- ✅ Sistema de salvamento de orçamentos funcionando corretamente
+
+**Arquivos Afetados:**
+- `app/api/orcamentos/route.ts` - API principal de orçamentos
+- `app/api/orcamentos/[id]/route.ts` - API específica por ID
+- `components/orcamento-form.tsx` - Formulário de orçamentos
+- Schema da tabela `orcamento_itens` no banco SQLite
+
+**Scripts de Correção:**
+- `fix-item-id-column.js` - Script de migração do schema
+- `test-orcamento-save.js` - Teste de validação da correção
+- `check-data-integrity.js` - Verificação de integridade dos dados
+
+**Status:** ✅ Corrigido e testado com sucesso
 
 ## 📞 Suporte
 
