@@ -1,0 +1,78 @@
+version: "3.9"
+
+services:
+  sisvendas:
+    build: .
+    container_name: sisvendas_app
+    ports:
+      - "3145:3145"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - PORT=3145
+      - DB_PATH=/data/erp.sqlite
+    volumes:
+      - sisvendas_data:/data
+    networks:
+      - sisvendas_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3145/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      - db_init
+
+  # Serviço auxiliar para inicialização do banco de dados
+  db_init:
+    image: alpine:latest
+    container_name: sisvendas_db_init
+    volumes:
+      - sisvendas_data:/data
+    command: >
+      sh -c "
+        echo 'Inicializando estrutura do banco de dados...'
+        mkdir -p /data
+        touch /data/erp.sqlite
+        chmod 666 /data/erp.sqlite
+        echo 'Banco de dados inicializado com sucesso!'
+      "
+    networks:
+      - sisvendas_network
+
+  # Nginx como proxy reverso (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: sisvendas_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - sisvendas_network
+    restart: unless-stopped
+    depends_on:
+      - sisvendas
+    profiles:
+      - with-nginx
+
+volumes:
+  sisvendas_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/sisvendas/data
+  nginx_logs:
+    driver: local
+
+networks:
+  sisvendas_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

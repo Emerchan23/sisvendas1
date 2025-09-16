@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  sisvendas:
+    build: .
+    container_name: sisvendas_app
+    ports:
+      - "3145:3145"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+      - PORT=3145
+      - DB_PATH=/data/erp.sqlite
+    volumes:
+      - sisvendas_database:/data
+    networks:
+      - sisvendas_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3145 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  sisvendas_database:
+    driver: local
+
+networks:
+  sisvendas_net:
+    driver: bridge
