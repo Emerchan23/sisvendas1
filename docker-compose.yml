@@ -12,7 +12,7 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: "../Banco de dados Aqui"
+      device: "/data/compose/banco_dados_aqui"
     labels:
       - "com.portainer.volume.description=Volume de dados do ERP"
 
