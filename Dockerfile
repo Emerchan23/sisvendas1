@@ -32,7 +32,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY package*.json ./
 
 # Instalar apenas dependências de produção
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --production && npm cache clean --force
 
 # Copiar arquivos buildados do stage anterior
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
