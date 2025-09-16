@@ -9,6 +9,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const resolvedParams = await params;
     id = resolvedParams.id;
     
+    console.log('PUT /api/outros-negocios/[id] - ID:', id);
+    console.log('PUT /api/outros-negocios/[id] - Body recebido:', JSON.stringify(body, null, 2));
+    
     if (!id) {
       return NextResponse.json(
         { error: 'ID é obrigatório para atualização' },
@@ -24,6 +27,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const updateData = Object.fromEntries(
       Object.entries(rawData).filter(([key]) => validFields.includes(key))
     );
+    
+    console.log('PUT /api/outros-negocios/[id] - Dados filtrados:', JSON.stringify(updateData, null, 2));
     
     // Validate foreign key constraints before update
     if (updateData.cliente_id) {
@@ -56,9 +61,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       );
     }
     
+    console.log('PUT /api/outros-negocios/[id] - Query fields:', fields);
+    console.log('PUT /api/outros-negocios/[id] - Query values:', values);
+    
     const result = db.prepare(
       `UPDATE outros_negocios SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
     ).run(...values, id);
+    
+    console.log('PUT /api/outros-negocios/[id] - Result changes:', result.changes);
     
     if (result.changes === 0) {
       return NextResponse.json(
@@ -68,15 +78,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
     
     const negocioAtualizado = db.prepare('SELECT * FROM outros_negocios WHERE id = ?').get(id);
+    console.log('PUT /api/outros-negocios/[id] - Negócio atualizado:', JSON.stringify(negocioAtualizado, null, 2));
     
     return NextResponse.json(negocioAtualizado);
   } catch (error) {
-    console.error('Erro ao atualizar outro negócio:', {
-      error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
-      id: id || 'undefined',
-      body: body || 'undefined'
-    });
+    console.error('PUT /api/outros-negocios/[id] - Erro ao atualizar outro negócio:', error);
+    console.error('PUT /api/outros-negocios/[id] - ID:', id);
+    console.error('PUT /api/outros-negocios/[id] - Body original:', body);
     return NextResponse.json(
       { error: 'Erro interno do servidor', details: error instanceof Error ? error.message : 'Erro desconhecido' },
       { status: 500 }

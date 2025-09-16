@@ -241,7 +241,7 @@ export function VendaDialog({
               </TabsContent>
 
               <TabsContent value="cliente" className="space-y-4 mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2 text-slate-700 font-medium">
                       <User className="h-4 w-4 text-green-600" />
@@ -276,8 +276,6 @@ export function VendaDialog({
                     </Select>
                   </div>
                 </div>
-
-
               </TabsContent>
 
               <TabsContent value="valores" className="space-y-4 mt-0">

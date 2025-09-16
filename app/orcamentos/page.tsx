@@ -18,6 +18,7 @@ import { makeOrcamentoHTML, downloadPDF } from "@/lib/print"
 // Removed empresa imports - system simplified
 import { EmailModal } from "@/components/email-modal"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { loadConfig } from "@/lib/config"
 
 // Using backend types
 type LocalOrcamento = Orcamento
@@ -81,10 +82,40 @@ function OrcamentosContent() {
   }, [orcamentos, anoSelecionado, filtroTexto])
 
   const handleBaixarPDF = async (o: LocalOrcamento) => {
-    // Passa o total calculado para o gerador de HTML
-    const withTotal = { ...o, total: totalOrcamento(o) }
-    const html = await makeOrcamentoHTML(withTotal as any)
-    await downloadPDF(html, `Orcamento_${o.numero}`)
+    try {
+      // Carregar configurações de personalização
+      const config = await loadConfig()
+      
+      // Criar layoutConfig com as configurações personalizadas
+      const layoutConfig = {
+        cores: {
+          primaria: config.corPrimaria || '#3b82f6',
+          secundaria: config.corSecundaria || '#64748b',
+          texto: config.corTexto || '#1f2937'
+        },
+        tipografia: {
+          fonteFamilia: config.fonteTitulo || 'Inter',
+          fonteTexto: config.fonteTexto || 'Inter',
+          tamanhoTitulo: config.tamanhoTitulo || 24,
+          tamanhoTexto: config.tamanhoTexto || 14
+        },
+        configuracoes: {
+          validadeDias: config.validadeDias || 30,
+          logoPersonalizada: config.logoPersonalizada || ''
+        }
+      }
+      
+      // Passa o total calculado e as configurações para o gerador de HTML
+      const withTotal = { ...o, total: totalOrcamento(o) }
+      const html = await makeOrcamentoHTML(withTotal as any, layoutConfig)
+      await downloadPDF(html, `Orcamento_${o.numero}`)
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      // Fallback sem configurações personalizadas
+      const withTotal = { ...o, total: totalOrcamento(o) }
+      const html = await makeOrcamentoHTML(withTotal as any)
+      await downloadPDF(html, `Orcamento_${o.numero}`)
+    }
   }
 
   const handleEditar = (o: LocalOrcamento) => {

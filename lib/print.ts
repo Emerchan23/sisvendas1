@@ -182,7 +182,7 @@ function customStyles(layout: any) {
       }
       table.list th, table.list td { 
         padding: 12px 16px; 
-        border: none;
+        border: 1px solid #cbd5e1;
         font-size: ${tamanhoFonteTexto - 1}px;
         page-break-inside: avoid;
       }
@@ -193,17 +193,17 @@ function customStyles(layout: any) {
       table.list th:nth-child(5), table.list td:nth-child(5) { width: 10%; }
       table.list th:nth-child(6), table.list td:nth-child(6) { width: 10%; }
       table.list th { 
-        background: linear-gradient(135deg, ${corPrimaria} 0%, ${corSecundaria} 100%); 
-        color: white !important;
+        background: #e2e8f0; 
+        color: #1f2937 !important;
         text-align: left; 
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         font-size: ${tamanhoFonteTexto - 1}px;
-        ${sombra ? 'text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);' : ''}
+        border: 1px solid #cbd5e1;
       }
-      table.list tbody tr:hover { background: ${corLinhasAlternadas}; }
-      table.list tbody tr:nth-child(even) { background: ${corLinhasAlternadas}; }
+      table.list tbody tr { background: white; }
+      table.list tbody tr:nth-child(even) { background: #f8fafc; }
       table.list tr { page-break-inside: avoid; }
       .right { text-align: center; font-variant-numeric: tabular-nums; }
       .green { color: #059669; font-weight: 600; }
@@ -259,7 +259,7 @@ function customStyles(layout: any) {
       .totals .label { text-align: right; font-weight: 600; color: ${corTexto}; }
       .totals .total-final { 
         font-weight: 700; 
-        font-size: ${tamanhoFonteTexto + 2}px; 
+        font-size: ${tamanhoFonteTexto + 6}px; 
         background: linear-gradient(135deg, ${corPrimaria} 0%, ${corSecundaria} 100%);
         color: white;
         ${sombra ? 'text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);' : ''}
@@ -1519,35 +1519,66 @@ export async function makeReportHTML(args: {
 /**
  * Documento do Orçamento: usa a Empresa atual das Configurações Gerais (Empresas).
  */
-export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & { total?: number })) {
+export async function makeOrcamentoHTML(
+  orc: Orcamento | (Record<string, any> & { total?: number }),
+  customLayoutConfig?: any
+) {
   const hdr = await currentHeader()
   
-  // Carregar configurações de personalização salvas
-  const { getConfig } = await import('./config')
-  const config = getConfig()
+  let layoutConfig: OrcamentoLayoutConfig
   
-  // Converter configurações salvas para OrcamentoLayoutConfig
-  const layoutConfig: OrcamentoLayoutConfig = {
-    cores: {
-      primaria: config.corPrimaria || "#2563eb",
-      secundaria: config.corSecundaria || "#64748b",
-      texto: config.corTexto || "#1f2937",
-      textoSecundario: "#64748b",
-      fundo: "#ffffff",
-      borda: "#e2e8f0"
-    },
-    tipografia: {
-      fonteFamilia: config.fonteTexto || "Arial, sans-serif",
-      tamanhoFonte: config.tamanhoTexto || 14,
-      tamanhoFonteTitulo: config.tamanhoTitulo || 18
-    },
-    layout: {
-      bordaRadius: 8,
-      espacamento: 15,
-      sombra: true
-    },
-    configuracoes: {
-      validadeDias: config.validadeDias || 30
+  if (customLayoutConfig) {
+    // Usar configurações personalizadas passadas como parâmetro
+    layoutConfig = {
+      cores: {
+        primaria: customLayoutConfig.cores?.primaria || "#2563eb",
+        secundaria: customLayoutConfig.cores?.secundaria || "#64748b",
+        texto: customLayoutConfig.cores?.texto || "#1f2937",
+        textoSecundario: "#64748b",
+        fundo: "#ffffff",
+        borda: "#e2e8f0"
+      },
+      tipografia: {
+        fonteFamilia: customLayoutConfig.tipografia?.fonteTexto || customLayoutConfig.tipografia?.fonteFamilia || "Arial, sans-serif",
+        tamanhoFonte: customLayoutConfig.tipografia?.tamanhoTexto || 14,
+        tamanhoFonteTitulo: customLayoutConfig.tipografia?.tamanhoTitulo || 18
+      },
+      layout: {
+        bordaRadius: 8,
+        espacamento: 15,
+        sombra: true
+      },
+      configuracoes: {
+        validadeDias: customLayoutConfig.configuracoes?.validadeDias || 30
+      }
+    }
+  } else {
+    // Carregar configurações de personalização salvas (fallback)
+    const { getConfig } = await import('./config')
+    const config = getConfig()
+    
+    layoutConfig = {
+      cores: {
+        primaria: config.corPrimaria || "#2563eb",
+        secundaria: config.corSecundaria || "#64748b",
+        texto: config.corTexto || "#1f2937",
+        textoSecundario: "#64748b",
+        fundo: "#ffffff",
+        borda: "#e2e8f0"
+      },
+      tipografia: {
+        fonteFamilia: config.fonteTexto || "Arial, sans-serif",
+        tamanhoFonte: config.tamanhoTexto || 14,
+        tamanhoFonteTitulo: config.tamanhoTitulo || 18
+      },
+      layout: {
+        bordaRadius: 8,
+        espacamento: 15,
+        sombra: true
+      },
+      configuracoes: {
+        validadeDias: config.validadeDias || 30
+      }
     }
   }
   const data = new Date((orc as any).data)
@@ -1623,7 +1654,7 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
 
     ${(orc as any).modalidade && (orc as any).modalidade !== "COMPRA_DIRETA" ? `
     <div style="text-align: center; font-size: 16px; font-weight: normal; margin: 20px 0; color: ${layoutConfig.cores?.texto || '#1f2937'};">
-      MODALIDADE DE COMPRA: ${(orc as any).modalidade === "LICITADO" ? "LICITAÇÃO" : "DISPENSA"}${(orc as any).modalidade === "LICITADO" && (orc as any).numero_pregao ? ` - ${escapeHtml((orc as any).numero_pregao)}` : ""}${(orc as any).modalidade === "DISPENSA" && (orc as any).numero_dispensa ? ` - ${escapeHtml((orc as any).numero_dispensa)}` : ""}
+      MODALIDADE DE COMPRA: ${(orc as any).modalidade === "LICITADO" ? "LICITAÇÃO" : (orc as any).modalidade === "DISPENSA" ? "DISPENSA" : (orc as any).modalidade === "INEXIGIBILIDADE" ? "INEXIGIBILIDADE" : (orc as any).modalidade}${(orc as any).modalidade === "LICITADO" && (orc as any).numero_pregao ? ` - ${escapeHtml((orc as any).numero_pregao)}` : ""}${(orc as any).modalidade === "DISPENSA" && (orc as any).numero_dispensa ? ` - ${escapeHtml((orc as any).numero_dispensa)}` : ""}${(orc as any).numero_processo ? ` - Processo: ${escapeHtml((orc as any).numero_processo)}` : ""}
     </div>` : ""}
 
     <div class="section">

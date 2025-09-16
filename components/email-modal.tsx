@@ -356,9 +356,22 @@ export function EmailModal({ orcamento, onEmailSent }: EmailModalProps) {
         }
       }
       
+      // Verificar se houve destinatários rejeitados
+      const responseData = await response.json()
+      let successMessage = "E-mail enviado com sucesso!"
+      
+      if (responseData.details?.rejected && responseData.details.rejected.length > 0) {
+        successMessage += `\n\n⚠️ Alguns destinatários foram rejeitados: ${responseData.details.rejected.join(', ')}`
+      }
+      
+      if (responseData.details?.accepted && responseData.details.accepted.length > 0) {
+        successMessage += `\n\n✅ Enviado para: ${responseData.details.accepted.join(', ')}`
+      }
+      
       toast({
         title: "Sucesso",
-        description: "E-mail enviado com sucesso!"
+        description: successMessage,
+        duration: 6000
       })
       
       setOpen(false)

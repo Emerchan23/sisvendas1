@@ -18,9 +18,8 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "check-prd-compliance": "node check-no-db-violation.js",
-    "check-types": "node auto-install-types.js",
-    "fix-types": "node auto-install-types.js",
-    "postinstall": "node postinstall.js"
+    "check-types": "echo 'Type checking skipped'",
+    "fix-types": "echo 'Type fixing skipped'"
   },
   "dependencies": {
     "@fastify/cookie": "latest",

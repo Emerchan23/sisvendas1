@@ -124,6 +124,11 @@ export async function PATCH(
 
     // Build update query dynamically, filtering valid columns
     const validColumns = ['numero', 'cliente_id', 'data_orcamento', 'data_validade', 'valor_total', 'descricao', 'observacoes', 'condicoes_pagamento', 'prazo_entrega', 'vendedor_id', 'desconto', 'status', 'modalidade', 'numero_pregao', 'numero_dispensa', 'numero_processo'];
+    
+    console.log('🔍 [API] Modalidade no body:', body.modalidade);
+    console.log('🔍 [API] Tipo da modalidade:', typeof body.modalidade);
+    console.log('🔍 [API] Data validade no body:', body.data_validade);
+    console.log('🔍 [API] Tipo da data validade:', typeof body.data_validade);
     const filteredBody = Object.fromEntries(
       Object.entries(body).filter(([key]) => validColumns.includes(key))
     );

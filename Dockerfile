@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar arquivos essenciais primeiro
-COPY package*.json postinstall.js auto-install-types.js ./
+COPY package*.json ./
 
 # Instalar dependências
 RUN npm install

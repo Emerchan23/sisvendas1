@@ -274,23 +274,37 @@ function OutrosNegociosContent() {
 
     try {
       let next: OutroNegocio[]
+      // Converter data do formato ISO (YYYY-MM-DD) para DD/MM/AAAA
+      const convertDateToAPI = (isoDate: string) => {
+        const [year, month, day] = isoDate.split('-')
+        return `${day}/${month}/${year}`
+      }
+      
       const apiPayload = {
         tipo: payload.tipo,
         descricao: payload.descricao,
         valor: payload.valor,
-        data_transacao: payload.data,
-        cliente_id: payload.pessoa,
+        data_transacao: convertDateToAPI(payload.data),
+        cliente_id: payload.pessoa, // payload.pessoa já contém o ID do cliente selecionado
         juros_ativo: payload.jurosAtivo ? 1 : 0,
         juros_mes_percent: payload.jurosAtivo ? Number(payload.jurosMesPercent || 0) : 0,
         multa_ativa: payload.multaAtiva ? 1 : 0,
         multa_percent: payload.multaAtiva ? Number(payload.multaPercent || 0) : 0
       }
       
+      console.log('Frontend - Payload sendo enviado:', JSON.stringify(apiPayload, null, 2))
+      console.log('Frontend - URL da API:', `${window.location.protocol}//${window.location.host}/api/outros-negocios`)
+      console.log('Frontend - Método:', isEditing ? 'PUT' : 'POST')
+      
       if (isEditing) {
-        await api.outrosNegocios.update(payload.id, apiPayload)
+        console.log('Frontend - Iniciando UPDATE...')
+        const updateResult = await api.outrosNegocios.update(payload.id, apiPayload)
+        console.log('Frontend - Resultado UPDATE:', updateResult)
         next = await loadOutrosNegocios()
       } else {
-        await api.outrosNegocios.create(apiPayload)
+        console.log('Frontend - Iniciando CREATE...')
+        const createResult = await api.outrosNegocios.create(apiPayload)
+        console.log('Frontend - Resultado CREATE:', createResult)
         next = await loadOutrosNegocios()
       }
       setItems(next)
@@ -820,7 +834,38 @@ function OutrosNegociosContent() {
                         </TableCell>
                         <TableCell>{item.descricao}</TableCell>
                         <TableCell>{formatBRL(item.valor)}</TableCell>
-                        <TableCell>{new Date(item.data + "T00:00:00").toLocaleDateString("pt-BR")}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            // Função para formatar data DD/MM/AAAA corretamente
+                            const formatarData = (dataStr: string) => {
+                              if (!dataStr) return 'Data inválida';
+                              
+                              // Se já está no formato DD/MM/AAAA, retorna como está
+                              if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) {
+                                return dataStr;
+                              }
+                              
+                              // Se está no formato ISO (YYYY-MM-DD), converte
+                              if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) {
+                                const [year, month, day] = dataStr.split('-');
+                                return `${day}/${month}/${year}`;
+                              }
+                              
+                              // Tentar criar Date e formatar
+                              try {
+                                const date = new Date(dataStr);
+                                if (isNaN(date.getTime())) {
+                                  return dataStr; // Retorna o valor original se não conseguir converter
+                                }
+                                return date.toLocaleDateString('pt-BR');
+                              } catch {
+                                return dataStr; // Retorna o valor original em caso de erro
+                              }
+                            };
+                            
+                            return formatarData(item.data);
+                          })()} 
+                        </TableCell>
                         <TableCell className={cn(calc.saldoComJuros > 0 ? "text-red-600" : "text-green-600")}>
                           {formatBRL(calc.saldoComJuros)}
                         </TableCell>

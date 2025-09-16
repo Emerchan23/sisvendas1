@@ -21,18 +21,24 @@ export function ManageModalidadesDialog({
   const [codigo, setCodigo] = useState("")
   const [nome, setNome] = useState("")
 
-  async function refresh() {
+  const refresh = async () => {
+    console.log('ManageModalidadesDialog: Iniciando carregamento de modalidades...')
     try {
       const modalidades = await getModalidades()
+      console.log('ManageModalidadesDialog: Modalidades carregadas:', modalidades)
       setList(modalidades)
       onSaved?.()
     } catch (error) {
-      console.error('Erro ao carregar modalidades:', error)
+      console.error('ManageModalidadesDialog: Erro ao carregar modalidades:', error)
       setList([])
     }
   }
   useEffect(() => {
-    if (open) refresh()
+    console.log('ManageModalidadesDialog: useEffect executado, open =', open)
+    if (open) {
+      console.log('ManageModalidadesDialog: Diálogo aberto, chamando refresh...')
+      refresh()
+    }
   }, [open])
 
   async function add() {
