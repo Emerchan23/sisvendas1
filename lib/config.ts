@@ -30,7 +30,7 @@ export type Config = {
   tamanhoTitulo?: number
   tamanhoTexto?: number
   logoPersonalizada?: string
-  validadeOrcamento?: number
+  validadeDias?: number
   // Templates de e-mail
   emailTemplateOrcamento?: string
   emailTemplateVale?: string
@@ -118,7 +118,7 @@ export async function saveConfig(config: Partial<Config>): Promise<void> {
         tamanhoTitulo: result.config.tamanho_titulo || 24,
         tamanhoTexto: result.config.tamanho_texto || 14,
         logoPersonalizada: result.config.logo_personalizada || '',
-        validadeOrcamento: result.config.validade_orcamento || 30,
+        validadeDias: result.config.validade_orcamento || 30,
         autoBackupEnabled: result.config.auto_backup_enabled === 1,
         backupFrequency: result.config.backup_frequency || 'daily',
         backupTime: result.config.backup_time || '02:00',
@@ -184,7 +184,7 @@ export async function loadConfig(): Promise<Config> {
       tamanhoTitulo: config.tamanho_titulo || 24,
       tamanhoTexto: config.tamanho_texto || 14,
       logoPersonalizada: config.logo_personalizada || '',
-      validadeOrcamento: config.validade_orcamento || 30,
+      validadeDias: config.validade_orcamento || 30,
       autoBackupEnabled: config.auto_backup_enabled === 1,
       backupFrequency: config.backup_frequency || 'daily',
       backupTime: config.backup_time || '02:00',

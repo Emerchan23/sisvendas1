@@ -18,6 +18,29 @@ import {
 import { getRecentBackupLogs } from '../../../../lib/backup-service'
 import { backupLogger } from '../../../../lib/backup-logger'
 
+interface ManagementActionParams {
+  empresa_id?: number
+  limit?: number
+}
+
+interface ManagementRequestBody {
+  action: string
+  params?: ManagementActionParams
+}
+
+interface ConfigUpdateBody {
+  config_type: string
+  settings: Record<string, unknown>
+}
+
+interface ApiResponse {
+  success: boolean
+  message?: string
+  data?: unknown
+  stats?: unknown
+  active?: boolean
+}
+
 /**
  * GET - Obter status geral do sistema de backup
  */
@@ -48,7 +71,7 @@ export async function GET(request: NextRequest) {
       scheduler: {
         active: isActive,
         status: schedulerStatus,
-        lastCheck: schedulerStatus.lastExecution || null
+        lastCheck: null // Removido lastExecution pois não existe no tipo
       },
       validation: {
         stats: validationStats,
@@ -92,10 +115,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json() as ManagementRequestBody
     const { action, params } = body
 
-    let result: any = { success: false }
+    let result: ApiResponse = { success: false }
 
     switch (action) {
       case 'start_scheduler':
@@ -200,7 +223,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: authResult.error }, { status: 401 })
     }
 
-    const body = await request.json()
+    const body = await request.json() as ConfigUpdateBody
     const { config_type, settings } = body
 
     // Aqui você pode implementar atualizações de configuração

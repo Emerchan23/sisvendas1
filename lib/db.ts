@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3'
-import { join, dirname } from 'path'
-import fs from 'fs'
+import * as path from 'path'
+import * as fs from 'fs'
+
+const { join, dirname } = path
 
 // Configurar caminho do banco para fora do container
 const dbPath = process.env.DB_PATH || join(process.cwd(), '..', 'Banco de dados Aqui', 'erp.sqlite')

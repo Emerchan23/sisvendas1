@@ -94,7 +94,7 @@ class BackupNotificationManager {
     if (!this.emailConfig) return
 
     try {
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         host: this.emailConfig.smtp_host,
         port: this.emailConfig.smtp_port,
         secure: Boolean(this.emailConfig.smtp_secure),
@@ -194,15 +194,19 @@ class BackupNotificationManager {
 
   private getRecipients(empresaId: number, type: 'success' | 'failure'): NotificationRecipient[] {
     try {
-      const column = type === 'success' ? 'notify_success' : 'notify_failure'
+      const query = type === 'success' 
+        ? `SELECT * FROM notification_recipients 
+           WHERE active = 1 
+           AND notify_success = 1 
+           AND (empresa_id IS NULL OR empresa_id = ?)
+           ORDER BY nome`
+        : `SELECT * FROM notification_recipients 
+           WHERE active = 1 
+           AND notify_failure = 1 
+           AND (empresa_id IS NULL OR empresa_id = ?)
+           ORDER BY nome`
       
-      return db.prepare(`
-        SELECT * FROM notification_recipients 
-        WHERE active = 1 
-        AND ${column} = 1 
-        AND (empresa_id IS NULL OR empresa_id = ?)
-        ORDER BY nome
-      `).all(empresaId) as NotificationRecipient[]
+      return db.prepare(query).all(empresaId) as NotificationRecipient[]
     } catch (error) {
       backupLogger.error('notification_recipients', `Erro ao buscar destinatários: ${error}`)
       return []
@@ -347,18 +351,14 @@ class BackupNotificationManager {
    */
   async updateEmailConfig(config: Partial<EmailConfig>): Promise<boolean> {
     try {
-      const updateFields = Object.keys(config)
-        .map(key => `${key} = ?`)
-        .join(', ')
+      const keys = Object.keys(config) as (keyof EmailConfig)[]
+      const updateFields = keys.map(key => `${key} = ?`).join(', ')
       
       const values = Object.values(config)
       values.push(1) // WHERE id = 1
 
-      db.prepare(`
-        UPDATE email_config 
-        SET ${updateFields}, updated_at = CURRENT_TIMESTAMP
-        WHERE id = 1
-      `).run(...values)
+      const query = `UPDATE email_config SET ${updateFields}, updated_at = CURRENT_TIMESTAMP WHERE id = 1`
+      db.prepare(query).run(...values)
 
       await this.loadEmailConfig()
       backupLogger.info('notification_config', 'Configuração de email atualizada')

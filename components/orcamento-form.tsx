@@ -83,6 +83,7 @@ type FormOrcamentoItem = {
   valorUnitario: number
   linkRef: string
   custoRef?: number
+  observacoes?: string
 }
 
 type ClienteState = OrcamentoCliente

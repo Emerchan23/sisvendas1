@@ -46,7 +46,6 @@ class BackupScheduler {
         }
       }
     }, {
-      scheduled: false, // Não iniciar automaticamente
       timezone: 'America/Sao_Paulo'
     })
 

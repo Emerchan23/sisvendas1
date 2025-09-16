@@ -1,6 +1,6 @@
-import fs from 'fs'
-import path from 'path'
-import crypto from 'crypto'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as crypto from 'crypto'
 import { db } from './db'
 import { backupLogger } from './backup-logger'
 
@@ -53,7 +53,7 @@ class BackupValidator {
         )
       `)
     } catch (error) {
-      backupLogger.error('validator_init', `Erro ao inicializar tabela de integridade: ${error}`)
+      backupLogger.error('validation', `Erro ao inicializar tabela de integridade: ${error}`)
     }
   }
 
@@ -122,7 +122,7 @@ class BackupValidator {
         result.stats.recordCount = Object.values(backupData.data)
           .reduce((total: number, tableData: any) => {
             return total + (Array.isArray(tableData) ? tableData.length : 0)
-          }, 0)
+          }, 0) as number
       }
 
       // Validar integridade dos dados
@@ -140,7 +140,7 @@ class BackupValidator {
     } catch (error) {
       result.isValid = false
       result.errors.push(`Erro durante validação: ${error}`)
-      backupLogger.error('backup_validation', `Erro ao validar backup ${filePath}: ${error}`)
+      backupLogger.error('validation', `Erro ao validar backup ${filePath}: ${error}`)
     }
 
     return result
@@ -283,11 +283,11 @@ class BackupValidator {
         errors || null
       )
 
-      backupLogger.info('backup_validation', 
+      backupLogger.info('validation', 
         `Validação salva para ${fileName}: ${status} (${result.stats.recordCount} registros)`
       )
     } catch (error) {
-      backupLogger.error('backup_validation', `Erro ao salvar validação: ${error}`)
+      backupLogger.error('validation', `Erro ao salvar validação: ${error}`)
     }
   }
 
@@ -299,14 +299,14 @@ class BackupValidator {
 
     try {
       if (!fs.existsSync(backupDir)) {
-        backupLogger.warn('backup_validation', `Diretório de backup não encontrado: ${backupDir}`)
+        backupLogger.warn('validation', `Diretório de backup não encontrado: ${backupDir}`)
         return results
       }
 
       const files = fs.readdirSync(backupDir)
       const backupFiles = files.filter(file => file.endsWith('.json'))
 
-      backupLogger.info('backup_validation', `Validando ${backupFiles.length} arquivo(s) de backup`)
+      backupLogger.info('validation', `Validando ${backupFiles.length} arquivo(s) de backup`)
 
       for (const file of backupFiles) {
         const filePath = path.join(backupDir, file)
@@ -315,14 +315,14 @@ class BackupValidator {
 
         // Log do resultado
         if (result.isValid) {
-          backupLogger.info('backup_validation', `✅ ${file}: Válido`)
+          backupLogger.info('validation', `✅ ${file}: Válido`)
         } else {
-          backupLogger.error('backup_validation', `❌ ${file}: ${result.errors.join(', ')}`)
+          backupLogger.error('validation', `❌ ${file}: ${result.errors.join(', ')}`)
         }
       }
 
     } catch (error) {
-      backupLogger.error('backup_validation', `Erro ao validar diretório: ${error}`)
+      backupLogger.error('validation', `Erro ao validar diretório: ${error}`)
     }
 
     return results
@@ -339,7 +339,7 @@ class BackupValidator {
         LIMIT ?
       `).all(limit) as BackupIntegrityRecord[]
     } catch (error) {
-      backupLogger.error('backup_validation', `Erro ao buscar histórico: ${error}`)
+      backupLogger.error('validation', `Erro ao buscar histórico: ${error}`)
       return []
     }
   }
@@ -365,7 +365,7 @@ class BackupValidator {
         warnings: stats.warnings || 0
       }
     } catch (error) {
-      backupLogger.error('backup_validation', `Erro ao obter estatísticas: ${error}`)
+      backupLogger.error('validation', `Erro ao obter estatísticas: ${error}`)
       return { total: 0, valid: 0, invalid: 0, warnings: 0 }
     }
   }
@@ -384,14 +384,14 @@ class BackupValidator {
       `).run(cutoffDate.toISOString())
 
       if (result.changes > 0) {
-        backupLogger.info('backup_validation', 
+        backupLogger.info('validation', 
           `Removidos ${result.changes} registro(s) de validação antigos`
         )
       }
 
       return result.changes
     } catch (error) {
-      backupLogger.error('backup_validation', `Erro ao limpar validações antigas: ${error}`)
+      backupLogger.error('validation', `Erro ao limpar validações antigas: ${error}`)
       return 0
     }
   }

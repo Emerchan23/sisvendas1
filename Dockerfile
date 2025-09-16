@@ -1,20 +1,28 @@
-# Usar imagem Node.js oficial
-FROM node:18-alpine
+# Usar imagem Node.js oficial com Debian (melhor compatibilidade)
+FROM node:18-slim
 
 # Definir diretório de trabalho
 WORKDIR /app
 
-# Instalar dependências do sistema necessárias para better-sqlite3
-RUN apk add --no-cache sqlite python3 make g++ libc6-compat
+# Instalar dependências do sistema necessárias
+RUN apt-get update && apt-get install -y \
+    sqlite3 \
+    python3 \
+    python3-dev \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copiar arquivos de dependências
-COPY package*.json ./
+# Copiar arquivos essenciais primeiro
+COPY package*.json postinstall.js auto-install-types.js ./
 
 # Instalar dependências
 RUN npm install
 
 # Copiar código fonte
 COPY . .
+
+# Fazer build de produção do Next.js
+RUN npm run build
 
 # Criar diretório de dados e definir permissões
 RUN mkdir -p /app/data /data
@@ -27,11 +35,11 @@ RUN node install.js || echo "Install script completed"
 # Expor porta
 EXPOSE 3145
 
-# Definir variável de ambiente para o banco de dados
-ENV DB_PATH=../Banco de dados Aqui/erp.sqlite
+# Definir variável de ambiente para o banco de dados (apontando para volume externo)
+ENV DB_PATH="/data/erp.sqlite"
 
 # Definir outras variáveis de ambiente
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3145
 

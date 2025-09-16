@@ -64,7 +64,7 @@ export async function importRowsFromObjects(rows: Record<string, any>[]) {
       numeroOF: String(numeroOF || ""),
       numeroDispensa: String(numeroDispensa || ""),
       cliente: String(cliente || ""),
-      item: String(item || ""),
+
       modalidade: String(modalidade || ""),
       valorVenda,
       taxaCapitalPerc,

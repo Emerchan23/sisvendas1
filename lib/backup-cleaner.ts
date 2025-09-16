@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { db } from './db'
 import { backupLogger } from './backup-logger'
+import { getRecentBackupLogs, forceBackupForEmpresa } from './backup-service'
 
 interface BackupFile {
   name: string
@@ -17,6 +18,19 @@ interface CleanupStats {
   spaceFreed: number
   oldestKept: Date | null
   newestRemoved: Date | null
+}
+
+interface EmpresaConfig {
+  id: number
+  nome: string
+  frequency: string
+  max_backups: number
+  retention_days: number
+}
+
+interface EmpresaBasic {
+  id: number
+  nome: string
 }
 
 class BackupCleaner {
@@ -42,7 +56,7 @@ class BackupCleaner {
         FROM empresas e
         LEFT JOIN empresa_config ec ON e.id = ec.empresa_id
         WHERE e.ativo = 1
-      `).all() as any[]
+      `).all() as EmpresaConfig[]
 
       backupLogger.info('backup_cleanup', `Iniciando limpeza para ${empresas.length} empresa(s)`)
 
@@ -290,13 +304,20 @@ class BackupCleaner {
     const stats = {
       totalFiles: 0,
       totalSize: 0,
-      byEmpresa: [] as any[]
+      byEmpresa: [] as Array<{
+        empresa_id: number
+        empresa_nome: string
+        fileCount: number
+        totalSize: number
+        oldestBackup: Date | null
+        newestBackup: Date | null
+      }>
     }
 
     try {
       const empresas = db.prepare(`
         SELECT id, nome FROM empresas WHERE ativo = 1
-      `).all() as any[]
+      `).all() as EmpresaBasic[]
 
       for (const empresa of empresas) {
         const backupDir = path.join(process.cwd(), 'backups', empresa.nome.replace(/[^a-zA-Z0-9]/g, '_'))
@@ -346,7 +367,7 @@ class BackupCleaner {
         FROM empresas e
         LEFT JOIN empresa_config ec ON e.id = ec.empresa_id
         WHERE e.id = ? AND e.ativo = 1
-      `).get(empresaId) as any
+      `).get(empresaId) as EmpresaConfig | undefined
 
       if (!empresa) {
         throw new Error('Empresa não encontrada ou inativa')

@@ -7,6 +7,7 @@ interface MetricCardProps {
   icon: 'trending' | 'dollar' | 'piggy' | 'calculator' | 'receipt' | 'percent'
   gradient: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'amber'
   tooltip?: string
+  hint?: string
 }
 
 const iconMap = {

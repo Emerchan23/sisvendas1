@@ -48,7 +48,6 @@ export function VendaDialog({
     numeroOF: '',
     numeroDispensa: '',
     cliente: '',
-    item: '',
     modalidade: '',
     valorVenda: 0,
     taxaCapitalPerc: 0,
@@ -80,7 +79,6 @@ export function VendaDialog({
         numeroOF: '',
         numeroDispensa: '',
         cliente: '',
-        item: '',
         modalidade: '',
         valorVenda: 0,
         taxaCapitalPerc: 0,
@@ -279,18 +277,7 @@ export function VendaDialog({
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 text-slate-700 font-medium">
-                    <Package className="h-4 w-4 text-green-600" />
-                    Item/Serviço
-            </Label>
-            <Input
-              value={formData.item || ''}
-              onChange={(e) => setFormData(prev => ({ ...prev, item: e.target.value }))}
-              placeholder="Digite o nome do item ou serviço"
-                    className="bg-white border-slate-300 text-slate-800 placeholder:text-slate-400 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20"
-                  />
-                </div>
+
               </TabsContent>
 
               <TabsContent value="valores" className="space-y-4 mt-0">

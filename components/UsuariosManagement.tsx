@@ -87,7 +87,7 @@ export function UsuariosManagement() {
         // A API retorna { success: true, usuarios: [...] }
         const usuariosComPermissoes = Array.isArray(data.usuarios) 
           ? data.usuarios.map((usuario: any) => {
-              let permissoes = []
+              let permissoes: string[] = []
               if (usuario.permissoes) {
                 let permissoesObj
                 // Verificar se já é um objeto ou se é uma string JSON
@@ -197,7 +197,7 @@ export function UsuariosManagement() {
 
   const editarUsuario = (usuario: Usuario) => {
     // Garantir que as permissões sejam um array
-    let permissoes = []
+    let permissoes: string[] = []
     if (usuario.permissoes) {
       if (Array.isArray(usuario.permissoes)) {
         permissoes = usuario.permissoes
@@ -490,7 +490,7 @@ export function UsuariosManagement() {
                         <Edit className="h-4 w-4 mr-1" />
                         Editar
                       </Button>
-                      {usuario.id !== usuarioLogado?.id && (
+                      {usuario.id !== Number(usuarioLogado?.id) && (
                         <Button
                           variant="destructive"
                           size="sm"

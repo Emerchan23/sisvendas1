@@ -24,7 +24,6 @@ export function middleware(request: NextRequest) {
 
   // Para todas as outras rotas, deixar a API fazer a verificação de autenticação
   // O middleware apenas passa a requisição adiante
-  console.log('🔄 Middleware: Passando requisição para:', pathname)
   return NextResponse.next()
 }
 

@@ -46,7 +46,7 @@ class BackupRetryManager {
         )
       `)
     } catch (error) {
-      backupLogger.error('retry_init', `Erro ao inicializar tabela de falhas: ${error}`)
+      backupLogger.error('backup_retry', `Erro ao inicializar tabela de falhas: ${error}`)
     }
   }
 

@@ -1,11 +1,11 @@
-import fs from 'fs'
-import path from 'path'
+import * as fs from 'fs'
+import * as path from 'path'
 
 export interface BackupLogEntry {
   id: string
   timestamp: string
   level: 'info' | 'warn' | 'error' | 'success'
-  action: 'scheduler_start' | 'scheduler_stop' | 'backup_check' | 'backup_start' | 'backup_complete' | 'backup_error' | 'cleanup' | 'validation'
+  action: 'scheduler_start' | 'scheduler_stop' | 'backup_check' | 'backup_start' | 'backup_complete' | 'backup_error' | 'cleanup' | 'validation' | 'backup_retry' | 'scheduler' | 'notification_init' | 'notification_config' | 'notification_success' | 'notification_failure' | 'notification_retry' | 'backup_cleanup' | 'management_api' | 'notification_recipients'
   empresaId?: number
   empresaNome?: string
   message: string

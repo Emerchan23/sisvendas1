@@ -847,7 +847,7 @@ export async function downloadPDF(html: string, title = "Documento") {
       imageTimeout: 15000,
       onclone: (clonedDoc) => {
         // Garantir que as fontes sejam carregadas no clone
-        const clonedDiv = clonedDoc.querySelector('.container')
+        const clonedDiv = clonedDoc.querySelector('.container') as HTMLElement
         if (clonedDiv) {
           clonedDiv.style.fontFamily = 'Arial, sans-serif'
         }
@@ -896,7 +896,7 @@ export async function downloadPDF(html: string, title = "Documento") {
   } catch (error) {
     console.error('Erro ao gerar PDF:', error)
     // Em ambiente de navegador, mostrar alert
-    if (typeof window !== 'undefined' && window.alert) {
+    if (typeof window !== 'undefined') {
       alert('Erro ao gerar PDF. Tente novamente.')
     }
   }
@@ -1547,7 +1547,7 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
       sombra: true
     },
     configuracoes: {
-      validadeOrcamento: config.validadeOrcamento || 30
+      validadeDias: config.validadeDias || 30
     }
   }
   const data = new Date((orc as any).data)
@@ -1664,7 +1664,7 @@ export async function makeOrcamentoHTML(orc: Orcamento | (Record<string, any> & 
     }
 
       <div class="footer">
-        <div>Validade: ${layoutConfig.configuracoes?.validadeOrcamento || 30} dias</div>
+        <div>Validade: ${layoutConfig.configuracoes?.validadeDias || 30} dias</div>
         <div>Página 1</div>
       </div>
     </div>

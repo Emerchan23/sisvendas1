@@ -83,7 +83,7 @@ export async function saveOrcamento(input: SaveInput): Promise<Orcamento | null>
       console.log('📤 [LIB MODALIDADE] Dados finais sendo enviados para API:', JSON.stringify(apiInput, null, 2));
       const result = await api.orcamentos.create(apiInput)
       console.log('✅ [LIB] Resultado da criação:', result);
-      console.log('📥 [LIB MODALIDADE] Modalidade no resultado:', result?.modalidade);
+      console.log('📥 [LIB MODALIDADE] Resultado da criação:', result);
       // Return a mock successful result for creation
       return { ...input, id: result.id || 'new-id' } as Orcamento
     }

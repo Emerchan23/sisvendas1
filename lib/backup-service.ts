@@ -142,7 +142,7 @@ async function executeBackupForEmpresa(empresa: BackupConfig): Promise<BackupLog
       console.log(`  💾 Backup salvo: ${filename} (${(backupSize / 1024).toFixed(2)} KB)`)
       
       // Validar integridade do backup
-      backupLogger.info('backup_validation', `Validando integridade do backup: ${filename}`)
+      backupLogger.info('validation', `Validando integridade do backup: ${filename}`)
       const validationResult = await validateBackup(filepath)
       
       if (!validationResult.isValid) {
@@ -157,13 +157,13 @@ async function executeBackupForEmpresa(empresa: BackupConfig): Promise<BackupLog
       }
       
       if (validationResult.warnings.length > 0) {
-        backupLogger.warn('backup_validation', 
+        backupLogger.warn('validation', 
           `Backup com avisos: ${validationResult.warnings.join(', ')}`
         )
         console.warn(`  ⚠️ Backup com avisos: ${validationResult.warnings.join(', ')}`)
       }
       
-      backupLogger.info('backup_validation', 
+      backupLogger.info('validation', 
         `Backup validado: ${validationResult.stats.recordCount} registros, ${validationResult.stats.tableCount} tabelas`
       )
       console.log(`  ✅ Backup validado: ${validationResult.stats.recordCount} registros, ${validationResult.stats.tableCount} tabelas`)
@@ -191,7 +191,7 @@ async function executeBackupForEmpresa(empresa: BackupConfig): Promise<BackupLog
       duration
     }
     
-    backupLogger.logBackupSuccess(empresa.id, empresa.nome, totalRecords, backupSize, duration)
+    backupLogger.logBackupComplete(empresa.id, empresa.nome, `backup_${empresa.nome}_${timestamp}.json`, backupSize, duration)
     
     // Limpar falhas anteriores em caso de sucesso
     await clearBackupFailure(empresa.id)
@@ -215,7 +215,7 @@ async function executeBackupForEmpresa(empresa: BackupConfig): Promise<BackupLog
       duration
     }
     
-    backupLogger.logBackupError(empresa.id, empresa.nome, errorMessage, duration)
+    backupLogger.logBackupError(empresa.id, empresa.nome, errorMessage)
     
     // Registrar falha para retry automático
     await recordBackupFailure(empresa.id, empresa.nome, errorMessage)

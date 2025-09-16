@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
-    "dev": "next dev -p 3145",
+    "build": "npm run check-types && next build",
+    "dev": "npm run check-types && next dev -p 3145",
     "lint": "next lint",
     "start": "next start -p 3145",
     "seed": "tsx lib/seed-demo.ts",
@@ -17,7 +17,10 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "check-prd-compliance": "node check-no-db-violation.js"
+    "check-prd-compliance": "node check-no-db-violation.js",
+    "check-types": "node auto-install-types.js",
+    "fix-types": "node auto-install-types.js",
+    "postinstall": "node postinstall.js"
   },
   "dependencies": {
     "@fastify/cookie": "latest",
@@ -104,6 +107,9 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
     "@types/better-sqlite3": "^7.6.8",
+    "@types/estree": "^1.0.8",
+    "@types/json-schema": "^7.0.15",
+    "@types/ms": "^2.1.0",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
